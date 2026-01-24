@@ -1,5 +1,5 @@
-import { TodoList } from "@/components/todo-list";
+import { Playground } from "@/components/playground";
 
 export default function Page() {
-  return <TodoList />;
+  return <Playground />;
 }

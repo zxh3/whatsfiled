@@ -8,7 +8,11 @@
  * @module
  */
 
-import type * as todos from "../todos.js";
+import type * as crons from "../crons.js";
+import type * as helpers_edgarDailyIndexForms from "../helpers/edgarDailyIndexForms.js";
+import type * as helpers_edgarFetchClient from "../helpers/edgarFetchClient.js";
+import type * as helpers_utils from "../helpers/utils.js";
+import type * as secFilings from "../secFilings.js";
 
 import type {
   ApiFromModules,
@@ -17,7 +21,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  todos: typeof todos;
+  crons: typeof crons;
+  "helpers/edgarDailyIndexForms": typeof helpers_edgarDailyIndexForms;
+  "helpers/edgarFetchClient": typeof helpers_edgarFetchClient;
+  "helpers/utils": typeof helpers_utils;
+  secFilings: typeof secFilings;
 }>;
 
 /**
