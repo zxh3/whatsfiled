@@ -1,5 +1,5 @@
-import { ComponentExample } from "@/components/component-example";
+import { TodoList } from "@/components/todo-list";
 
 export default function Page() {
-  return <ComponentExample />;
+  return <TodoList />;
 }
