@@ -208,7 +208,11 @@ export function SiteHeader() {
               )}
             </AnimatePresence>
           </form>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground flex items-center gap-3">
+            <a href="/resources/sec-filings" className="hover:text-foreground">
+              SEC Guide
+            </a>
+            <span className="text-border">·</span>
             <a href="/sync" className="hover:text-foreground">
               Sync status
             </a>

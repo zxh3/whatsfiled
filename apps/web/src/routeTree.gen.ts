@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SyncRouteImport } from './routes/sync'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ResourcesSecFilingsRouteImport } from './routes/resources.sec-filings'
 import { Route as InsiderCikRouteImport } from './routes/insider.$cik'
 import { Route as FilingAccessionNumberRouteImport } from './routes/filing.$accessionNumber'
 import { Route as CompanyCikRouteImport } from './routes/company.$cik'
@@ -29,6 +30,11 @@ const SearchRoute = SearchRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResourcesSecFilingsRoute = ResourcesSecFilingsRouteImport.update({
+  id: '/resources/sec-filings',
+  path: '/resources/sec-filings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InsiderCikRoute = InsiderCikRouteImport.update({
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/company/$cik': typeof CompanyCikRoute
   '/filing/$accessionNumber': typeof FilingAccessionNumberRoute
   '/insider/$cik': typeof InsiderCikRoute
+  '/resources/sec-filings': typeof ResourcesSecFilingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/company/$cik': typeof CompanyCikRoute
   '/filing/$accessionNumber': typeof FilingAccessionNumberRoute
   '/insider/$cik': typeof InsiderCikRoute
+  '/resources/sec-filings': typeof ResourcesSecFilingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/company/$cik': typeof CompanyCikRoute
   '/filing/$accessionNumber': typeof FilingAccessionNumberRoute
   '/insider/$cik': typeof InsiderCikRoute
+  '/resources/sec-filings': typeof ResourcesSecFilingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/company/$cik'
     | '/filing/$accessionNumber'
     | '/insider/$cik'
+    | '/resources/sec-filings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/company/$cik'
     | '/filing/$accessionNumber'
     | '/insider/$cik'
+    | '/resources/sec-filings'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/company/$cik'
     | '/filing/$accessionNumber'
     | '/insider/$cik'
+    | '/resources/sec-filings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   CompanyCikRoute: typeof CompanyCikRoute
   FilingAccessionNumberRoute: typeof FilingAccessionNumberRoute
   InsiderCikRoute: typeof InsiderCikRoute
+  ResourcesSecFilingsRoute: typeof ResourcesSecFilingsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -129,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resources/sec-filings': {
+      id: '/resources/sec-filings'
+      path: '/resources/sec-filings'
+      fullPath: '/resources/sec-filings'
+      preLoaderRoute: typeof ResourcesSecFilingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/insider/$cik': {
@@ -162,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompanyCikRoute: CompanyCikRoute,
   FilingAccessionNumberRoute: FilingAccessionNumberRoute,
   InsiderCikRoute: InsiderCikRoute,
+  ResourcesSecFilingsRoute: ResourcesSecFilingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
