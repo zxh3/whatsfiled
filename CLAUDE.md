@@ -58,6 +58,11 @@ pnpm db:studio              # Open Drizzle Studio
 pnpm --filter @whatsfiled/web dev
 pnpm --filter @whatsfiled/backend dev
 pnpm --filter @whatsfiled/edgar-client test
+
+# Backend Scripts (see apps/backend/CLAUDE.md for details)
+pnpm --filter @whatsfiled/backend tsx src/scripts/backfill.ts --help     # SEC filing backfill
+pnpm --filter @whatsfiled/backend tsx src/scripts/check-data.ts          # Database summary
+pnpm --filter @whatsfiled/backend tsx src/scripts/cleanup-stuck.ts       # Reset stuck jobs
 ```
 
 ## Key Patterns
