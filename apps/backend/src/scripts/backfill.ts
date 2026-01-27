@@ -249,20 +249,56 @@ async function main() {
     if (stage === "filing" || stage === "all") {
       console.log("--- Stage 3: Filing Processing ---");
 
-      // Clean up stale locks first
-      await cleanupStaleLocks();
+      const maxBatchSize = 500;
+      let remaining = limit ?? Infinity;
+      let aggregate = {
+        processed: 0,
+        completed: 0,
+        failed: 0,
+        skipped: 0,
+        errors: [] as Array<{ fileName: string; error: string }>,
+      };
 
-      const filingResult = await processFilings({
-        batchSize: limit || 50,
-        dryRun,
-      });
-      console.log(`Processed:  ${filingResult.processed}`);
-      console.log(`Completed:  ${filingResult.completed}`);
-      console.log(`Failed:     ${filingResult.failed}`);
-      console.log(`Skipped:    ${filingResult.skipped}`);
-      if (filingResult.errors.length > 0) {
-        console.log(`Errors:     ${filingResult.errors.length}`);
-        for (const err of filingResult.errors.slice(0, 5)) {
+      while (remaining > 0) {
+        const batchSize = Number.isFinite(remaining)
+          ? Math.min(maxBatchSize, remaining)
+          : maxBatchSize;
+
+        // Clean up stale locks before each batch
+        await cleanupStaleLocks();
+
+        const filingResult = await processFilings({
+          batchSize,
+          dryRun,
+        });
+
+        aggregate.processed += filingResult.processed;
+        aggregate.completed += filingResult.completed;
+        aggregate.failed += filingResult.failed;
+        aggregate.skipped += filingResult.skipped;
+        aggregate.errors.push(
+          ...filingResult.errors.map((err) => ({
+            fileName: err.fileName,
+            error: err.error,
+          })),
+        );
+
+        if (filingResult.processed === 0) {
+          break;
+        }
+
+        if (Number.isFinite(remaining)) {
+          remaining -= filingResult.processed;
+        }
+      }
+
+      console.log(`Processed:  ${aggregate.processed}`);
+      console.log(`Completed:  ${aggregate.completed}`);
+      console.log(`Failed:     ${aggregate.failed}`);
+      console.log(`Skipped:    ${aggregate.skipped}`);
+      if (aggregate.errors.length > 0) {
+        console.log(`Errors:     ${aggregate.errors.length}`);
+        for (const err of aggregate.errors.slice(0, 5)) {
           console.log(`  - ${err.fileName}: ${err.error}`);
         }
       }

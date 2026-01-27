@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
 import { CircleHelp } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -128,13 +129,15 @@ export default function AdminPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const searchParams = useSearchParams();
   const showSkipped = searchParams.get("showSkipped") === "1";
+  const selectedYearParam = searchParams.get("year");
+  const selectedYear = selectedYearParam ? Number(selectedYearParam) : 2026;
 
   const statsQuery = trpc.pipeline.getStats.useQuery(undefined, {
     refetchInterval: autoRefresh ? 5000 : false,
   });
 
   const coverageQuery = trpc.pipeline.getIndexCoverage.useQuery(
-    { year: 2026, formType: "4" },
+    { year: selectedYear, formType: "4" },
     { refetchInterval: autoRefresh ? 30000 : false }
   );
 
@@ -440,9 +443,30 @@ export default function AdminPage() {
           {coverage && (
             <section>
               <SectionHeader
-                title={`2026 Coverage (${coverage.completedDays} / ${coverage.totalDays} days fully processed)`}
+                title={`${selectedYear} Coverage (${coverage.completedDays} / ${coverage.totalDays} days fully processed)`}
                 tooltip="Shows each business day and the actual filing processing progress. A day is 'fully processed' when all filings for that date have been fetched, parsed, and stored."
               />
+              <div className="mb-4 flex items-center gap-3 text-sm">
+                <label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Year
+                </label>
+                <div className="flex gap-2">
+                  {[2026, 2025, 2024, 2023].map((year) => (
+                    <Link
+                      key={year}
+                      href={`/sync?year=${year}${showSkipped ? "&showSkipped=1" : ""}`}
+                      scroll={false}
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${
+                        year === selectedYear
+                          ? "bg-foreground text-background"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      {year}
+                    </Link>
+                  ))}
+                </div>
+              </div>
               <div className="bg-card border border-border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
