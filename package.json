@@ -8,13 +8,19 @@
     "build": "turbo build",
     "lint": "biome check .",
     "typecheck": "turbo typecheck",
+    "test": "turbo test",
     "format": "biome format --write",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:reset": "docker compose down -v && docker compose up -d",
+    "db:push": "pnpm --filter @whatsfiled/backend db:push",
+    "db:studio": "pnpm --filter @whatsfiled/backend db:studio",
     "script:test-form4": "tsx scripts/testForm4Parser.ts"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.0",
-    "turbo": "^2.6.0",
+    "@biomejs/biome": "2.3.13",
+    "turbo": "^2.7.6",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }

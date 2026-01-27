@@ -77,7 +77,7 @@ function parseIdxLineWithKnownForms(
       matchedForm = f;
       break;
     }
-    if (normalized.startsWith(f + " ")) {
+    if (normalized.startsWith(`${f} `)) {
       matchedForm = f;
       break;
     }

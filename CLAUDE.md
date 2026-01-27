@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Whatsfiled is a full-stack application for aggregating and parsing SEC EDGAR filings, with a focus on insider trading forms (Form 4, Form 4/A). It uses Next.js 16 with React 19 for the frontend and Convex as the backend/database.
+Whatsfiled is a full-stack application for aggregating and parsing SEC EDGAR filings, with a focus on insider trading forms (Form 4, Form 4/A). It uses Next.js 16 with React 19 for the frontend and tRPC with PostgreSQL/Drizzle for the backend.
 
 This is a **Turborepo monorepo** with the following structure:
 
@@ -12,13 +12,15 @@ This is a **Turborepo monorepo** with the following structure:
 whatsfiled/
 ├── apps/
 │   ├── web/                      # Next.js 16 frontend
-│   └── backend/                  # Convex backend
-│       └── convex/               # All Convex functions
+│   └── backend/                  # tRPC standalone server
+│       └── src/
+│           ├── db/               # Drizzle schema and connection
+│           └── trpc/             # tRPC routers and context
 ├── packages/
 │   ├── edgar-client/             # SEC EDGAR API client library
 │   ├── ui/                       # Shared Shadcn UI components
 │   └── typescript-config/        # Shared TypeScript configs
-├── scripts/                      # Development scripts
+├── archived/                     # Old code (e.g., Convex backend)
 ├── turbo.json                    # Turborepo configuration
 └── package.json                  # Workspace root
 ```
@@ -27,21 +29,22 @@ whatsfiled/
 
 ```bash
 # Development
-pnpm dev          # Start all dev servers via Turbo (Next.js + Convex)
+pnpm dev          # Start all dev servers via Turbo
 pnpm build        # Production build
 pnpm typecheck    # TypeScript type checking
 pnpm lint         # Run Biome linter
 pnpm format       # Format with Biome (auto-fix)
 
-# Scripts
-pnpm script:test-form4    # Run Form 4 parser test script
-
 # Individual workspaces
 pnpm --filter @whatsfiled/web dev       # Run only Next.js dev
-pnpm --filter @whatsfiled/backend dev   # Run only Convex dev
-```
+pnpm --filter @whatsfiled/backend dev   # Run only tRPC server
 
-For Convex development, run `cd apps/backend && pnpm convex dev` to sync schema and functions.
+# Database (backend)
+pnpm --filter @whatsfiled/backend db:generate   # Generate migrations
+pnpm --filter @whatsfiled/backend db:migrate    # Run migrations
+pnpm --filter @whatsfiled/backend db:push       # Push schema (dev)
+pnpm --filter @whatsfiled/backend db:studio     # Open Drizzle Studio
+```
 
 ## Architecture
 
@@ -50,13 +53,15 @@ For Convex development, run `cd apps/backend && pnpm convex dev` to sync schema 
 - **apps/web/**: Next.js 16 frontend (App Router)
   - `src/app/` - Pages and layouts
   - `src/components/` - App-specific components
-  - Dependencies: `@whatsfiled/ui`, `@whatsfiled/backend`
+  - Dependencies: `@whatsfiled/ui`
 
-- **apps/backend/**: Convex backend
-  - `convex/schema.ts` - Database tables
-  - `convex/secFilings.ts` - Core business logic
-  - `convex/crons.ts` - Scheduled jobs
-  - `convex/_generated/` - Auto-generated types (do not edit)
+- **apps/backend/**: tRPC standalone server
+  - `src/index.ts` - HTTP server entry point
+  - `src/db/schema.ts` - Drizzle database schema
+  - `src/db/index.ts` - Database connection
+  - `src/trpc/init.ts` - tRPC initialization
+  - `src/trpc/context.ts` - Request context
+  - `src/trpc/routers/` - tRPC routers
 
 - **packages/edgar-client/**: SEC EDGAR API client library
   - Standalone package for fetching and parsing SEC EDGAR filings
@@ -64,29 +69,12 @@ For Convex development, run `cd apps/backend && pnpm convex dev` to sync schema 
   - Supports daily index fetching, Form 4 parsing, and more
 
 - **packages/ui/**: Shared Shadcn UI components
-  - `src/components/` - 14 Shadcn components (button, card, input, etc.)
+  - `src/components/` - Shadcn components (button, card, input, etc.)
   - `src/lib/utils.ts` - Tailwind utility functions
 
 - **packages/typescript-config/**: Shared tsconfig bases
   - `base.json` - Common settings
   - `nextjs.json` - Next.js specific
-  - `convex.json` - Convex specific
-
-### Data Pipeline
-
-The system uses a three-stage pipeline processed by cron jobs:
-
-1. **Raw Index Fetch** (00:00 UTC): Downloads SEC EDGAR daily index files
-2. **Row Parsing** (01:00 UTC): Parses index files into individual filing rows
-3. **Form Parsing**: Extracts and validates Form 4 XML documents
-
-### Backend Patterns
-
-- **Internal functions**: Prefixed with `_` (e.g., `_insertRawEdgarDailyIndexForm`) for internal-only use
-- **State machine**: Records track state (`pending` → `processed` → `failed`)
-- **Idempotency**: Insert operations check for existing records
-- **Retry with backoff**: HTTP requests use exponential backoff (1s to 60s)
-- **Batch operations**: Database writes chunked in groups of 100
 
 ### Form 4 Parsing
 
@@ -100,7 +88,9 @@ Located in `packages/edgar-client/`:
 ```typescript
 import { EdgarClient } from "@whatsfiled/edgar-client";
 
-const client = new EdgarClient();
+const client = new EdgarClient({
+  userAgent: "MyApp contact@example.com",
+});
 const content = await client.fetchFiling("edgar/data/123/000123-24-001.txt");
 const doc = client.parseForm4(content);
 ```
@@ -111,15 +101,13 @@ const doc = client.parseForm4(content);
 - Path aliases:
   - `@/*` maps to `./src/*` (in web app)
   - `@whatsfiled/ui/*` maps to UI package
-  - `@whatsfiled/backend/*` maps to backend package
 - Strict mode enabled
 - Biome handles linting with Next.js and React recommended rules
 
-## Importing Between Packages
+## Environment Variables
 
-```typescript
-// In apps/web components:
-import { Button } from "@whatsfiled/ui/components/button";
-import { cn } from "@whatsfiled/ui/lib/utils";
-import { api } from "@whatsfiled/backend/convex/_generated/api";
+### Backend (.env)
+```
+DATABASE_URL=postgres://user:password@localhost:5432/whatsfiled
+PORT=3001
 ```

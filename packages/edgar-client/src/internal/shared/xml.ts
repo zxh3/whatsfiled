@@ -1,4 +1,4 @@
-import { XMLParser, type X2jOptions } from "fast-xml-parser";
+import { type X2jOptions, XMLParser } from "fast-xml-parser";
 
 /**
  * Extract XML content from SEC document wrapper.
@@ -11,7 +11,7 @@ import { XMLParser, type X2jOptions } from "fast-xml-parser";
 export function extractXmlFromSecDocument(content: string): string {
   // Look for XML content between <XML> tags
   const xmlMatch = content.match(/<XML>\s*([\s\S]*?)\s*<\/XML>/i);
-  if (xmlMatch && xmlMatch[1]) {
+  if (xmlMatch?.[1]) {
     return xmlMatch[1].trim();
   }
 

@@ -27,13 +27,13 @@ import {
   normalizeNonDerivativeTransaction,
 } from "./tables";
 
+export * from "./footnotes";
+export * from "./owner";
 // Re-export all normalizers for external use
 export * from "./primitives";
-export * from "./value-with-footnotes";
-export * from "./transaction";
-export * from "./owner";
 export * from "./tables";
-export * from "./footnotes";
+export * from "./transaction";
+export * from "./value-with-footnotes";
 
 /**
  * Ensure a value is an array.

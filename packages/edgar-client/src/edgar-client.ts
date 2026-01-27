@@ -1,3 +1,4 @@
+import { FORM_TYPES } from "./constants";
 import { EdgarFetchError } from "./errors";
 import {
   buildArchiveFileUrl,
@@ -19,7 +20,6 @@ import {
   getFilingBaseUrl,
 } from "./internal/form4/urls";
 import { fetchWithBackoff, sleep } from "./internal/http";
-import { FORM_TYPES } from "./constants";
 import type {
   DailyIndexResult,
   DailyIndexRow,

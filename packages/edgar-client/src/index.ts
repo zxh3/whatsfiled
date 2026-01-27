@@ -1,7 +1,9 @@
 // Main export - the EdgarClient class
-export { EdgarClient } from "./edgar-client";
-export type { EdgarClientOptions } from "./edgar-client";
 
+// Constants
+export { FORM_TYPES, FORM4_SCHEMA_VERSIONS } from "./constants";
+export type { EdgarClientOptions } from "./edgar-client";
+export { EdgarClient } from "./edgar-client";
 // Error classes
 export {
   EdgarFetchError,
@@ -11,20 +13,11 @@ export {
   ValidationError,
 } from "./errors";
 
-// Constants
-export { FORM_TYPES, FORM4_SCHEMA_VERSIONS } from "./constants";
-
 // Types
 export type {
-  // Utility types
-  Logger,
-  Result,
-  RetryOptions,
-  ValueWithFootnotes,
   // Daily index types
   DailyIndexResult,
   DailyIndexRow,
-  FormType,
   // Form 4 types
   DocumentType,
   Form4DerivativeHolding,
@@ -47,5 +40,11 @@ export type {
   Form4TransactionAmounts,
   Form4TransactionCoding,
   Form4UnderlyingSecurity,
+  FormType,
+  // Utility types
+  Logger,
+  Result,
+  RetryOptions,
   SchemaVersion,
+  ValueWithFootnotes,
 } from "./types";

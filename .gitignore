@@ -51,3 +51,6 @@ scripts/tmp
 
 # convex generated
 packages/backend/convex/_generated
+
+# archived
+.archived/

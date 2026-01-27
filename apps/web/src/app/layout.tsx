@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Figtree, Geist, Geist_Mono } from "next/font/google";
-
-import { ConvexClientProvider } from "@/components/convex-provider";
+import { Providers } from "@/components/providers";
 
 import "./globals.css";
 
@@ -33,7 +32,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

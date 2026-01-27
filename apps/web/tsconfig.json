@@ -3,8 +3,7 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
-      "@whatsfiled/ui/*": ["../../packages/ui/src/*"],
-      "@whatsfiled/backend/*": ["../backend/*"]
+      "@whatsfiled/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

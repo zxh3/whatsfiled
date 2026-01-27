@@ -11,6 +11,8 @@
  * 2. Export types from that file here
  */
 
+// Re-export constants for convenience (actual definitions in ../constants.ts)
+export { FORM_TYPES, FORM4_SCHEMA_VERSIONS } from "../constants";
 // Common utility types
 export type {
   Logger,
@@ -18,10 +20,8 @@ export type {
   RetryOptions,
   ValueWithFootnotes,
 } from "./common";
-
 // Daily index types
 export type { DailyIndexResult, DailyIndexRow, FormType } from "./daily-index";
-
 // Form 4 types
 export type {
   DocumentType,
@@ -47,6 +47,3 @@ export type {
   Form4UnderlyingSecurity,
   SchemaVersion,
 } from "./form4";
-
-// Re-export constants for convenience (actual definitions in ../constants.ts)
-export { FORM_TYPES, FORM4_SCHEMA_VERSIONS } from "../constants";
