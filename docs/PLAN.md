@@ -59,6 +59,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 - [x] Fetch and parse queued filings with EdgarClient
 - [x] Extract and normalize transaction data
 - [x] Link to companies and insiders (upsert logic)
+- [x] Store SEC acceptance datetime (`filed_at`, timestamptz)
 - [x] Distributed locking via `locked_until` column
 - [x] Retry logic with max 3 attempts
 - [x] Error tracking with `last_error`, `last_error_at`
@@ -78,6 +79,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 - [x] Failed filings list with error details
 - [x] Retry endpoints for failed filings/indexes
 - [x] Manual trigger endpoints for each stage
+- [x] Sync status UI (`/sync`)
 
 ### Pipeline Architecture
 ```
@@ -110,9 +112,10 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 > **Philosophy: No login required.** All core browsing is public. Auth only needed for personalization features (Phase 4).
 
 ### 3.1 Activity Feed (Homepage) ← Start Here
-- [ ] Real-time feed of latest filings
-- [ ] Clean, minimal card design
-- [ ] Each card shows: Company, Insider, Buy/Sell, Shares, Price, % Ownership Change
+- [x] Latest filings feed
+- [x] Clean, minimal card design
+- [x] Each card shows: Company, Insider, Buy/Sell, Shares, Price, % Ownership Change, Filing time
+- [x] Mixed filings show compact transaction list on hover
 - [ ] Filter by form type (4, 4/A)
 - [ ] Highlight notable transactions (large buys, C-suite trades)
 - [ ] Click to drill into filing/company/insider
@@ -239,7 +242,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 2. ~~Daily index fetcher cron job~~ ✅
 3. ~~Filing processor pipeline~~ ✅
 4. Backfill 2026 data
-5. Activity Feed homepage (Phase 3.1)
+5. ~~Activity Feed homepage (Phase 3.1)~~ ✅
 6. Filing detail view (Phase 3.2)
 
 ### Mid-term
@@ -282,7 +285,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 2. ~~Build daily index fetcher cron job (Phase 2.2)~~ ✅
 3. ~~Build filing processor pipeline (Phase 2.3)~~ ✅
 4. **Backfill 2026 data** ← Current
-5. Build Activity Feed homepage (Phase 3.1)
+5. ~~Build Activity Feed homepage (Phase 3.1)~~ ✅
 6. Build Filing detail view (Phase 3.2)
 7. Build Company view (Phase 3.3)
 8. Build Insider view (Phase 3.4)
