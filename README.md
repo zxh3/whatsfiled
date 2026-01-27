@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WhatsFiled
 
-## Getting Started
+Insider stock trades, made clear. Search public companies. Follow insiders. Get alerts.
 
-First, run the development server:
+WhatsFiled aggregates and parses SEC EDGAR filings, with a focus on Form 4 (insider trading) disclosures.
+
+## Tech Stack
+
+- **Frontend**: Next.js 16, React 19, Tailwind CSS 4, Shadcn UI
+- **Backend**: Express, tRPC, PostgreSQL, Drizzle ORM
+- **Tooling**: Turborepo, pnpm, Biome, TypeScript
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 9+
+- Docker (for PostgreSQL)
+
+### Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Clone and install
+git clone https://github.com/yourusername/whatsfiled.git
+cd whatsfiled
+pnpm install
+
+# Start PostgreSQL
+pnpm docker:up
+
+# Configure environment
+cp apps/backend/.env.example apps/backend/.env
+
+# Push database schema
+pnpm db:push
+
+# Start development servers
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3001 for the frontend.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+whatsfiled/
+├── apps/
+│   ├── web/           # Next.js frontend
+│   └── backend/       # tRPC + Express API server
+├── packages/
+│   ├── edgar-client/  # SEC EDGAR parsing library
+│   ├── ui/            # Shared UI components
+│   └── typescript-config/
+└── docker-compose.yml
+```
 
-## Learn More
+## Development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm dev          # Start all services
+pnpm build        # Production build
+pnpm typecheck    # Type checking
+pnpm lint         # Lint code
+pnpm test         # Run tests
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Database Commands
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm docker:up     # Start PostgreSQL
+pnpm docker:down   # Stop PostgreSQL
+pnpm docker:reset  # Reset database
+pnpm db:push       # Push schema changes
+pnpm db:studio     # Open Drizzle Studio
+```
 
-## Deploy on Vercel
+## Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Backend (`apps/backend/.env`)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```env
+DATABASE_URL=postgres://user:password@localhost:5432/whatsfiled
+PORT=3000
+NODE_ENV=development
+```
+
+## SEC EDGAR Client
+
+The `@whatsfiled/edgar-client` package provides utilities for fetching and parsing SEC filings:
+
+```typescript
+import { EdgarClient } from "@whatsfiled/edgar-client";
+
+const client = new EdgarClient({
+  userAgent: "YourApp contact@example.com",
+});
+
+// Fetch and parse a Form 4 filing
+const content = await client.fetchFiling("edgar/data/123/000123-24-001.txt");
+const form4 = client.parseForm4(content);
+
+console.log(form4.issuer.name);
+console.log(form4.reportingOwners);
+console.log(form4.nonDerivativeTransactions);
+```
+
+## License
+
+MIT

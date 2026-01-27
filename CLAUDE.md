@@ -4,110 +4,115 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Whatsfiled is a full-stack application for aggregating and parsing SEC EDGAR filings, with a focus on insider trading forms (Form 4, Form 4/A). It uses Next.js 16 with React 19 for the frontend and tRPC with PostgreSQL/Drizzle for the backend.
+WhatsFiled is a full-stack application for aggregating and parsing SEC EDGAR filings, focusing on insider trading forms (Form 4, Form 4/A). Built with Next.js 16 + React 19 frontend and tRPC + Express + PostgreSQL backend.
 
-This is a **Turborepo monorepo** with the following structure:
+## Monorepo Structure
 
 ```
 whatsfiled/
 ├── apps/
-│   ├── web/                      # Next.js 16 frontend
-│   └── backend/                  # tRPC standalone server
+│   ├── web/                      # Next.js 16 frontend (port 3001)
+│   │   ├── src/app/              # App Router pages
+│   │   ├── src/components/       # React components
+│   │   └── src/lib/trpc.ts       # tRPC client setup
+│   └── backend/                  # Express + tRPC server (port 3000)
 │       └── src/
-│           ├── db/               # Drizzle schema and connection
+│           ├── index.ts          # Express server entry
+│           ├── env.ts            # Zod-validated env vars
+│           ├── cron/             # node-cron scheduled jobs
+│           ├── db/               # Drizzle ORM schema + connection
 │           └── trpc/             # tRPC routers and context
 ├── packages/
 │   ├── edgar-client/             # SEC EDGAR API client library
+│   │   ├── src/edgar-client.ts   # Main EdgarClient class
+│   │   ├── src/types/            # TypeScript types (Form4, etc.)
+│   │   └── src/internal/         # Parsers, normalizers, shared utils
 │   ├── ui/                       # Shared Shadcn UI components
 │   └── typescript-config/        # Shared TypeScript configs
-├── archived/                     # Old code (e.g., Convex backend)
-├── turbo.json                    # Turborepo configuration
-└── package.json                  # Workspace root
+├── archived/                     # Old code (Convex backend)
+├── docker-compose.yml            # PostgreSQL for local dev
+└── biome.json                    # Linting/formatting config
 ```
 
 ## Commands
 
 ```bash
 # Development
-pnpm dev          # Start all dev servers via Turbo
-pnpm build        # Production build
-pnpm typecheck    # TypeScript type checking
-pnpm lint         # Run Biome linter
-pnpm format       # Format with Biome (auto-fix)
+pnpm dev                    # Start all dev servers (frontend + backend)
+pnpm build                  # Production build
+pnpm typecheck              # TypeScript checking
+pnpm lint                   # Biome linter
+pnpm format                 # Biome auto-format
+pnpm test                   # Run tests
 
-# Individual workspaces
-pnpm --filter @whatsfiled/web dev       # Run only Next.js dev
-pnpm --filter @whatsfiled/backend dev   # Run only tRPC server
+# Docker (PostgreSQL)
+pnpm docker:up              # Start database
+pnpm docker:down            # Stop database
+pnpm docker:reset           # Reset database (wipes data)
 
-# Database (backend)
-pnpm --filter @whatsfiled/backend db:generate   # Generate migrations
-pnpm --filter @whatsfiled/backend db:migrate    # Run migrations
-pnpm --filter @whatsfiled/backend db:push       # Push schema (dev)
-pnpm --filter @whatsfiled/backend db:studio     # Open Drizzle Studio
+# Database
+pnpm db:push                # Push schema to database
+pnpm db:studio              # Open Drizzle Studio
+
+# Individual packages
+pnpm --filter @whatsfiled/web dev
+pnpm --filter @whatsfiled/backend dev
+pnpm --filter @whatsfiled/edgar-client test
 ```
 
-## Architecture
+## Key Patterns
 
-### Monorepo Structure
+### Environment Variables
+Backend uses zod validation in `apps/backend/src/env.ts`. Reads `.env` then `.env.local` (override).
 
-- **apps/web/**: Next.js 16 frontend (App Router)
-  - `src/app/` - Pages and layouts
-  - `src/components/` - App-specific components
-  - Dependencies: `@whatsfiled/ui`
+```typescript
+import { env } from "./env.js";
+// env.DATABASE_URL, env.PORT, env.NODE_ENV - all type-safe
+```
 
-- **apps/backend/**: tRPC standalone server
-  - `src/index.ts` - HTTP server entry point
-  - `src/db/schema.ts` - Drizzle database schema
-  - `src/db/index.ts` - Database connection
-  - `src/trpc/init.ts` - tRPC initialization
-  - `src/trpc/context.ts` - Request context
-  - `src/trpc/routers/` - tRPC routers
+### tRPC Setup
+- Backend: `apps/backend/src/trpc/routers/index.ts` defines procedures
+- Frontend: `apps/web/src/lib/trpc.ts` creates typed client
+- Uses superjson transformer for Date/etc serialization
 
-- **packages/edgar-client/**: SEC EDGAR API client library
-  - Standalone package for fetching and parsing SEC EDGAR filings
-  - Class-based API via `EdgarClient` for easy usage
-  - Supports daily index fetching, Form 4 parsing, and more
-
-- **packages/ui/**: Shared Shadcn UI components
-  - `src/components/` - Shadcn components (button, card, input, etc.)
-  - `src/lib/utils.ts` - Tailwind utility functions
-
-- **packages/typescript-config/**: Shared tsconfig bases
-  - `base.json` - Common settings
-  - `nextjs.json` - Next.js specific
-
-### Form 4 Parsing
-
-Located in `packages/edgar-client/`:
-- Class-based API via `EdgarClient` class
-- Extracts XML from SEC document wrappers (between `<XML>` tags)
-- Uses fast-xml-parser for parsing
-- Normalizes across multiple schema versions (X0306, X0407, X0508)
-- Validates required fields (CIK, owners, period, signatures)
-
+### EdgarClient Usage
 ```typescript
 import { EdgarClient } from "@whatsfiled/edgar-client";
 
-const client = new EdgarClient({
-  userAgent: "MyApp contact@example.com",
-});
+const client = new EdgarClient({ userAgent: "App contact@example.com" });
 const content = await client.fetchFiling("edgar/data/123/000123-24-001.txt");
 const doc = client.parseForm4(content);
 ```
 
-## TypeScript Configuration
+### Form 4 Parsing
+- Extracts XML from SEC document wrappers (`<XML>` tags)
+- Supports schema versions: X0306, X0407, X0508
+- Normalizes across versions for consistent output
+- Located in `packages/edgar-client/src/internal/form4/`
 
-- Shared configs in `packages/typescript-config/`
-- Path aliases:
-  - `@/*` maps to `./src/*` (in web app)
-  - `@whatsfiled/ui/*` maps to UI package
-- Strict mode enabled
-- Biome handles linting with Next.js and React recommended rules
+## Database
 
-## Environment Variables
+PostgreSQL with Drizzle ORM. Schema in `apps/backend/src/db/schema.ts`.
 
-### Backend (.env)
+```bash
+# Local setup
+pnpm docker:up
+cp apps/backend/.env.example apps/backend/.env
+pnpm db:push
 ```
-DATABASE_URL=postgres://user:password@localhost:5432/whatsfiled
-PORT=3001
-```
+
+## Ports
+
+- Frontend: http://localhost:3001
+- Backend: http://localhost:3000
+- PostgreSQL: localhost:5432
+
+## Testing
+
+- edgar-client: Vitest with fixtures in `packages/edgar-client/test/`
+- Run: `pnpm --filter @whatsfiled/edgar-client test`
+
+## Path Aliases
+
+- `@/*` → `./src/*` (in web app)
+- `@whatsfiled/ui/*` → UI package components
