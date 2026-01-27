@@ -99,3 +99,23 @@ export function chunk<T>(arr: readonly T[], size: number): T[][] {
   }
   return out;
 }
+
+/**
+ * Sample n elements from an array using Fisher-Yates shuffle
+ * @param arr - The array to sample from
+ * @param n - The number of elements to sample
+ * @returns A new array with n elements
+ */
+export function sample<T>(arr: T[], n: number): T[] {
+  if (n <= 0) return [];
+  if (n >= arr.length) return [...arr];
+
+  // Create a shallow copy to avoid mutating input
+  const copy = arr.slice();
+  // Fisher-Yates shuffle up to n elements
+  for (let i = copy.length - 1; i > copy.length - 1 - n; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(copy.length - n);
+}

@@ -9,10 +9,15 @@
  */
 
 import type * as crons from "../crons.js";
-import type * as helpers_edgarDailyIndexForms from "../helpers/edgarDailyIndexForms.js";
-import type * as helpers_edgarFetchClient from "../helpers/edgarFetchClient.js";
-import type * as helpers_utils from "../helpers/utils.js";
+import type * as edgarParser_edgarDailyIndexForms from "../edgarParser/edgarDailyIndexForms.js";
+import type * as edgarParser_edgarFetchClient from "../edgarParser/edgarFetchClient.js";
+import type * as edgarParser_form4_form4Normalizers from "../edgarParser/form4/form4Normalizers.js";
+import type * as edgarParser_form4_form4Types from "../edgarParser/form4/form4Types.js";
+import type * as edgarParser_form4_form4Urls from "../edgarParser/form4/form4Urls.js";
+import type * as edgarParser_form4_form4XmlConfig from "../edgarParser/form4/form4XmlConfig.js";
+import type * as edgarParser_form4_index from "../edgarParser/form4/index.js";
 import type * as secFilings from "../secFilings.js";
+import type * as utils from "../utils.js";
 
 import type {
   ApiFromModules,
@@ -22,10 +27,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
-  "helpers/edgarDailyIndexForms": typeof helpers_edgarDailyIndexForms;
-  "helpers/edgarFetchClient": typeof helpers_edgarFetchClient;
-  "helpers/utils": typeof helpers_utils;
+  "edgarParser/edgarDailyIndexForms": typeof edgarParser_edgarDailyIndexForms;
+  "edgarParser/edgarFetchClient": typeof edgarParser_edgarFetchClient;
+  "edgarParser/form4/form4Normalizers": typeof edgarParser_form4_form4Normalizers;
+  "edgarParser/form4/form4Types": typeof edgarParser_form4_form4Types;
+  "edgarParser/form4/form4Urls": typeof edgarParser_form4_form4Urls;
+  "edgarParser/form4/form4XmlConfig": typeof edgarParser_form4_form4XmlConfig;
+  "edgarParser/form4/index": typeof edgarParser_form4_index;
   secFilings: typeof secFilings;
+  utils: typeof utils;
 }>;
 
 /**

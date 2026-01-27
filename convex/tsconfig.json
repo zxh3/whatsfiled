@@ -20,6 +20,6 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["./**/*", "testCronJob.ts"],
+  "include": ["./**/*"],
   "exclude": ["./_generated"]
 }

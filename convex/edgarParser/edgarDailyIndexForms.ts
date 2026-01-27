@@ -1,4 +1,11 @@
+import { sleep } from "../utils";
 import edgarFetchClient from "./edgarFetchClient";
+
+export async function fetchEdgarArchiveFileContent(fileName: string) {
+  const url = `https://www.sec.gov/Archives/${fileName}`;
+  const content = await edgarFetchClient.fetch(url);
+  return content;
+}
 
 export type EdgarDailyIndexFormRow = {
   formType: string;
@@ -10,7 +17,7 @@ export type EdgarDailyIndexFormRow = {
 
 type ParseOptions = {
   // Provide your canonical form types, e.g. ["4", "4/A", "SCHEDULE 13D", "SCHEDULE 13D/A", ...]
-  knownFormTypes: readonly string[];
+  knownFormTypes: readonly FormType[];
 };
 
 export const KNOWN_FORMS = [
@@ -41,6 +48,8 @@ export const KNOWN_FORMS = [
   "DEF 14A",
   "DEFA14A",
 ] as const;
+
+export type FormType = (typeof KNOWN_FORMS)[number];
 
 export function parseRawEdgarDailyIndexFormContent(
   text: string,
@@ -125,7 +134,7 @@ function parseIdxLineWithKnownForms(
   if (!matchedForm) {
     // If you prefer: return null to skip unknown forms
     // Or fallback: treat first token as formType (less safe)
-    console.error(`Unknown form type: ${normalized}`);
+    // console.debug(`Unknown form type: ${normalized}`);
     return null;
   }
 
@@ -189,6 +198,7 @@ export async function fetchEdgarDailyIndexFormFileNamesByYear(
       quarter,
     });
     fileNames.push(..._fileNames);
+    await sleep(300);
   }
   return fileNames;
 }

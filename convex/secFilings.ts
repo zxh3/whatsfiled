@@ -6,11 +6,14 @@ import {
   internalQuery,
 } from "./_generated/server";
 import {
+  type FormType,
+  fetchEdgarArchiveFileContent,
   fetchEdgarDailyIndexFormFileNamesByYear,
   fetchRawEdgarDailyIndexFormContent,
   parseRawEdgarDailyIndexFormContent,
-} from "./helpers/edgarDailyIndexForms";
-import { chunk, sleep } from "./helpers/utils";
+} from "./edgarParser/edgarDailyIndexForms";
+import { buildForm4SourceInfo, parseForm4 } from "./edgarParser/form4";
+import { chunk, sleep } from "./utils";
 
 export const _insertRawEdgarDailyIndexForm = internalMutation({
   args: {
@@ -59,32 +62,37 @@ export const _insertEdgarDailyIndexFormRows = internalMutation({
   handler: async (ctx, args) => {
     for (const row of args.rows) {
       const existing = await ctx.db
-        .query("edgarDailyIndexFormRows")
+        .query("rawEdgarDailyIndexFormRows")
         .withIndex("by_fileName", (q) => q.eq("fileName", row.fileName))
         .unique();
       if (existing) continue;
-      await ctx.db.insert("edgarDailyIndexFormRows", row);
+      await ctx.db.insert("rawEdgarDailyIndexFormRows", row);
     }
   },
 });
 
 export const _updateEdgarDailyIndexFormRows = internalMutation({
   args: {
-    id: v.id("edgarDailyIndexFormRows"),
-    state: v.union(v.literal("pending"), v.literal("processed")),
+    id: v.id("rawEdgarDailyIndexFormRows"),
+    state: v.union(
+      v.literal("pending"),
+      v.literal("processed"),
+      v.literal("failed"),
+    ),
+    failureReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch("edgarDailyIndexFormRows", args.id, {
+    await ctx.db.patch("rawEdgarDailyIndexFormRows", args.id, {
       state: args.state,
+      failureReason: args.failureReason,
     });
   },
 });
 
-export const _getExistingRawEdgarDailyIndexForms = internalQuery({
+export const _getExistingRawEdgarDailyIndexFormsByDate = internalQuery({
   args: {
     begin: v.number(),
     end: v.number(),
-    state: v.optional(v.union(v.literal("pending"), v.literal("processed"))),
   },
   handler: async (ctx, args) => {
     return ctx.db
@@ -92,15 +100,77 @@ export const _getExistingRawEdgarDailyIndexForms = internalQuery({
       .withIndex("by_dateTimestamp", (q) =>
         q.gte("dateTimestamp", args.begin).lt("dateTimestamp", args.end),
       )
-      .filter((q) => {
-        if (!args.state) return true;
-        return q.eq(q.field("state"), args.state);
-      })
       .collect();
   },
 });
 
-export const fetchRawEdgarDailyIndexFormsByYear = internalAction({
+export const _getExistingRawEdgarDailyIndexFormsByState = internalQuery({
+  args: {
+    state: v.union(v.literal("pending"), v.literal("processed")),
+  },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("rawEdgarDailyIndexForms")
+      .withIndex("by_state", (q) => q.eq("state", args.state))
+      .collect();
+  },
+});
+
+export const _getExistingRawEdgarDailyIndexFormRowsByState = internalQuery({
+  args: {
+    state: v.union(v.literal("pending"), v.literal("processed")),
+  },
+  handler: async (ctx, args) => {
+    const formTypes: FormType[] = ["4", "4/A"];
+
+    const rows = (
+      await Promise.all(
+        formTypes.map(async (formType) => {
+          return ctx.db
+            .query("rawEdgarDailyIndexFormRows")
+            .withIndex("by_formType_state", (q) =>
+              q.eq("formType", formType).eq("state", args.state),
+            )
+            .collect();
+        }),
+      )
+    ).flat();
+
+    return rows;
+  },
+});
+
+export const _insertParsedForm4Docs = internalMutation({
+  args: {
+    rows: v.array(
+      v.object({
+        rawEdgarDailyIndexFormRowId: v.id("rawEdgarDailyIndexFormRows"),
+
+        issuerCik: v.string(),
+        issuerName: v.string(),
+        issuerTradingSymbol: v.string(),
+
+        documentType: v.union(v.literal("4"), v.literal("4/A")),
+        periodOfReport: v.string(),
+        periodOfReportTimestamp: v.number(),
+
+        primaryOwnerCik: v.string(),
+        primaryOwnerName: v.string(),
+
+        document: v.any(),
+        rawXmlUrl: v.optional(v.string()),
+        formattedXmlUrl: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const row of args.rows) {
+      // TODO
+    }
+  },
+});
+
+export const fetchRawEdgarDailyIndexForms = internalAction({
   args: {
     year: v.optional(v.number()),
   },
@@ -112,7 +182,7 @@ export const fetchRawEdgarDailyIndexFormsByYear = internalAction({
       await fetchEdgarDailyIndexFormFileNamesByYear(currentYear);
 
     const existingRawEdgarDailyIndexForms = await ctx.runQuery(
-      internal.secFilings._getExistingRawEdgarDailyIndexForms,
+      internal.secFilings._getExistingRawEdgarDailyIndexFormsByDate,
       {
         begin: new Date(currentYear, 0).getTime(),
         end: new Date(currentYear + 1, 0).getTime(),
@@ -136,30 +206,24 @@ export const fetchRawEdgarDailyIndexFormsByYear = internalAction({
         contentStorageId: storageId,
         state: "pending",
       });
-      await sleep(5000);
+      await sleep(2000);
     }
 
     return fileNames;
   },
 });
 
-export const parseEdgarDailyIndexFormRows = internalAction({
+export const fetchRawEdgarDailyIndexFormRows = internalAction({
   args: {},
   handler: async (ctx) => {
     const existingRawEdgarDailyIndexForms = await ctx.runQuery(
-      internal.secFilings._getExistingRawEdgarDailyIndexForms,
+      internal.secFilings._getExistingRawEdgarDailyIndexFormsByState,
       {
-        begin: new Date("2026-01-01").getTime(),
-        end: new Date("2027-01-01").getTime(),
         state: "pending",
       },
     );
 
     for (const rawEdgarDailyIndexForm of existingRawEdgarDailyIndexForms) {
-      if (rawEdgarDailyIndexForm._id !== "k177vekp2f5z42yt36tvxqsw1h7zthst") {
-        continue;
-      }
-
       const contentBlob = await ctx.storage.get(
         rawEdgarDailyIndexForm.contentStorageId,
       );
@@ -185,6 +249,58 @@ export const parseEdgarDailyIndexFormRows = internalAction({
         id: rawEdgarDailyIndexForm._id,
         state: "processed",
       });
+    }
+  },
+});
+
+export const parseForm4Docs = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const pendingRows = await ctx.runQuery(
+      internal.secFilings._getExistingRawEdgarDailyIndexFormRowsByState,
+      {
+        state: "pending",
+      },
+    );
+
+    for (const row of pendingRows) {
+      const fileName = row.fileName;
+      const content = await fetchEdgarArchiveFileContent(fileName);
+      const parsed = parseForm4(content);
+      const sourceInfo = buildForm4SourceInfo(fileName, content);
+      if (!sourceInfo) {
+        await ctx.runMutation(
+          internal.secFilings._updateEdgarDailyIndexFormRows,
+          {
+            id: row._id,
+            state: "failed",
+            failureReason: "Source info not found",
+          },
+        );
+        continue;
+      }
+
+      // TODO: populate the parsed form4 docs
+      // await ctx.runMutation(internal.secFilings._insertParsedForm4Docs, {
+      //   rawEdgarDailyIndexFormRowId: row._id,
+      //   issuerCik: row.cik,
+      //   issuerName: row.companyName,
+      //   issuerTradingSymbol: row.companyName,
+      //   documentType: row.formType,
+      //   periodOfReport: row.dateFiled,
+      //   periodOfReportTimestamp: new Date(row.dateFiled).getTime(),
+      //   primaryOwnerCik: row.cik,
+      //   primaryOwnerName: row.companyName,
+      //   document: parsed,
+      //   rawXmlUrl: sourceInfo.rawXmlUrl,
+      // });
+      await ctx.runMutation(
+        internal.secFilings._updateEdgarDailyIndexFormRows,
+        {
+          id: row._id,
+          state: "processed",
+        },
+      );
     }
   },
 });
