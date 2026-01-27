@@ -134,7 +134,9 @@ export function SiteHeader() {
                           <div className="mt-1 space-y-1">
                             {data.companies.map((company) => {
                               const itemKey = `company:${company.id}:${company.ticker ?? company.cik}`;
-                              const itemIndex = items.findIndex((item) => item.key === itemKey);
+                              const itemIndex = items.findIndex(
+                                (item) => item.key === itemKey,
+                              );
                               const isSelected = itemIndex === selectedIndex;
                               return (
                                 <a
@@ -144,7 +146,8 @@ export function SiteHeader() {
                                     isSelected ? "bg-muted/60" : ""
                                   }`}
                                   onMouseEnter={() => {
-                                    if (itemIndex >= 0) setSelectedIndex(itemIndex);
+                                    if (itemIndex >= 0)
+                                      setSelectedIndex(itemIndex);
                                   }}
                                 >
                                   <span className="font-medium text-foreground">
@@ -175,7 +178,9 @@ export function SiteHeader() {
                           <div className="mt-1 space-y-1">
                             {data.insiders.map((insider) => {
                               const itemKey = `insider:${insider.id}:${insider.cik ?? "unknown"}`;
-                              const itemIndex = items.findIndex((item) => item.key === itemKey);
+                              const itemIndex = items.findIndex(
+                                (item) => item.key === itemKey,
+                              );
                               const isSelected = itemIndex === selectedIndex;
                               return (
                                 <a
@@ -185,7 +190,8 @@ export function SiteHeader() {
                                     isSelected ? "bg-muted/60" : ""
                                   }`}
                                   onMouseEnter={() => {
-                                    if (itemIndex >= 0) setSelectedIndex(itemIndex);
+                                    if (itemIndex >= 0)
+                                      setSelectedIndex(itemIndex);
                                   }}
                                 >
                                   <span className="font-medium text-foreground">

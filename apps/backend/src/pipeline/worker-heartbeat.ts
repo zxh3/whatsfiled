@@ -13,12 +13,7 @@ export async function withWorkerHeartbeat<T>(
   options: WorkerHeartbeatOptions,
   fn: () => Promise<T>,
 ): Promise<T> {
-  const {
-    workerType,
-    stage,
-    details,
-    heartbeatIntervalMs = 30000,
-  } = options;
+  const { workerType, stage, details, heartbeatIntervalMs = 30000 } = options;
 
   const workerKey = `${workerType}:${stage ?? "unknown"}:${process.pid}:${Date.now()}`;
   const startedAt = new Date();

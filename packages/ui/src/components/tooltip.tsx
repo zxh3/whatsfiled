@@ -11,10 +11,18 @@ interface TooltipProviderProps {
 }
 
 // Provider that stores delay config in context
-const TooltipDelayContext = React.createContext<{ delay: number }>({ delay: 0 });
+const TooltipDelayContext = React.createContext<{ delay: number }>({
+  delay: 0,
+});
 
-const TooltipProvider = ({ children, delayDuration = 0 }: TooltipProviderProps) => {
-  const value = React.useMemo(() => ({ delay: delayDuration }), [delayDuration]);
+const TooltipProvider = ({
+  children,
+  delayDuration = 0,
+}: TooltipProviderProps) => {
+  const value = React.useMemo(
+    () => ({ delay: delayDuration }),
+    [delayDuration],
+  );
   return (
     <TooltipPrimitive.Provider>
       <TooltipDelayContext.Provider value={value}>
@@ -25,12 +33,11 @@ const TooltipProvider = ({ children, delayDuration = 0 }: TooltipProviderProps) 
 };
 
 // Tooltip root
-const Tooltip = ({ children, ...props }: React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Root>) => {
-  return (
-    <TooltipPrimitive.Root {...props}>
-      {children}
-    </TooltipPrimitive.Root>
-  );
+const Tooltip = ({
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Root>) => {
+  return <TooltipPrimitive.Root {...props}>{children}</TooltipPrimitive.Root>;
 };
 
 // Wrapper to support Radix-style `asChild` prop, applying delay from context
@@ -43,7 +50,12 @@ const TooltipTrigger = React.forwardRef<
   const { delay } = React.useContext(TooltipDelayContext);
   if (asChild && React.isValidElement(children)) {
     return (
-      <TooltipPrimitive.Trigger ref={ref} render={children} delay={delay} {...props} />
+      <TooltipPrimitive.Trigger
+        ref={ref}
+        render={children}
+        delay={delay}
+        {...props}
+      />
     );
   }
   return (
@@ -66,7 +78,7 @@ const TooltipContent = React.forwardRef<
         ref={ref}
         className={cn(
           "z-50 overflow-hidden rounded-md bg-foreground px-3 py-1.5 text-xs text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
-          className
+          className,
         )}
         {...props}
       >

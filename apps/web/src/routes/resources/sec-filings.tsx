@@ -114,18 +114,58 @@ function InfoCard({
 
 function TransactionCodesTable() {
   const codes = [
-    { code: "P", description: "Open market or private purchase", color: "bg-green-500" },
-    { code: "S", description: "Open market or private sale", color: "bg-red-500" },
+    {
+      code: "P",
+      description: "Open market or private purchase",
+      color: "bg-green-500",
+    },
+    {
+      code: "S",
+      description: "Open market or private sale",
+      color: "bg-red-500",
+    },
     { code: "A", description: "Grant or award", color: "bg-blue-500" },
-    { code: "M", description: "Exercise or conversion of derivative", color: "bg-purple-500" },
+    {
+      code: "M",
+      description: "Exercise or conversion of derivative",
+      color: "bg-purple-500",
+    },
     { code: "G", description: "Gift", color: "bg-yellow-500" },
-    { code: "F", description: "Payment of exercise price or tax with securities", color: "bg-orange-500" },
-    { code: "D", description: "Sale or transfer to issuer", color: "bg-red-400" },
-    { code: "C", description: "Conversion of derivative security", color: "bg-purple-400" },
-    { code: "W", description: "Acquisition or disposition by will or inheritance", color: "bg-gray-500" },
-    { code: "J", description: "Other acquisition or disposition", color: "bg-gray-400" },
-    { code: "K", description: "Equity swap or similar instrument", color: "bg-indigo-500" },
-    { code: "U", description: "Disposition due to tender of shares", color: "bg-red-300" },
+    {
+      code: "F",
+      description: "Payment of exercise price or tax with securities",
+      color: "bg-orange-500",
+    },
+    {
+      code: "D",
+      description: "Sale or transfer to issuer",
+      color: "bg-red-400",
+    },
+    {
+      code: "C",
+      description: "Conversion of derivative security",
+      color: "bg-purple-400",
+    },
+    {
+      code: "W",
+      description: "Acquisition or disposition by will or inheritance",
+      color: "bg-gray-500",
+    },
+    {
+      code: "J",
+      description: "Other acquisition or disposition",
+      color: "bg-gray-400",
+    },
+    {
+      code: "K",
+      description: "Equity swap or similar instrument",
+      color: "bg-indigo-500",
+    },
+    {
+      code: "U",
+      description: "Disposition due to tender of shares",
+      color: "bg-red-300",
+    },
   ];
 
   return (
@@ -145,9 +185,7 @@ function TransactionCodesTable() {
             >
               <td className="px-4 py-2.5">
                 <span className="inline-flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full ${item.color}`}
-                  />
+                  <span className={`w-2 h-2 rounded-full ${item.color}`} />
                   <span className="font-mono font-bold">{item.code}</span>
                 </span>
               </td>
@@ -190,9 +228,7 @@ function DeadlinesTable() {
               key={item.form}
               className={i % 2 === 0 ? "bg-card" : "bg-muted/20"}
             >
-              <td className="px-4 py-2.5 font-mono font-medium">
-                {item.form}
-              </td>
+              <td className="px-4 py-2.5 font-mono font-medium">{item.form}</td>
               <td className="px-4 py-2.5 text-muted-foreground">
                 {item.deadline}
               </td>
@@ -382,9 +418,9 @@ function SecFilingsPage() {
           <TransactionCodesTable />
           <p className="text-sm text-muted-foreground mt-4">
             <strong>P</strong> (Purchase) and <strong>S</strong> (Sale) are the
-            most significant codes for analyzing insider sentiment. <strong>A</strong>{" "}
-            (Award) and <strong>M</strong> (Exercise) typically represent
-            compensation-related transactions.
+            most significant codes for analyzing insider sentiment.{" "}
+            <strong>A</strong> (Award) and <strong>M</strong> (Exercise)
+            typically represent compensation-related transactions.
           </p>
         </section>
 
@@ -474,7 +510,8 @@ function SecFilingsPage() {
           <FilerCategoriesTable />
           <p className="text-sm text-muted-foreground mt-4">
             Public float is the market value of a company's outstanding shares
-            held by non-affiliates. Larger companies have shorter filing deadlines.
+            held by non-affiliates. Larger companies have shorter filing
+            deadlines.
           </p>
         </section>
 

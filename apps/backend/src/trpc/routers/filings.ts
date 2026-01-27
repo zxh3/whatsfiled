@@ -43,7 +43,11 @@ export const filingsRouter = router({
         })
         .from(filings)
         .innerJoin(companies, eq(filings.companyId, companies.id))
-        .orderBy(desc(filings.filedAt), desc(filings.createdAt), desc(filings.id))
+        .orderBy(
+          desc(filings.filedAt),
+          desc(filings.createdAt),
+          desc(filings.id),
+        )
         .limit(limit)
         .offset(offset);
 
@@ -118,15 +122,13 @@ export const filingsRouter = router({
           }
 
           // For mixed filings, include compact transaction list for hover detail
-          let mixedTransactions:
-            | Array<{
-                transactionDate: Date | null;
-                transactionCode: string | null;
-                acquiredDisposed: "A" | "D" | null;
-                shares: number | null;
-                pricePerShare: number | null;
-              }>
-            | null = null;
+          let mixedTransactions: Array<{
+            transactionDate: Date | null;
+            transactionCode: string | null;
+            acquiredDisposed: "A" | "D" | null;
+            shares: number | null;
+            pricePerShare: number | null;
+          }> | null = null;
 
           if (transactionType === "mixed") {
             const rows = await db
@@ -146,7 +148,9 @@ export const filingsRouter = router({
               transactionCode: row.transactionCode ?? null,
               acquiredDisposed: row.acquiredDisposed ?? null,
               shares: row.shares ? Number(row.shares) : null,
-              pricePerShare: row.pricePerShare ? Number(row.pricePerShare) : null,
+              pricePerShare: row.pricePerShare
+                ? Number(row.pricePerShare)
+                : null,
             }));
           }
 
@@ -174,8 +178,12 @@ export const filingsRouter = router({
               transactionType,
               totalAcquired: parseFloat(summary?.totalAcquired || "0"),
               totalDisposed: parseFloat(summary?.totalDisposed || "0"),
-              totalAcquiredValue: parseFloat(summary?.totalAcquiredValue || "0"),
-              totalDisposedValue: parseFloat(summary?.totalDisposedValue || "0"),
+              totalAcquiredValue: parseFloat(
+                summary?.totalAcquiredValue || "0",
+              ),
+              totalDisposedValue: parseFloat(
+                summary?.totalDisposedValue || "0",
+              ),
               avgPrice: parseFloat(summary?.avgPrice || "0"),
               sharesOwnedAfter,
               ownershipChangePercent,

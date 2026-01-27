@@ -109,113 +109,115 @@ export async function processFilings(
         `[filing-processing] Processing ${entry.fileName} (${entry.formType})...`,
       );
 
-    if (dryRun) {
-      console.log(
-        `[filing-processing] [DRY RUN] Would process ${entry.fileName}`,
-      );
-      result.processed++;
-      result.completed++;
-      continue;
-    }
-
-    try {
-      // Check if filing already exists (by accession number)
-      const accessionNumber = extractAccessionNumber(entry.fileName);
-      const existingFiling = await db
-        .select({ id: filings.id })
-        .from(filings)
-        .where(eq(filings.accessionNumber, accessionNumber))
-        .limit(1);
-
-      if (existingFiling.length > 0) {
-        // Already processed, skip
-        await db
-          .update(filingQueue)
-          .set({
-            status: "skipped",
-            lockedUntil: null,
-            processedAt: new Date(),
-          })
-          .where(eq(filingQueue.id, entry.id));
-        result.skipped++;
-        result.processed++;
+      if (dryRun) {
         console.log(
-          `[filing-processing] Skipped ${entry.fileName} (already exists)`,
+          `[filing-processing] [DRY RUN] Would process ${entry.fileName}`,
         );
+        result.processed++;
+        result.completed++;
         continue;
       }
 
-      // Fetch the filing content
-      const content = await edgarClient.fetchFiling(entry.fileName);
+      try {
+        // Check if filing already exists (by accession number)
+        const accessionNumber = extractAccessionNumber(entry.fileName);
+        const existingFiling = await db
+          .select({ id: filings.id })
+          .from(filings)
+          .where(eq(filings.accessionNumber, accessionNumber))
+          .limit(1);
 
-      // Parse the Form 4
-      const doc = edgarClient.parseForm4(content, { fileName: entry.fileName });
+        if (existingFiling.length > 0) {
+          // Already processed, skip
+          await db
+            .update(filingQueue)
+            .set({
+              status: "skipped",
+              lockedUntil: null,
+              processedAt: new Date(),
+            })
+            .where(eq(filingQueue.id, entry.id));
+          result.skipped++;
+          result.processed++;
+          console.log(
+            `[filing-processing] Skipped ${entry.fileName} (already exists)`,
+          );
+          continue;
+        }
 
-      // Prefer SEC acceptance datetime (ET) from submission header, fallback to index date.
-      const acceptanceDateTime = parseAcceptanceDateTime(content);
-      const filedAt = acceptanceDateTime ?? parseFilingDate(entry.dateFiled);
+        // Fetch the filing content
+        const content = await edgarClient.fetchFiling(entry.fileName);
 
-      // Map to database in a transaction
-      await db.transaction(async (tx) => {
-        await mapForm4ToDb(tx as unknown as Database, doc, {
-          rawContent: content,
-          documentUrl: doc.source?.formattedXmlUrl,
-          filedAt,
+        // Parse the Form 4
+        const doc = edgarClient.parseForm4(content, {
+          fileName: entry.fileName,
         });
-      });
 
-      // Mark as completed
-      await db
-        .update(filingQueue)
-        .set({
-          status: "completed",
-          lockedUntil: null,
-          processedAt: new Date(),
-          lastError: null,
-          lastErrorAt: null,
-        })
-        .where(eq(filingQueue.id, entry.id));
+        // Prefer SEC acceptance datetime (ET) from submission header, fallback to index date.
+        const acceptanceDateTime = parseAcceptanceDateTime(content);
+        const filedAt = acceptanceDateTime ?? parseFilingDate(entry.dateFiled);
 
-      result.completed++;
-      result.processed++;
-      console.log(`[filing-processing] Completed ${entry.fileName}`);
+        // Map to database in a transaction
+        await db.transaction(async (tx) => {
+          await mapForm4ToDb(tx as unknown as Database, doc, {
+            rawContent: content,
+            documentUrl: doc.source?.formattedXmlUrl,
+            filedAt,
+          });
+        });
 
-      // Rate limit between SEC requests
-      await sleep(RATE_LIMIT_DELAY_MS);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(
-        `[filing-processing] Failed to process ${entry.fileName}: ${message}`,
-      );
+        // Mark as completed
+        await db
+          .update(filingQueue)
+          .set({
+            status: "completed",
+            lockedUntil: null,
+            processedAt: new Date(),
+            lastError: null,
+            lastErrorAt: null,
+          })
+          .where(eq(filingQueue.id, entry.id));
 
-      // Update retry count and error info
-      const newRetryCount = entry.retryCount + 1;
-      const newStatus = newRetryCount >= MAX_RETRIES ? "failed" : "pending";
+        result.completed++;
+        result.processed++;
+        console.log(`[filing-processing] Completed ${entry.fileName}`);
 
-      await db
-        .update(filingQueue)
-        .set({
-          status: newStatus,
-          retryCount: newRetryCount,
-          lastError: message,
-          lastErrorAt: new Date(),
-          lockedUntil: null,
-        })
-        .where(eq(filingQueue.id, entry.id));
+        // Rate limit between SEC requests
+        await sleep(RATE_LIMIT_DELAY_MS);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(
+          `[filing-processing] Failed to process ${entry.fileName}: ${message}`,
+        );
 
-      if (newStatus === "failed") {
-        result.failed++;
+        // Update retry count and error info
+        const newRetryCount = entry.retryCount + 1;
+        const newStatus = newRetryCount >= MAX_RETRIES ? "failed" : "pending";
+
+        await db
+          .update(filingQueue)
+          .set({
+            status: newStatus,
+            retryCount: newRetryCount,
+            lastError: message,
+            lastErrorAt: new Date(),
+            lockedUntil: null,
+          })
+          .where(eq(filingQueue.id, entry.id));
+
+        if (newStatus === "failed") {
+          result.failed++;
+        }
+        result.processed++;
+        result.errors.push({
+          queueId: entry.id,
+          fileName: entry.fileName,
+          error: message,
+        });
+
+        // Still rate limit after failures
+        await sleep(RATE_LIMIT_DELAY_MS);
       }
-      result.processed++;
-      result.errors.push({
-        queueId: entry.id,
-        fileName: entry.fileName,
-        error: message,
-      });
-
-      // Still rate limit after failures
-      await sleep(RATE_LIMIT_DELAY_MS);
-    }
     }
   } finally {
     if (refreshTimer) {
@@ -286,7 +288,14 @@ function zonedTimeToUtcDate(
   timeZone: string,
 ): Date {
   const utcGuess = new Date(
-    Date.UTC(time.year, time.month - 1, time.day, time.hour, time.minute, time.second),
+    Date.UTC(
+      time.year,
+      time.month - 1,
+      time.day,
+      time.hour,
+      time.minute,
+      time.second,
+    ),
   );
   const offsetMinutes = getTimeZoneOffsetMinutes(utcGuess, timeZone);
   return new Date(utcGuess.getTime() - offsetMinutes * 60_000);

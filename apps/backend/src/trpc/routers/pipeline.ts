@@ -1,7 +1,11 @@
 import { and, desc, eq, gte, lte, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/index.js";
-import { dailyIndexFiles, filingQueue, pipelineWorkers } from "../../db/schema.js";
+import {
+  dailyIndexFiles,
+  filingQueue,
+  pipelineWorkers,
+} from "../../db/schema.js";
 import {
   cleanupStaleLocks,
   discoverDailyIndexFiles,
@@ -176,16 +180,30 @@ export const pipelineRouter = router({
       // Build a map of date -> filing stats
       const progressByDate: Record<
         string,
-        { pending: number; processing: number; completed: number; failed: number; skipped: number }
+        {
+          pending: number;
+          processing: number;
+          completed: number;
+          failed: number;
+          skipped: number;
+        }
       > = {};
 
       for (const row of filingProgress) {
         // Convert YYYYMMDD to YYYY-MM-DD
         const dateKey = `${row.dateFiled.substring(0, 4)}-${row.dateFiled.substring(4, 6)}-${row.dateFiled.substring(6, 8)}`;
         if (!progressByDate[dateKey]) {
-          progressByDate[dateKey] = { pending: 0, processing: 0, completed: 0, failed: 0, skipped: 0 };
+          progressByDate[dateKey] = {
+            pending: 0,
+            processing: 0,
+            completed: 0,
+            failed: 0,
+            skipped: 0,
+          };
         }
-        progressByDate[dateKey][row.status as keyof typeof progressByDate[string]] = row.count;
+        progressByDate[dateKey][
+          row.status as keyof (typeof progressByDate)[string]
+        ] = row.count;
       }
 
       // Merge index file info with filing progress
@@ -198,7 +216,11 @@ export const pipelineRouter = router({
           skipped: 0,
         };
         const total =
-          progress.pending + progress.processing + progress.completed + progress.failed + progress.skipped;
+          progress.pending +
+          progress.processing +
+          progress.completed +
+          progress.failed +
+          progress.skipped;
         const done = progress.completed + progress.skipped;
 
         return {
@@ -221,7 +243,9 @@ export const pipelineRouter = router({
 
       // Calculate days where all filings are done
       const fullyProcessedDays = coverage.filter(
-        (c) => c.filingProgress.total > 0 && c.filingProgress.done === c.filingProgress.total,
+        (c) =>
+          c.filingProgress.total > 0 &&
+          c.filingProgress.done === c.filingProgress.total,
       ).length;
 
       return {

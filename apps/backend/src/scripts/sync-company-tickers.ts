@@ -10,7 +10,8 @@ type CompanyTickerExchangeResponse = {
   data: Array<[number, string, string, string]>;
 };
 
-const SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers_exchange.json";
+const SEC_TICKERS_URL =
+  "https://www.sec.gov/files/company_tickers_exchange.json";
 
 function formatCik(value: number | string): string {
   const raw = typeof value === "number" ? String(value) : value;
@@ -26,7 +27,9 @@ async function fetchCompanyTickers(): Promise<CompanyTickerExchangeResponse> {
   });
 
   if (!response.ok) {
-    throw new Error(`SEC ticker fetch failed: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `SEC ticker fetch failed: ${response.status} ${response.statusText}`,
+    );
   }
 
   return response.json() as Promise<CompanyTickerExchangeResponse>;

@@ -3,7 +3,11 @@ import { Progress as ProgressPrimitive } from "@base-ui/react/progress";
 
 import { cn } from "../lib/utils";
 
-interface ProgressProps extends Omit<React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>, "value"> {
+interface ProgressProps
+  extends Omit<
+    React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>,
+    "value"
+  > {
   value?: number | null;
   className?: string;
   indicatorClassName?: string;
@@ -19,13 +23,11 @@ const Progress = React.forwardRef<
     className={cn("relative", className)}
     {...props}
   >
-    <ProgressPrimitive.Track
-      className="h-2 w-full overflow-hidden rounded-full bg-muted"
-    >
+    <ProgressPrimitive.Track className="h-2 w-full overflow-hidden rounded-full bg-muted">
       <ProgressPrimitive.Indicator
         className={cn(
           "h-full bg-primary transition-all duration-300",
-          indicatorClassName
+          indicatorClassName,
         )}
       />
     </ProgressPrimitive.Track>

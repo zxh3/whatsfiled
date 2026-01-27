@@ -135,15 +135,13 @@ export const companiesRouter = router({
             transactionType = "sell";
           }
 
-          let mixedTransactions:
-            | Array<{
-                transactionDate: Date | null;
-                transactionCode: string | null;
-                acquiredDisposed: "A" | "D" | null;
-                shares: number | null;
-                pricePerShare: number | null;
-              }>
-            | null = null;
+          let mixedTransactions: Array<{
+            transactionDate: Date | null;
+            transactionCode: string | null;
+            acquiredDisposed: "A" | "D" | null;
+            shares: number | null;
+            pricePerShare: number | null;
+          }> | null = null;
 
           if (transactionType === "mixed") {
             const rows = await db
@@ -163,7 +161,9 @@ export const companiesRouter = router({
               transactionCode: row.transactionCode ?? null,
               acquiredDisposed: row.acquiredDisposed ?? null,
               shares: row.shares ? Number(row.shares) : null,
-              pricePerShare: row.pricePerShare ? Number(row.pricePerShare) : null,
+              pricePerShare: row.pricePerShare
+                ? Number(row.pricePerShare)
+                : null,
             }));
           }
 
@@ -191,8 +191,12 @@ export const companiesRouter = router({
               transactionType,
               totalAcquired: parseFloat(summary?.totalAcquired || "0"),
               totalDisposed: parseFloat(summary?.totalDisposed || "0"),
-              totalAcquiredValue: parseFloat(summary?.totalAcquiredValue || "0"),
-              totalDisposedValue: parseFloat(summary?.totalDisposedValue || "0"),
+              totalAcquiredValue: parseFloat(
+                summary?.totalAcquiredValue || "0",
+              ),
+              totalDisposedValue: parseFloat(
+                summary?.totalDisposedValue || "0",
+              ),
               avgPrice: parseFloat(summary?.avgPrice || "0"),
               sharesOwnedAfter,
               ownershipChangePercent,

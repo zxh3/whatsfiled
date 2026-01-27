@@ -88,7 +88,8 @@ export function FilingCard({ filing }: FilingCardProps) {
       ? summary.totalDisposedValue
       : Math.max(summary.totalAcquiredValue, summary.totalDisposedValue);
 
-  const mixedTransactions = summary.transactionType === "mixed" ? filing.transactions : null;
+  const mixedTransactions =
+    summary.transactionType === "mixed" ? filing.transactions : null;
   const isNotable = value >= 1_000_000 || shares >= 100_000;
 
   return (
@@ -147,7 +148,13 @@ export function FilingCard({ filing }: FilingCardProps) {
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             {/* Buy/Sell Badge */}
             {summary.transactionType !== "none" && (
-              <span className={isMixed ? "relative inline-flex items-center group" : undefined}>
+              <span
+                className={
+                  isMixed
+                    ? "relative inline-flex items-center group"
+                    : undefined
+                }
+              >
                 <span
                   className={`inline-flex items-center px-2 py-0.5 text-xs font-medium ${
                     isBuy
@@ -158,46 +165,57 @@ export function FilingCard({ filing }: FilingCardProps) {
                   }`}
                 >
                   {isBuy ? "Buy" : isSell ? "Sell" : "Mixed"}
-                  {isMixed && mixedTransactions && mixedTransactions.length > 0 && (
-                    <span className="sr-only">Hover for transaction details</span>
-                  )}
+                  {isMixed &&
+                    mixedTransactions &&
+                    mixedTransactions.length > 0 && (
+                      <span className="sr-only">
+                        Hover for transaction details
+                      </span>
+                    )}
                 </span>
 
-                {isMixed && mixedTransactions && mixedTransactions.length > 0 && (
-                  <span className="pointer-events-none absolute left-0 top-full z-10 mt-2 w-56 rounded-md border border-border bg-background p-2 text-xs text-foreground shadow-lg opacity-0 transition-opacity group-hover:opacity-100">
-                    <span className="block text-[11px] font-medium text-muted-foreground">
-                      Transactions
-                    </span>
-                    <div className="mt-1 max-h-40 overflow-auto space-y-1">
-                      {mixedTransactions.map((txn, idx) => {
-                        const date =
-                          txn.transactionDate
+                {isMixed &&
+                  mixedTransactions &&
+                  mixedTransactions.length > 0 && (
+                    <span className="pointer-events-none absolute left-0 top-full z-10 mt-2 w-56 rounded-md border border-border bg-background p-2 text-xs text-foreground shadow-lg opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="block text-[11px] font-medium text-muted-foreground">
+                        Transactions
+                      </span>
+                      <div className="mt-1 max-h-40 overflow-auto space-y-1">
+                        {mixedTransactions.map((txn, idx) => {
+                          const date = txn.transactionDate
                             ? format(new Date(txn.transactionDate), "MMM d")
                             : "—";
-                        const side =
-                          txn.acquiredDisposed === "A"
-                            ? "Buy"
-                            : txn.acquiredDisposed === "D"
-                              ? "Sell"
+                          const side =
+                            txn.acquiredDisposed === "A"
+                              ? "Buy"
+                              : txn.acquiredDisposed === "D"
+                                ? "Sell"
+                                : "—";
+                          const sharesText =
+                            txn.shares !== null
+                              ? formatNumber(txn.shares)
                               : "—";
-                        const sharesText =
-                          txn.shares !== null ? formatNumber(txn.shares) : "—";
-                        const priceText =
-                          txn.pricePerShare !== null
-                            ? `$${txn.pricePerShare.toFixed(2)}`
-                            : "—";
-                        const codeText = txn.transactionCode
-                          ? `· ${txn.transactionCode}`
-                          : "";
-                        return (
-                          <span key={`${date}-${side}-${idx}`} className="block">
-                            {date} · {side}{codeText} · {sharesText} @ {priceText}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </span>
-                )}
+                          const priceText =
+                            txn.pricePerShare !== null
+                              ? `$${txn.pricePerShare.toFixed(2)}`
+                              : "—";
+                          const codeText = txn.transactionCode
+                            ? `· ${txn.transactionCode}`
+                            : "";
+                          return (
+                            <span
+                              key={`${date}-${side}-${idx}`}
+                              className="block"
+                            >
+                              {date} · {side}
+                              {codeText} · {sharesText} @ {priceText}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </span>
+                  )}
               </span>
             )}
 

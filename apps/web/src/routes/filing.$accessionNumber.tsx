@@ -44,7 +44,8 @@ function resolveValue(params: {
   }
   const shares = params.shares;
   const price = params.price;
-  const sharesNum = shares === null || shares === undefined ? null : Number(shares);
+  const sharesNum =
+    shares === null || shares === undefined ? null : Number(shares);
   const priceNum = price === null || price === undefined ? null : Number(price);
   if (
     sharesNum !== null &&
@@ -140,183 +141,205 @@ function FilingPage() {
     <main className="min-h-screen">
       <SiteHeader />
       <div className="mx-auto max-w-4xl px-4 py-8 space-y-8">
-      <header className="space-y-2">
-        <div className="text-xs text-muted-foreground">Form {filing.formType}</div>
-        <h1 className="text-2xl font-semibold">
-          <a href={`/company/${company.cik}`} className="hover:underline">
-            {company.name}
-          </a>
-        </h1>
-        <div className="text-sm text-muted-foreground">
-          {primaryOwner ? (
-            <>
-              <span className="font-medium text-foreground/80">
-                {primaryOwner.name}
-              </span>
-              {filing.owners[0]?.officerTitle && (
-                <span className="ml-1.5">· {filing.owners[0].officerTitle}</span>
-              )}
-            </>
+        <header className="space-y-2">
+          <div className="text-xs text-muted-foreground">
+            Form {filing.formType}
+          </div>
+          <h1 className="text-2xl font-semibold">
+            <a href={`/company/${company.cik}`} className="hover:underline">
+              {company.name}
+            </a>
+          </h1>
+          <div className="text-sm text-muted-foreground">
+            {primaryOwner ? (
+              <>
+                <span className="font-medium text-foreground/80">
+                  {primaryOwner.name}
+                </span>
+                {filing.owners[0]?.officerTitle && (
+                  <span className="ml-1.5">
+                    · {filing.owners[0].officerTitle}
+                  </span>
+                )}
+              </>
+            ) : (
+              "Insider filing"
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Filed{" "}
+            {formatInTimeZone(
+              new Date(filing.filedAt),
+              "America/New_York",
+              "MMM d, yyyy • h:mm a zzz",
+            )}
+          </div>
+          {filing.documentUrl && (
+            <a
+              href={filing.documentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground hover:text-foreground underline"
+            >
+              SEC filing
+            </a>
+          )}
+        </header>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-lg border border-border p-4">
+            <div className="text-xs text-muted-foreground">Total buy</div>
+            <div className="mt-2 text-lg font-semibold">
+              {formatNumber(totalBuyShares)} shares
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {formatCurrency(totalBuyValue)}
+            </div>
+          </div>
+          <div className="rounded-lg border border-border p-4">
+            <div className="text-xs text-muted-foreground">Total sell</div>
+            <div className="mt-2 text-lg font-semibold">
+              {formatNumber(totalSellShares)} shares
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {formatCurrency(totalSellValue)}
+            </div>
+          </div>
+          <div className="rounded-lg border border-border p-4">
+            <div className="text-xs text-muted-foreground">Net change</div>
+            <div className="mt-2 text-lg font-semibold">
+              {netShares >= 0 ? "+" : "-"}
+              {formatNumber(Math.abs(netShares))} shares
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {sharesOwnedBefore !== null && sharesOwnedAfter !== null
+                ? `${formatNumber(sharesOwnedBefore)} → ${formatNumber(sharesOwnedAfter)}`
+                : "Ownership data unavailable"}
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Non-derivative transactions</h2>
+          {filing.transactions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No transactions listed.
+            </p>
           ) : (
-            "Insider filing"
-          )}
-        </div>
-        <div className="text-sm text-muted-foreground">
-          Filed{" "}
-          {formatInTimeZone(
-            new Date(filing.filedAt),
-            "America/New_York",
-            "MMM d, yyyy • h:mm a zzz",
-          )}
-        </div>
-        {filing.documentUrl && (
-          <a
-            href={filing.documentUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-muted-foreground hover:text-foreground underline"
-          >
-            SEC filing
-          </a>
-        )}
-      </header>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-border p-4">
-          <div className="text-xs text-muted-foreground">Total buy</div>
-          <div className="mt-2 text-lg font-semibold">
-            {formatNumber(totalBuyShares)} shares
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {formatCurrency(totalBuyValue)}
-          </div>
-        </div>
-        <div className="rounded-lg border border-border p-4">
-          <div className="text-xs text-muted-foreground">Total sell</div>
-          <div className="mt-2 text-lg font-semibold">
-            {formatNumber(totalSellShares)} shares
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {formatCurrency(totalSellValue)}
-          </div>
-        </div>
-        <div className="rounded-lg border border-border p-4">
-          <div className="text-xs text-muted-foreground">Net change</div>
-          <div className="mt-2 text-lg font-semibold">
-            {netShares >= 0 ? "+" : "-"}
-            {formatNumber(Math.abs(netShares))} shares
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {sharesOwnedBefore !== null && sharesOwnedAfter !== null
-              ? `${formatNumber(sharesOwnedBefore)} → ${formatNumber(sharesOwnedAfter)}`
-              : "Ownership data unavailable"}
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Non-derivative transactions</h2>
-        {filing.transactions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No transactions listed.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-muted-foreground">
-                <tr className="border-b border-border">
-                  <th className="py-2">Date</th>
-                  <th className="py-2">Code</th>
-                  <th className="py-2">Type</th>
-                  <th className="py-2">Shares</th>
-                  <th className="py-2">Price</th>
-                  <th className="py-2">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filing.transactions.map((txn) => (
-                  <tr key={txn.id} className="border-b border-border/60">
-                    <td className="py-2">{formatDate(txn.transactionDate)}</td>
-                    <td className="py-2">{txn.transactionCode || "—"}</td>
-                    <td className="py-2">
-                      {txn.acquiredDisposed === "A"
-                        ? "Buy"
-                        : txn.acquiredDisposed === "D"
-                          ? "Sell"
-                          : "—"}
-                    </td>
-                    <td className="py-2">{formatNumber(txn.shares)}</td>
-                    <td className="py-2">{formatCurrency(txn.pricePerShare)}</td>
-                    <td className="py-2">
-                      {formatCurrency(
-                        resolveValue({
-                          totalValue: txn.totalValue,
-                          shares: txn.shares,
-                          price: txn.pricePerShare,
-                        }),
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="py-2">Date</th>
+                    <th className="py-2">Code</th>
+                    <th className="py-2">Type</th>
+                    <th className="py-2">Shares</th>
+                    <th className="py-2">Price</th>
+                    <th className="py-2">Value</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                </thead>
+                <tbody>
+                  {filing.transactions.map((txn) => (
+                    <tr key={txn.id} className="border-b border-border/60">
+                      <td className="py-2">
+                        {formatDate(txn.transactionDate)}
+                      </td>
+                      <td className="py-2">{txn.transactionCode || "—"}</td>
+                      <td className="py-2">
+                        {txn.acquiredDisposed === "A"
+                          ? "Buy"
+                          : txn.acquiredDisposed === "D"
+                            ? "Sell"
+                            : "—"}
+                      </td>
+                      <td className="py-2">{formatNumber(txn.shares)}</td>
+                      <td className="py-2">
+                        {formatCurrency(txn.pricePerShare)}
+                      </td>
+                      <td className="py-2">
+                        {formatCurrency(
+                          resolveValue({
+                            totalValue: txn.totalValue,
+                            shares: txn.shares,
+                            price: txn.pricePerShare,
+                          }),
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Derivative transactions</h2>
-        {filing.derivativeTransactions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No derivative transactions listed.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-muted-foreground">
-                <tr className="border-b border-border">
-                  <th className="py-2">Date</th>
-                  <th className="py-2">Code</th>
-                  <th className="py-2">Type</th>
-                  <th className="py-2">Underlying</th>
-                  <th className="py-2">Shares</th>
-                  <th className="py-2">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filing.derivativeTransactions.map((txn) => (
-                  <tr key={txn.id} className="border-b border-border/60">
-                    <td className="py-2">{formatDate(txn.transactionDate)}</td>
-                    <td className="py-2">{txn.transactionCode || "—"}</td>
-                    <td className="py-2">
-                      {txn.acquiredDisposed === "A"
-                        ? "Buy"
-                        : txn.acquiredDisposed === "D"
-                          ? "Sell"
-                          : "—"}
-                    </td>
-                    <td className="py-2">{txn.underlyingSecurityTitle || "—"}</td>
-                    <td className="py-2">{formatNumber(txn.underlyingShares)}</td>
-                    <td className="py-2">{formatCurrency(txn.pricePerShare)}</td>
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Derivative transactions</h2>
+          {filing.derivativeTransactions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No derivative transactions listed.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="py-2">Date</th>
+                    <th className="py-2">Code</th>
+                    <th className="py-2">Type</th>
+                    <th className="py-2">Underlying</th>
+                    <th className="py-2">Shares</th>
+                    <th className="py-2">Price</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                </thead>
+                <tbody>
+                  {filing.derivativeTransactions.map((txn) => (
+                    <tr key={txn.id} className="border-b border-border/60">
+                      <td className="py-2">
+                        {formatDate(txn.transactionDate)}
+                      </td>
+                      <td className="py-2">{txn.transactionCode || "—"}</td>
+                      <td className="py-2">
+                        {txn.acquiredDisposed === "A"
+                          ? "Buy"
+                          : txn.acquiredDisposed === "D"
+                            ? "Sell"
+                            : "—"}
+                      </td>
+                      <td className="py-2">
+                        {txn.underlyingSecurityTitle || "—"}
+                      </td>
+                      <td className="py-2">
+                        {formatNumber(txn.underlyingShares)}
+                      </td>
+                      <td className="py-2">
+                        {formatCurrency(txn.pricePerShare)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Footnotes</h2>
-        {filing.footnotes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No footnotes.</p>
-        ) : (
-          <div className="space-y-2 text-sm text-muted-foreground">
-            {filing.footnotes.map((note) => (
-              <p key={note.id}>
-                <span className="font-medium text-foreground/80">{note.footnoteId}.</span>{" "}
-                {note.content}
-              </p>
-            ))}
-          </div>
-        )}
-      </section>
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Footnotes</h2>
+          {filing.footnotes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No footnotes.</p>
+          ) : (
+            <div className="space-y-2 text-sm text-muted-foreground">
+              {filing.footnotes.map((note) => (
+                <p key={note.id}>
+                  <span className="font-medium text-foreground/80">
+                    {note.footnoteId}.
+                  </span>{" "}
+                  {note.content}
+                </p>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </main>
   );

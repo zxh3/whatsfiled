@@ -15,14 +15,17 @@ export function ActivityFeed() {
   const [hasMore, setHasMore] = useState(true);
 
   const { data, isLoading, isError, error, isFetching } =
-    trpc.filings.getRecentFilings.useQuery({
-      limit: PAGE_SIZE,
-      offset,
-    }, {
-      placeholderData: keepPreviousData,
-      refetchInterval: offset === 0 ? 60000 : false,
-      staleTime: 30000,
-    });
+    trpc.filings.getRecentFilings.useQuery(
+      {
+        limit: PAGE_SIZE,
+        offset,
+      },
+      {
+        placeholderData: keepPreviousData,
+        refetchInterval: offset === 0 ? 60000 : false,
+        staleTime: 30000,
+      },
+    );
 
   // Accumulate filings when data changes
   useEffect(() => {

@@ -40,83 +40,87 @@ function CompanyPage() {
     <main className="min-h-screen">
       <SiteHeader />
       <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
-      <header>
-        <div className="text-xs text-muted-foreground">Company</div>
-        <h1 className="text-2xl font-semibold">
-          {data.company.name}
-          {data.company.ticker && (
-            <span className="ml-2 text-sm text-muted-foreground font-mono">
-              {data.company.ticker}
-            </span>
-          )}
-        </h1>
-        <p className="text-sm text-muted-foreground">CIK {data.company.cik}</p>
-      </header>
+        <header>
+          <div className="text-xs text-muted-foreground">Company</div>
+          <h1 className="text-2xl font-semibold">
+            {data.company.name}
+            {data.company.ticker && (
+              <span className="ml-2 text-sm text-muted-foreground font-mono">
+                {data.company.ticker}
+              </span>
+            )}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            CIK {data.company.cik}
+          </p>
+        </header>
 
-      <section className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
-        <div>
-          <h2 className="text-lg font-semibold mb-3">Recent filings</h2>
-          {data.filings.length === 0 ? (
-            <p className="text-muted-foreground">No filings found.</p>
-          ) : (
-            <div>
-              {data.filings.map((filing) => (
-                <FilingCard key={filing.id} filing={filing} />
-              ))}
-            </div>
-          )}
-        </div>
-        <aside className="rounded-lg border border-border p-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Insider roster
-          </h3>
-          {data.roster.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              No insiders recorded yet.
-            </p>
-          ) : (
-            <div className="mt-3 space-y-3 text-sm">
-              {data.roster.map((insider) => (
-                <div key={insider.id} className="flex items-start justify-between gap-3">
-                  <div>
-                    {insider.cik ? (
-                      <a
-                        href={`/insider/${insider.cik}`}
-                        className="font-medium text-foreground hover:underline"
-                      >
-                        {insider.name}
-                      </a>
-                    ) : (
-                      <span className="font-medium text-foreground">
-                        {insider.name}
-                      </span>
-                    )}
-                    <div className="text-xs text-muted-foreground">
-                      {insider.title || "Insider"}
+        <section className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Recent filings</h2>
+            {data.filings.length === 0 ? (
+              <p className="text-muted-foreground">No filings found.</p>
+            ) : (
+              <div>
+                {data.filings.map((filing) => (
+                  <FilingCard key={filing.id} filing={filing} />
+                ))}
+              </div>
+            )}
+          </div>
+          <aside className="rounded-lg border border-border p-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Insider roster
+            </h3>
+            {data.roster.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                No insiders recorded yet.
+              </p>
+            ) : (
+              <div className="mt-3 space-y-3 text-sm">
+                {data.roster.map((insider) => (
+                  <div
+                    key={insider.id}
+                    className="flex items-start justify-between gap-3"
+                  >
+                    <div>
+                      {insider.cik ? (
+                        <a
+                          href={`/insider/${insider.cik}`}
+                          className="font-medium text-foreground hover:underline"
+                        >
+                          {insider.name}
+                        </a>
+                      ) : (
+                        <span className="font-medium text-foreground">
+                          {insider.name}
+                        </span>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {insider.title || "Insider"}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground text-right">
-                    {getRoleTags(insider)
-                      .map((tag) => (
+                    <div className="text-[11px] text-muted-foreground text-right">
+                      {getRoleTags(insider).map((tag) => (
                         <div key={tag}>{tag}</div>
                       ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </aside>
-      </section>
+                ))}
+              </div>
+            )}
+          </aside>
+        </section>
 
-      <section className="rounded-lg border border-border p-4">
-        <h2 className="text-lg font-semibold">Activity over time</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Form 4 filings per month (last 12 months)
-        </p>
-        <div className="mt-4">
-          <MonthlyChart filings={data.filings} />
-        </div>
-      </section>
+        <section className="rounded-lg border border-border p-4">
+          <h2 className="text-lg font-semibold">Activity over time</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Form 4 filings per month (last 12 months)
+          </p>
+          <div className="mt-4">
+            <MonthlyChart filings={data.filings} />
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -172,15 +176,21 @@ function MonthlyChart({ filings }: { filings: Array<{ filedAt: Date }> }) {
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
         <span>
           Total last 12 months:{" "}
-          <span className="font-mono text-foreground">{total.toLocaleString()}</span>
+          <span className="font-mono text-foreground">
+            {total.toLocaleString()}
+          </span>
         </span>
         <span>
           This month:{" "}
-          <span className="font-mono text-foreground">{thisMonth.toLocaleString()}</span>
+          <span className="font-mono text-foreground">
+            {thisMonth.toLocaleString()}
+          </span>
         </span>
         <span>
           vs last month:{" "}
-          <span className={`font-mono ${delta >= 0 ? "text-green-600" : "text-red-600"}`}>
+          <span
+            className={`font-mono ${delta >= 0 ? "text-green-600" : "text-red-600"}`}
+          >
             {delta >= 0 ? "+" : ""}
             {delta.toLocaleString()}
           </span>
@@ -210,7 +220,10 @@ function MonthlyChart({ filings }: { filings: Array<{ filedAt: Date }> }) {
               const height = Math.max(4, (count / max) * 100);
               const isCurrent = index === months.length - 1;
               return (
-                <div key={month.key} className="group relative flex h-full flex-1 items-end">
+                <div
+                  key={month.key}
+                  className="group relative flex h-full flex-1 items-end"
+                >
                   <div
                     className={`w-full max-w-[22px] rounded-md transition-colors ${
                       isCurrent ? "bg-foreground" : "bg-foreground/70"
@@ -219,7 +232,10 @@ function MonthlyChart({ filings }: { filings: Array<{ filedAt: Date }> }) {
                   />
                   <div className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 rounded-md border border-border bg-background px-2 py-1 text-[11px] text-foreground shadow-sm group-hover:block">
                     <span className="font-medium">{month.label}</span>
-                    <span className="text-muted-foreground"> · {count.toLocaleString()}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {count.toLocaleString()}
+                    </span>
                   </div>
                 </div>
               );

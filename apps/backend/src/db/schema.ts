@@ -217,7 +217,9 @@ export const filings = pgTable(
     rawContent: text("raw_content"),
     processedAt: timestamp("processed_at", { withTimezone: true }),
     processingError: text("processing_error"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("filings_accession_number_idx").on(table.accessionNumber),

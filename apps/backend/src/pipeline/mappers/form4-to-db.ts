@@ -107,7 +107,10 @@ async function upsertCompany(
 
   // Upsert ticker if available and valid
   const invalidTickers = ["NONE", "N/A", "NA", ""];
-  if (issuer.tradingSymbol && !invalidTickers.includes(issuer.tradingSymbol.trim().toUpperCase())) {
+  if (
+    issuer.tradingSymbol &&
+    !invalidTickers.includes(issuer.tradingSymbol.trim().toUpperCase())
+  ) {
     const ticker = issuer.tradingSymbol.trim().toUpperCase();
 
     // Check if ticker already exists for this company
@@ -117,8 +120,8 @@ async function upsertCompany(
       .where(
         and(
           eq(companyTickers.companyId, companyId),
-          eq(companyTickers.ticker, ticker)
-        )
+          eq(companyTickers.ticker, ticker),
+        ),
       )
       .limit(1);
 
