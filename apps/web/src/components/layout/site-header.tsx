@@ -1,6 +1,8 @@
+import { useTheme } from "@/hooks/use-theme";
 import { trpc } from "@/lib/trpc";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
+import { Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 export function SiteHeader() {
@@ -8,6 +10,7 @@ export function SiteHeader() {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const { resolvedTheme, setTheme, mounted } = useTheme();
 
   const { data } = trpc.search.search.useQuery(
     { query, limit: 6 },
@@ -222,6 +225,22 @@ export function SiteHeader() {
             <a href="/sync" className="hover:text-foreground">
               Sync status
             </a>
+            <span className="text-border">·</span>
+            <button
+              type="button"
+              onClick={() =>
+                setTheme(resolvedTheme === "dark" ? "light" : "dark")
+              }
+              className="hover:text-foreground p-1 -m-1"
+              aria-label={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}
+            >
+              {mounted &&
+                (resolvedTheme === "dark" ? (
+                  <Sun className="h-3.5 w-3.5" />
+                ) : (
+                  <Moon className="h-3.5 w-3.5" />
+                ))}
+            </button>
           </div>
         </div>
       </div>
