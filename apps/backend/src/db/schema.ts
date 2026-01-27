@@ -38,6 +38,22 @@ export const indexStatusEnum = pgEnum("index_status", [
   "failed",
 ]);
 
+export const filingQueueStatusEnum = pgEnum("filing_queue_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "skipped",
+]);
+
+// NOTE: Source enum supports future RSS feed ingestion
+// When adding RSS, entries go to same queue - fileName uniqueness prevents duplicates
+export const filingSourceEnum = pgEnum("filing_source", [
+  "daily_index", // From daily index files
+  "rss_feed", // Future: Real-time RSS feed
+  "manual", // Manual backfill/import
+]);
+
 // ============================================================================
 // Companies (Issuers)
 // ============================================================================
@@ -115,9 +131,7 @@ export const insiders = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("insiders_cik_idx")
-      .on(table.cik)
-      .where(sql`cik IS NOT NULL`),
+    uniqueIndex("insiders_cik_idx").on(table.cik).where(sql`cik IS NOT NULL`),
     index("insiders_name_idx").on(table.name),
   ],
 );
@@ -185,16 +199,16 @@ export const filings = pgTable(
     companyId: uuid("company_id")
       .notNull()
       .references(() => companies.id),
-    filedAt: timestamp("filed_at").notNull(),
+    filedAt: timestamp("filed_at", { withTimezone: true }).notNull(),
     periodOfReport: date("period_of_report").notNull(),
     schemaVersion: varchar("schema_version", { length: 10 }),
     isAmendment: boolean("is_amendment").default(false).notNull(),
     amendmentType: varchar("amendment_type", { length: 50 }),
     documentUrl: varchar("document_url", { length: 500 }),
     rawContent: text("raw_content"),
-    processedAt: timestamp("processed_at"),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
     processingError: text("processing_error"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("filings_accession_number_idx").on(table.accessionNumber),
@@ -282,7 +296,10 @@ export const transactions = pgTable(
     pricePerShare: decimal("price_per_share", { precision: 20, scale: 4 }),
     totalValue: decimal("total_value", { precision: 20, scale: 2 }),
     acquiredDisposed: acquiredDisposedEnum("acquired_disposed"),
-    sharesOwnedAfter: decimal("shares_owned_after", { precision: 20, scale: 4 }),
+    sharesOwnedAfter: decimal("shares_owned_after", {
+      precision: 20,
+      scale: 4,
+    }),
     ownershipType: ownershipTypeEnum("ownership_type"),
     indirectNature: varchar("indirect_nature", { length: 255 }),
     footnoteIds: text("footnote_ids").array(),
@@ -363,7 +380,10 @@ export const derivativeTransactions = pgTable(
       length: 255,
     }),
     underlyingShares: decimal("underlying_shares", { precision: 20, scale: 4 }),
-    sharesOwnedAfter: decimal("shares_owned_after", { precision: 20, scale: 4 }),
+    sharesOwnedAfter: decimal("shares_owned_after", {
+      precision: 20,
+      scale: 4,
+    }),
     ownershipType: ownershipTypeEnum("ownership_type"),
     indirectNature: varchar("indirect_nature", { length: 255 }),
     footnoteIds: text("footnote_ids").array(),
@@ -470,6 +490,7 @@ export const dailyIndexFiles = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     indexDate: date("index_date").notNull(),
     formType: varchar("form_type", { length: 10 }).notNull(),
+    fileName: varchar("file_name", { length: 100 }).notNull(), // e.g., "form.20260102.idx"
     fileUrl: varchar("file_url", { length: 500 }),
     entriesCount: integer("entries_count"),
     processedCount: integer("processed_count").default(0).notNull(),
@@ -487,3 +508,65 @@ export const dailyIndexFiles = pgTable(
     index("daily_index_files_status_idx").on(table.status),
   ],
 );
+
+export const dailyIndexFilesRelations = relations(
+  dailyIndexFiles,
+  ({ many }) => ({
+    filingQueueEntries: many(filingQueue),
+  }),
+);
+
+// ============================================================================
+// Filing Queue (for tracking individual filing processing)
+// ============================================================================
+
+export const filingQueue = pgTable(
+  "filing_queue",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // NOTE: Nullable for RSS-sourced filings (discovered before daily index exists)
+    // Daily index filings will have this set; RSS filings will have NULL
+    dailyIndexFileId: uuid("daily_index_file_id").references(
+      () => dailyIndexFiles.id,
+    ),
+
+    fileName: varchar("file_name", { length: 500 }).notNull(), // e.g., "edgar/data/123/000123-24-001.txt"
+    formType: varchar("form_type", { length: 10 }).notNull(), // e.g., "4", "4/A"
+    companyName: varchar("company_name", { length: 255 }).notNull(),
+    cik: varchar("cik", { length: 10 }).notNull(),
+    dateFiled: varchar("date_filed", { length: 8 }).notNull(), // YYYYMMDD
+
+    // Tracks where this entry came from - critical for analytics and debugging
+    // RSS filings: source='rss_feed', dailyIndexFileId=NULL, higher priority
+    // Daily index filings: source='daily_index', dailyIndexFileId set
+    source: filingSourceEnum("source").default("daily_index").notNull(),
+
+    status: filingQueueStatusEnum("status").default("pending").notNull(),
+    retryCount: integer("retry_count").default(0).notNull(),
+    lastError: text("last_error"),
+    lastErrorAt: timestamp("last_error_at"),
+
+    // RSS filings get higher priority (e.g., 100) for faster processing
+    priority: integer("priority").default(0).notNull(),
+    lockedUntil: timestamp("locked_until"),
+    processedAt: timestamp("processed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // CRITICAL: Unique on fileName ensures no duplicate filings from multiple sources
+    // When RSS adds a filing first, daily index will skip it (ON CONFLICT DO NOTHING)
+    uniqueIndex("filing_queue_file_name_idx").on(table.fileName),
+    index("filing_queue_status_priority_idx").on(table.status, table.priority),
+    index("filing_queue_date_filed_idx").on(table.dateFiled), // For gap detection
+    index("filing_queue_source_idx").on(table.source), // For source analytics
+    index("filing_queue_daily_index_file_idx").on(table.dailyIndexFileId),
+  ],
+);
+
+export const filingQueueRelations = relations(filingQueue, ({ one }) => ({
+  dailyIndexFile: one(dailyIndexFiles, {
+    fields: [filingQueue.dailyIndexFileId],
+    references: [dailyIndexFiles.id],
+  }),
+}));
