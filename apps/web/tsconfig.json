@@ -1,0 +1,12 @@
+{
+  "extends": "@whatsfiled/typescript-config/nextjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@whatsfiled/ui/*": ["../../packages/ui/src/*"],
+      "@whatsfiled/backend/*": ["../backend/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -24,7 +24,7 @@ import {
   fetchEdgarDailyIndexFormFileNamesByYear,
   fetchRawEdgarDailyIndexFormContent,
   parseRawEdgarDailyIndexFormContent,
-} from "../convex/edgarParser/edgarDailyIndexForms";
+} from "../apps/backend/convex/edgarParser/edgarDailyIndexForms";
 import {
   buildForm4SourceInfo,
   Form4ParseError,
@@ -32,7 +32,7 @@ import {
   parseForm4,
   UnsupportedSchemaVersionError,
   ValidationError,
-} from "../convex/edgarParser/form4";
+} from "../apps/backend/convex/edgarParser/form4";
 
 // ============================================================
 // TYPES
@@ -134,7 +134,10 @@ function saveParsedData(
   const outputDir = getOutputDir();
   // Convert fileName like "edgar/data/1234/0001234-24-000001.txt" to a safe filename
   const safeFileName = fileName.replace(/\//g, "_").replace(/\.txt$/, ".json");
-  const outputPath = path.join(outputDir, `${year}_${formType.replace("/", "-")}_${safeFileName}`);
+  const outputPath = path.join(
+    outputDir,
+    `${year}_${formType.replace("/", "-")}_${safeFileName}`,
+  );
 
   const output = {
     _meta: {
@@ -340,7 +343,8 @@ async function testFilingsForYear(
       result.success = true;
 
       // Attach source info to the parsed document
-      parsedData._source = buildForm4SourceInfo(filing.fileName, content) ?? undefined;
+      parsedData._source =
+        buildForm4SourceInfo(filing.fileName, content) ?? undefined;
 
       // Save parsed data if output option is enabled
       if (config.outputSamples) {

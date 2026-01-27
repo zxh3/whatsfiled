@@ -1,0 +1,5 @@
+{
+  "extends": "@whatsfiled/typescript-config/convex.json",
+  "include": ["convex/**/*"],
+  "exclude": ["convex/_generated"]
+}
