@@ -6,7 +6,7 @@ import {
   ValidationError,
 } from "../src";
 
-const client = new EdgarClient();
+const client = new EdgarClient({ userAgent: "test-suite test@example.com" });
 
 describe("Error handling", () => {
   describe("Form4ParseError", () => {
@@ -15,7 +15,7 @@ describe("Error handling", () => {
 
       expect(() => client.parseForm4(invalidContent)).toThrow(Form4ParseError);
       expect(() => client.parseForm4(invalidContent)).toThrow(
-        "Failed to extract XML from content",
+        "Could not extract XML from SEC document",
       );
     });
 
@@ -49,7 +49,9 @@ describe("Error handling", () => {
         </XML>
       `;
 
-      expect(() => client.parseForm4(xmlMissingVersion)).toThrow(Form4ParseError);
+      expect(() => client.parseForm4(xmlMissingVersion)).toThrow(
+        Form4ParseError,
+      );
       expect(() => client.parseForm4(xmlMissingVersion)).toThrow(
         "Missing schemaVersion",
       );
@@ -97,7 +99,9 @@ describe("Error handling", () => {
         client.parseForm4(xmlWithUnknownVersion);
       } catch (error) {
         expect(error).toBeInstanceOf(UnsupportedSchemaVersionError);
-        expect((error as UnsupportedSchemaVersionError).version).toBe("XFUTURE");
+        expect((error as UnsupportedSchemaVersionError).version).toBe(
+          "XFUTURE",
+        );
       }
     });
 
@@ -192,8 +196,12 @@ describe("Error handling", () => {
         </XML>
       `;
 
-      expect(() => client.parseForm4(xmlMissingIssuerCik)).toThrow(ValidationError);
-      expect(() => client.parseForm4(xmlMissingIssuerCik)).toThrow("issuer CIK");
+      expect(() => client.parseForm4(xmlMissingIssuerCik)).toThrow(
+        ValidationError,
+      );
+      expect(() => client.parseForm4(xmlMissingIssuerCik)).toThrow(
+        "issuer CIK",
+      );
     });
 
     it("throws when no reporting owners exist", () => {

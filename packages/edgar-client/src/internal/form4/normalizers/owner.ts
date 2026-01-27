@@ -2,7 +2,7 @@
  * Reporting owner normalization functions.
  */
 
-import type { Form4ReportingOwner } from "../../../types";
+import type { Form4ReportingOwner } from "../../../types/form4";
 import type { RawReportingOwner } from "../raw-types";
 import {
   normalizeBoolean,

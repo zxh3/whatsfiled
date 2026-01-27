@@ -2,7 +2,7 @@
  * Footnotes and signatures normalization functions.
  */
 
-import type { Form4Signature } from "../../../types";
+import type { Form4Signature } from "../../../types/form4";
 import type { RawFootnotes, RawOwnerSignature } from "../raw-types";
 import { normalizeRequiredStringValue } from "./primitives";
 

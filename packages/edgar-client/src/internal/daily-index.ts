@@ -1,4 +1,5 @@
-import { KNOWN_FORMS, type DailyIndexRow, type FormType } from "../types";
+import { FORM_TYPES } from "../constants";
+import type { DailyIndexRow } from "../types/daily-index";
 
 type ParseOptions = {
   formTypes?: readonly string[];
@@ -8,7 +9,7 @@ export function parseDailyIndex(
   text: string,
   opts: ParseOptions = {},
 ): DailyIndexRow[] {
-  const formTypes = opts.formTypes ?? KNOWN_FORMS;
+  const formTypes = opts.formTypes ?? FORM_TYPES;
   const lines = text.split(/\r?\n/);
 
   // Start parsing after dashed separator

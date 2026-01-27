@@ -9,7 +9,9 @@ import {
 import { chunk, sleep } from "./utils";
 
 // Create a shared EdgarClient instance
-const edgarClient = new EdgarClient();
+const edgarClient = new EdgarClient({
+  userAgent: "WhatsFiled whatsfiled@gmail.com",
+});
 
 export const _insertRawEdgarDailyIndexForm = internalMutation({
   args: {

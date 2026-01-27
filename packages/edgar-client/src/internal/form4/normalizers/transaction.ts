@@ -2,14 +2,14 @@
  * Transaction-related normalization functions.
  */
 
+import type { ValueWithFootnotes } from "../../../types/common";
 import type {
   Form4OwnershipNature,
   Form4PostTransactionAmounts,
   Form4TransactionAmounts,
   Form4TransactionCoding,
   Form4UnderlyingSecurity,
-  ValueWithFootnotes,
-} from "../../../types";
+} from "../../../types/form4";
 import type {
   RawDerivativeTransaction,
   RawNonDerivativeTransaction,

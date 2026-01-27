@@ -19,6 +19,7 @@ import {
   getFilingBaseUrl,
 } from "./internal/form4/urls";
 import { fetchWithBackoff, sleep } from "./internal/http";
+import { FORM_TYPES } from "./constants";
 import type {
   DailyIndexResult,
   DailyIndexRow,
@@ -26,6 +27,7 @@ import type {
   Form4Document,
   Form4ParseOptions,
   Form4SourceInfo,
+  FormType,
   Logger,
   Result,
   RetryOptions,
@@ -34,7 +36,7 @@ import type {
 
 export interface EdgarClientOptions {
   /** User-Agent header for SEC requests (required by SEC) */
-  userAgent?: string;
+  userAgent: string;
   /** Retry options for HTTP requests */
   retryOptions?: RetryOptions;
   /** Delay between rate-limited requests in milliseconds (default: 300) */
@@ -43,14 +45,14 @@ export interface EdgarClientOptions {
   logger?: Logger;
 }
 
-const DEFAULT_USER_AGENT = "WhatsFiled whatsfiled@gmail.com";
-
 /**
  * SEC EDGAR API client for fetching and parsing filings.
  *
  * @example
  * ```typescript
- * const client = new EdgarClient();
+ * const client = new EdgarClient({
+ *   userAgent: "MyApp contact@example.com",
+ * });
  *
  * // Get daily index files for 2026
  * const fileNames = await client.getDailyIndexFileNames(2026);
@@ -72,8 +74,8 @@ export class EdgarClient {
   private readonly rateLimitDelayMs: number;
   private readonly logger: Logger;
 
-  constructor(options: EdgarClientOptions = {}) {
-    this.userAgent = options.userAgent ?? DEFAULT_USER_AGENT;
+  constructor(options: EdgarClientOptions) {
+    this.userAgent = options.userAgent;
     this.retryOptions = {
       maxRetries: 10,
       baseDelayMs: 1000,
@@ -303,5 +305,65 @@ export class EdgarClient {
         formattedXmlUrl: `${baseUrlInfo.baseUrl}/xslF345X03/${xmlFileName}`,
       },
     };
+  }
+
+  // ============================================================
+  // FORM TYPE DETECTION
+  // ============================================================
+
+  /**
+   * Detect form type from content without full parsing.
+   * Useful for routing to the correct parser.
+   *
+   * @param content - Raw filing content
+   * @returns Result with FormType or "not_found" error
+   */
+  detectFormType(content: string): Result<FormType, "not_found"> {
+    const match = content.match(/<documentType>([^<]+)<\/documentType>/);
+    if (!match) {
+      return { ok: false, error: "not_found" };
+    }
+
+    const docType = match[1].trim();
+    if ((FORM_TYPES as readonly string[]).includes(docType)) {
+      return { ok: true, value: docType as FormType };
+    }
+
+    return { ok: false, error: "not_found" };
+  }
+
+  // ============================================================
+  // FORM 4 METHOD ALIASES
+  // ============================================================
+
+  /**
+   * Alias for getSchemaVersion - explicitly named for Form 4.
+   * @see getSchemaVersion
+   */
+  getForm4SchemaVersion(
+    content: string,
+  ): Result<SchemaVersion, "not_found" | "unsupported_version"> {
+    return this.getSchemaVersion(content);
+  }
+
+  /**
+   * Alias for getDocumentType - explicitly named for Form 4.
+   * @see getDocumentType
+   */
+  getForm4DocumentType(
+    content: string,
+  ): Result<DocumentType, "not_found" | "invalid_type"> {
+    return this.getDocumentType(content);
+  }
+
+  /**
+   * Alias for getSourceInfo - explicitly named for Form 4.
+   * @see getSourceInfo
+   */
+  getForm4SourceInfo(
+    fileName: string,
+    content: string,
+  ): Result<Form4SourceInfo, "invalid_filename" | "xml_not_found"> {
+    return this.getSourceInfo(fileName, content);
   }
 }

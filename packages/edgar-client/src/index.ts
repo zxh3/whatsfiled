@@ -6,17 +6,25 @@ export type { EdgarClientOptions } from "./edgar-client";
 export {
   EdgarFetchError,
   Form4ParseError,
+  FormParseError,
   UnsupportedSchemaVersionError,
   ValidationError,
 } from "./errors";
 
+// Constants
+export { FORM_TYPES, FORM4_SCHEMA_VERSIONS } from "./constants";
+
 // Types
 export type {
+  // Utility types
+  Logger,
+  Result,
+  RetryOptions,
+  ValueWithFootnotes,
   // Daily index types
   DailyIndexResult,
   DailyIndexRow,
   FormType,
-
   // Form 4 types
   DocumentType,
   Form4DerivativeHolding,
@@ -39,14 +47,5 @@ export type {
   Form4TransactionAmounts,
   Form4TransactionCoding,
   Form4UnderlyingSecurity,
-  RetryOptions,
   SchemaVersion,
-  ValueWithFootnotes,
-
-  // Utility types
-  Logger,
-  Result,
 } from "./types";
-
-// Constants
-export { KNOWN_FORMS, SUPPORTED_SCHEMA_VERSIONS } from "./types";

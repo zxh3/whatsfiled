@@ -1,16 +1,16 @@
-import { XMLParser } from "fast-xml-parser";
+import { FORM4_SCHEMA_VERSIONS } from "../../constants";
 import {
   Form4ParseError,
   UnsupportedSchemaVersionError,
   ValidationError,
 } from "../../errors";
-import {
-  type Form4Document,
-  type Form4ParseOptions,
-  type Logger,
-  type SchemaVersion,
-  SUPPORTED_SCHEMA_VERSIONS,
-} from "../../types";
+import type { Logger } from "../../types/common";
+import type {
+  Form4Document,
+  Form4ParseOptions,
+  SchemaVersion,
+} from "../../types/form4";
+import { createXmlParser, extractXmlFromSecDocument } from "../shared/xml";
 import { normalizeForm4Document } from "./normalizers/index";
 import type { RawOwnershipDocument } from "./raw-types";
 import { FORM4_PARSER_OPTIONS } from "./xml-config";
@@ -35,35 +35,6 @@ const DEFAULT_OPTIONS: RequiredParseOptions = {
 };
 
 /**
- * Extract XML content from SEC document wrapper.
- * SEC documents have headers and the XML is wrapped in <XML>...</XML> tags.
- */
-export function extractXmlFromSecDocument(content: string): string {
-  // Look for XML content between <XML> tags
-  const xmlMatch = content.match(/<XML>\s*([\s\S]*?)\s*<\/XML>/i);
-  if (xmlMatch && xmlMatch[1]) {
-    return xmlMatch[1].trim();
-  }
-
-  // If no <XML> tags, check if content starts with <?xml or <ownershipDocument
-  const trimmed = content.trim();
-  if (trimmed.startsWith("<?xml") || trimmed.startsWith("<ownershipDocument")) {
-    return trimmed;
-  }
-
-  throw new Form4ParseError(
-    "Could not extract XML from SEC document. Expected <XML>...</XML> tags or raw XML content.",
-  );
-}
-
-/**
- * Create a configured XML parser instance
- */
-function createParser(): XMLParser {
-  return new XMLParser(FORM4_PARSER_OPTIONS);
-}
-
-/**
  * Extract schema version from raw parsed XML
  */
 function extractSchemaVersion(
@@ -78,7 +49,7 @@ function extractSchemaVersion(
 
   const versionStr = String(version).trim();
 
-  if (!SUPPORTED_SCHEMA_VERSIONS.includes(versionStr as SchemaVersion)) {
+  if (!FORM4_SCHEMA_VERSIONS.includes(versionStr as SchemaVersion)) {
     if (options.strictSchemaVersion) {
       throw new UnsupportedSchemaVersionError(versionStr);
     }
@@ -146,13 +117,16 @@ export function parseForm4(
   try {
     xml = extractXmlFromSecDocument(content);
   } catch (error) {
-    throw new Form4ParseError("Failed to extract XML from content", error);
+    throw new Form4ParseError(
+      "Could not extract XML from SEC document. Expected <XML>...</XML> tags or raw XML content.",
+      error,
+    );
   }
 
   // Parse XML
   let raw: RawOwnershipDocument;
   try {
-    const parser = createParser();
+    const parser = createXmlParser(FORM4_PARSER_OPTIONS);
     raw = parser.parse(xml) as RawOwnershipDocument;
   } catch (error) {
     throw new Form4ParseError("Failed to parse XML", error);
@@ -190,7 +164,7 @@ export function parseForm4(
 export function isSchemaVersionSupported(
   version: string,
 ): version is SchemaVersion {
-  return SUPPORTED_SCHEMA_VERSIONS.includes(version as SchemaVersion);
+  return FORM4_SCHEMA_VERSIONS.includes(version as SchemaVersion);
 }
 
 /**

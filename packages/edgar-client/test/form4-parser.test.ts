@@ -37,7 +37,7 @@ function loadFixtureContent(filename: string): string {
   return readFileSync(join(RAW_DIR, filename), "utf-8");
 }
 
-const client = new EdgarClient();
+const client = new EdgarClient({ userAgent: "test-suite test@example.com" });
 const manifest = loadManifest();
 
 describe("Form 4 Parser", () => {
@@ -119,9 +119,15 @@ describe("Form 4 Parser", () => {
   });
 
   describe("schema version specific features", () => {
-    const x0306Fixtures = manifest.fixtures.filter((f) => f.schemaVersion === "X0306");
-    const x0407Fixtures = manifest.fixtures.filter((f) => f.schemaVersion === "X0407");
-    const x0508Fixtures = manifest.fixtures.filter((f) => f.schemaVersion === "X0508");
+    const x0306Fixtures = manifest.fixtures.filter(
+      (f) => f.schemaVersion === "X0306",
+    );
+    const x0407Fixtures = manifest.fixtures.filter(
+      (f) => f.schemaVersion === "X0407",
+    );
+    const x0508Fixtures = manifest.fixtures.filter(
+      (f) => f.schemaVersion === "X0508",
+    );
 
     if (x0306Fixtures.length > 0) {
       describe("X0306 schema", () => {
@@ -143,7 +149,10 @@ describe("Form 4 Parser", () => {
         it("may have is10b5OnePlan field", () => {
           const doc = client.parseForm4(content);
           // X0407 supports it but it may or may not be present
-          expect(typeof doc.is10b5OnePlan === "boolean" || doc.is10b5OnePlan === null).toBe(true);
+          expect(
+            typeof doc.is10b5OnePlan === "boolean" ||
+              doc.is10b5OnePlan === null,
+          ).toBe(true);
         });
       });
     }
@@ -156,14 +165,19 @@ describe("Form 4 Parser", () => {
         it("may have is10b5OnePlan field", () => {
           const doc = client.parseForm4(content);
           // X0508 supports it but it may or may not be present
-          expect(typeof doc.is10b5OnePlan === "boolean" || doc.is10b5OnePlan === null).toBe(true);
+          expect(
+            typeof doc.is10b5OnePlan === "boolean" ||
+              doc.is10b5OnePlan === null,
+          ).toBe(true);
         });
       });
     }
   });
 
   describe("Form 4/A amendments", () => {
-    const amendedFixtures = manifest.fixtures.filter((f) => f.documentType === "4/A");
+    const amendedFixtures = manifest.fixtures.filter(
+      (f) => f.documentType === "4/A",
+    );
 
     if (amendedFixtures.length > 0) {
       describe.each(amendedFixtures)("$filename (amendment)", (fixture) => {
@@ -189,8 +203,12 @@ describe("Form 4 Parser", () => {
   });
 
   describe("getDocumentType", () => {
-    const form4Fixtures = manifest.fixtures.filter((f) => f.documentType === "4");
-    const form4aFixtures = manifest.fixtures.filter((f) => f.documentType === "4/A");
+    const form4Fixtures = manifest.fixtures.filter(
+      (f) => f.documentType === "4",
+    );
+    const form4aFixtures = manifest.fixtures.filter(
+      (f) => f.documentType === "4/A",
+    );
 
     if (form4Fixtures.length > 0) {
       it("returns '4' for Form 4 filings", () => {

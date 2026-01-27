@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EdgarClient } from "../src";
 
-const client = new EdgarClient();
+const client = new EdgarClient({ userAgent: "test-suite test@example.com" });
 
 // Sample daily index content (anonymized from real SEC data)
 const SAMPLE_INDEX_CONTENT = `Description:           Daily Index of EDGAR Dissemination Feed
@@ -41,41 +41,57 @@ describe("Daily Index Parser", () => {
       expect(firstRow.companyName).toBe("ACME CORP");
       expect(firstRow.cik).toBe("1234567");
       expect(firstRow.dateFiled).toBe("20240115");
-      expect(firstRow.fileName).toBe("edgar/data/1234567/0001234567-24-000001.txt");
+      expect(firstRow.fileName).toBe(
+        "edgar/data/1234567/0001234567-24-000001.txt",
+      );
     });
 
     it("filters by form type", () => {
-      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, { formTypes: ["4"] });
+      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, {
+        formTypes: ["4"],
+      });
       expect(rows.every((r) => r.formType === "4")).toBe(true);
       expect(rows.length).toBe(3); // ACME, BETA, ZETA
     });
 
     it("filters by multiple form types", () => {
-      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, { formTypes: ["4", "4/A"] });
-      expect(rows.every((r) => r.formType === "4" || r.formType === "4/A")).toBe(true);
+      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, {
+        formTypes: ["4", "4/A"],
+      });
+      expect(
+        rows.every((r) => r.formType === "4" || r.formType === "4/A"),
+      ).toBe(true);
       expect(rows.length).toBe(4); // ACME, BETA, GAMMA, ZETA
     });
 
     it("handles Form 4/A amendments", () => {
-      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, { formTypes: ["4/A"] });
+      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, {
+        formTypes: ["4/A"],
+      });
       expect(rows.length).toBe(1);
       expect(rows[0].companyName).toBe("GAMMA HOLDINGS LLC");
     });
 
     it("handles SCHEDULE 13D form type", () => {
-      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, { formTypes: ["SCHEDULE 13D"] });
+      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, {
+        formTypes: ["SCHEDULE 13D"],
+      });
       expect(rows.length).toBe(1);
       expect(rows[0].companyName).toBe("THETA PARTNERS LP");
     });
 
     it("handles SC 13G form type", () => {
-      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, { formTypes: ["SC 13G"] });
+      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, {
+        formTypes: ["SC 13G"],
+      });
       expect(rows.length).toBe(1);
       expect(rows[0].companyName).toBe("IOTA MANAGEMENT LLC");
     });
 
     it("returns empty array for non-matching form types", () => {
-      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, { formTypes: ["13F-HR"] });
+      const rows = client.parseDailyIndex(SAMPLE_INDEX_CONTENT, {
+        formTypes: ["13F-HR"],
+      });
       expect(rows.length).toBe(0);
     });
 

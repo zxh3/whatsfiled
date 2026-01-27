@@ -8,7 +8,7 @@ import type {
   Form4NonDerivativeHolding,
   Form4NonDerivativeTransaction,
   SchemaVersion,
-} from "../../../types";
+} from "../../../types/form4";
 import type {
   RawDerivativeHolding,
   RawDerivativeTransaction,

@@ -1,4 +1,4 @@
-import type { Form4SourceInfo } from "../../types";
+import type { Form4SourceInfo } from "../../types/form4";
 
 /**
  * Parse filing base URL from an EDGAR fileName

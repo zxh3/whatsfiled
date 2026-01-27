@@ -6,7 +6,11 @@
  */
 
 import { Form4ParseError } from "../../../errors";
-import type { DocumentType, Form4Document, SchemaVersion } from "../../../types";
+import type {
+  DocumentType,
+  Form4Document,
+  SchemaVersion,
+} from "../../../types/form4";
 import type { RawOwnershipDocument } from "../raw-types";
 import { normalizeFootnotes, normalizeSignatures } from "./footnotes";
 import { normalizeReportingOwner } from "./owner";
