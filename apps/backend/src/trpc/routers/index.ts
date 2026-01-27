@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
+import { filingsRouter } from "./filings.js";
+import { pipelineRouter } from "./pipeline.js";
 
 export const appRouter = router({
   health: publicProcedure.query(() => {
@@ -12,6 +14,12 @@ export const appRouter = router({
     .query(({ input }) => {
       return { echo: input.message };
     }),
+
+  // Public filing data
+  filings: filingsRouter,
+
+  // Pipeline management (admin)
+  pipeline: pipelineRouter,
 });
 
 export type AppRouter = typeof appRouter;

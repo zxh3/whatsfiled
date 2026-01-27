@@ -11,6 +11,7 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+  EDGAR_USER_AGENT: z.string().min(10), // Required by SEC, e.g., "MyApp contact@example.com"
 });
 
 const parsed = envSchema.safeParse(process.env);
