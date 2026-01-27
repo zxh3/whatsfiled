@@ -123,7 +123,7 @@ export const filingsRouter = router({
 
           // For mixed filings, include compact transaction list for hover detail
           let mixedTransactions: Array<{
-            transactionDate: Date | null;
+            transactionDate: string | null;
             transactionCode: string | null;
             acquiredDisposed: "A" | "D" | null;
             shares: number | null;

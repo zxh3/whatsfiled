@@ -146,7 +146,7 @@ export const insidersRouter = router({
           }
 
           let mixedTransactions: Array<{
-            transactionDate: Date | null;
+            transactionDate: string | null;
             transactionCode: string | null;
             acquiredDisposed: "A" | "D" | null;
             shares: number | null;
