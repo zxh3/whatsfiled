@@ -91,6 +91,7 @@ export function FilingCard({ filing }: FilingCardProps) {
       : Math.max(summary.totalAcquiredValue, summary.totalDisposedValue);
 
   const mixedTransactions = summary.transactionType === "mixed" ? filing.transactions : null;
+  const isNotable = value >= 1_000_000 || shares >= 100_000;
 
   return (
     <div className="border-b border-border py-4 first:pt-0 last:border-b-0">
@@ -99,16 +100,24 @@ export function FilingCard({ filing }: FilingCardProps) {
         <div className="min-w-0 flex-1">
           {/* Company */}
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-foreground">
+            <a
+              href={`/company/${company.cik}`}
+              className="font-semibold text-foreground hover:underline"
+            >
               {company.ticker ? (
                 <span className="font-mono">{company.ticker}</span>
               ) : (
                 company.name
               )}
-            </span>
+            </a>
             {company.ticker && (
               <span className="text-sm text-muted-foreground truncate">
                 {company.name}
+              </span>
+            )}
+            {isNotable && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                Notable
               </span>
             )}
           </div>
@@ -116,9 +125,18 @@ export function FilingCard({ filing }: FilingCardProps) {
           {/* Insider */}
           {primaryOwner && (
             <div className="mt-1 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground/80">
-                {primaryOwner.name}
-              </span>
+              {primaryOwner.cik ? (
+                <a
+                  href={`/insider/${primaryOwner.cik}`}
+                  className="font-medium text-foreground/80 hover:underline"
+                >
+                  {primaryOwner.name}
+                </a>
+              ) : (
+                <span className="font-medium text-foreground/80">
+                  {primaryOwner.name}
+                </span>
+              )}
               {primaryOwner.title && (
                 <span className="ml-1.5 text-muted-foreground">
                   · {primaryOwner.title}
@@ -237,6 +255,13 @@ export function FilingCard({ filing }: FilingCardProps) {
               "MMM d, yyyy • h:mm a zzz",
             )}
           </span>
+
+          <a
+            href={`/filing/${filing.accessionNumber}`}
+            className="text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Filing details
+          </a>
 
           {/* SEC Filing Link */}
           {filing.documentUrl && (

@@ -13,10 +13,15 @@ type Filing = NonNullable<
 export function ActivityFeed() {
   const [allFilings, setAllFilings] = useState<Filing[]>([]);
   const [offset, setOffset] = useState(0);
+  const [formType, setFormType] = useState<"4" | "4/A" | "all">("all");
   const prevOffset = useRef(0);
 
   const { data, isLoading, isError, error, isFetching } =
-    trpc.filings.getRecentFilings.useQuery({ limit: PAGE_SIZE, offset });
+    trpc.filings.getRecentFilings.useQuery({
+      limit: PAGE_SIZE,
+      offset,
+      formType: formType === "all" ? undefined : formType,
+    });
 
   // Accumulate filings when data changes
   useEffect(() => {
@@ -29,6 +34,12 @@ export function ActivityFeed() {
       prevOffset.current = offset;
     }
   }, [data, offset]);
+
+  useEffect(() => {
+    setOffset(0);
+    setAllFilings([]);
+    prevOffset.current = 0;
+  }, [formType]);
 
   const handleLoadMore = () => {
     setOffset((prev) => prev + PAGE_SIZE);
@@ -77,6 +88,38 @@ export function ActivityFeed() {
 
   return (
     <div>
+      <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+        <button
+          onClick={() => setFormType("all")}
+          className={`rounded-full px-3 py-1 ${
+            formType === "all"
+              ? "bg-foreground text-background"
+              : "bg-muted hover:bg-muted/80"
+          }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setFormType("4")}
+          className={`rounded-full px-3 py-1 ${
+            formType === "4"
+              ? "bg-foreground text-background"
+              : "bg-muted hover:bg-muted/80"
+          }`}
+        >
+          Form 4
+        </button>
+        <button
+          onClick={() => setFormType("4/A")}
+          className={`rounded-full px-3 py-1 ${
+            formType === "4/A"
+              ? "bg-foreground text-background"
+              : "bg-muted hover:bg-muted/80"
+          }`}
+        >
+          Form 4/A
+        </button>
+      </div>
       {allFilings.map((filing) => (
         <FilingCard key={filing.id} filing={filing} />
       ))}

@@ -112,34 +112,38 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 > **Philosophy: No login required.** All core browsing is public. Auth only needed for personalization features (Phase 4).
 
 ### 3.1 Activity Feed (Homepage) ← Start Here
-- [x] Latest filings feed
+- [x] Latest filings feed (paginated)
 - [x] Clean, minimal card design
 - [x] Each card shows: Company, Insider, Buy/Sell, Shares, Price, % Ownership Change, Filing time
 - [x] Mixed filings show compact transaction list on hover
-- [ ] Filter by form type (4, 4/A)
-- [ ] Highlight notable transactions (large buys, C-suite trades)
-- [ ] Click to drill into filing/company/insider
+- [x] Filter by form type (4, 4/A)
+- [x] Highlight notable transactions (heuristic: value/shares threshold)
+- [x] Click to drill into filing/company/insider
+  - _Note_: Feed is not live-updated yet; add polling or WebSocket for real-time.
 
 ### 3.2 Filing View
-- [ ] Filing detail page (`/filing/[accessionNumber]`)
+- [x] Filing detail page (`/filing/[accessionNumber]`)
 - [ ] Visual transaction summary
 - [ ] Before/after ownership comparison
-- [ ] All transactions in the filing
-- [ ] Footnotes display
-- [ ] Link to original SEC document
+- [x] All transactions in the filing
+- [x] Footnotes display
+- [x] Link to original SEC document
+  - _Note_: Summary/ownership comparison still needed.
 
 ### 3.3 Company View
-- [ ] Company profile page (`/company/[cik]`)
-- [ ] Company name, ticker, basic info
-- [ ] Recent insider transactions list
+- [x] Company profile page (`/company/[cik]`)
+- [x] Company name, ticker, basic info
+- [x] Recent insider transactions list
 - [ ] Insider roster with titles
 - [ ] Transaction history chart (future)
+  - _Note_: Insider roster still needed; current view relies on filings list only.
 
 ### 3.4 Insider View
-- [ ] Insider profile page (`/insider/[cik]`)
+- [x] Insider profile page (`/insider/[cik]`)
 - [ ] All companies they're affiliated with
-- [ ] Transaction history across companies
+- [x] Transaction history across companies
 - [ ] Role at each company
+  - _Note_: Company affiliation summary/roles still needed.
 
 ### 3.5 Search
 - [ ] Global search (companies, insiders, tickers)
@@ -243,7 +247,8 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 3. ~~Filing processor pipeline~~ ✅
 4. Backfill 2026 data
 5. ~~Activity Feed homepage (Phase 3.1)~~ ✅
-6. Filing detail view (Phase 3.2)
+6. ~~Filing detail view (Phase 3.2)~~ ✅
+7. Company/Insider views: add rosters + roles
 
 ### Mid-term
 1. Company view (Phase 3.3)
@@ -286,9 +291,9 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 3. ~~Build filing processor pipeline (Phase 2.3)~~ ✅
 4. **Backfill 2026 data** ← Current
 5. ~~Build Activity Feed homepage (Phase 3.1)~~ ✅
-6. Build Filing detail view (Phase 3.2)
-7. Build Company view (Phase 3.3)
-8. Build Insider view (Phase 3.4)
+6. ~~Build Filing detail view (Phase 3.2)~~ ✅
+7. Build Company view roster (Phase 3.3)
+8. Build Insider view roles (Phase 3.4)
 9. Add Search (Phase 3.5)
 
 ---
