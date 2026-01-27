@@ -114,7 +114,9 @@ pnpm db:push
 - Run: `pnpm --filter @whatsfiled/edgar-client test`
 
 ### E2E Testing (Local)
-When asked to test E2E locally, use the **chrome-devtools MCP server** to interact with the browser:
+When asked to test E2E locally, use the **chrome-devtools MCP server** to interact with the browser.
+
+> **Note**: The MCP server is typically already running (started by the developer). Just use the tools directly—don't try to start or kill the server.
 
 1. Ensure dev servers are running (`pnpm dev`)
 2. Use MCP tools to test:
