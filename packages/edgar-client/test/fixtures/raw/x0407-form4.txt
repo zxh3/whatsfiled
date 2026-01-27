@@ -1,0 +1,152 @@
+<SEC-DOCUMENT>0000950170-23-011025.txt : 20230330
+<SEC-HEADER>0000950170-23-011025.hdr.sgml : 20230330
+<ACCEPTANCE-DATETIME>20230330171212
+ACCESSION NUMBER:		0000950170-23-011025
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20230328
+FILED AS OF DATE:		20230330
+DATE AS OF CHANGE:		20230330
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			WILLIAMS DOUGLAS E
+		CENTRAL INDEX KEY:			0001184847
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-39615
+		FILM NUMBER:		23781700
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O AMGEN INC
+		STREET 2:		ONE AMGEN CENTER DR
+		CITY:			THOUSAND OAKS
+		STATE:			CA
+		ZIP:			91320-1799
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			Codiak BioSciences, Inc.
+		CENTRAL INDEX KEY:			0001659352
+		STANDARD INDUSTRIAL CLASSIFICATION:	BIOLOGICAL PRODUCTS (NO DIAGNOSTIC SUBSTANCES) [2836]
+		IRS NUMBER:				000000000
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		35 CAMBRIDGEPARK DRIVE
+		STREET 2:		SUITE 500
+		CITY:			CAMBRIDGE
+		STATE:			MA
+		ZIP:			02140
+		BUSINESS PHONE:		617-949-4100
+
+	MAIL ADDRESS:	
+		STREET 1:		35 CAMBRIDGEPARK DRIVE
+		STREET 2:		SUITE 500
+		CITY:			CAMBRIDGE
+		STATE:			MA
+		ZIP:			02140
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	Codiak Biosciences, Inc.
+		DATE OF NAME CHANGE:	20151125
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>ownership.xml
+<DESCRIPTION>4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0407</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2023-03-28</periodOfReport>
+
+    <notSubjectToSection16>false</notSubjectToSection16>
+
+    <issuer>
+        <issuerCik>0001659352</issuerCik>
+        <issuerName>Codiak BioSciences, Inc.</issuerName>
+        <issuerTradingSymbol>CDAK</issuerTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001184847</rptOwnerCik>
+            <rptOwnerName>WILLIAMS DOUGLAS E</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerStreet1>C/O CODIAK BIOSCIENCES, INC.</rptOwnerStreet1>
+            <rptOwnerStreet2>35 CAMBRIDGEPARK DRIVE, SUITE 500</rptOwnerStreet2>
+            <rptOwnerCity>CAMBRIDGE</rptOwnerCity>
+            <rptOwnerState>MA</rptOwnerState>
+            <rptOwnerZipCode>02140</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>true</isDirector>
+            <isOfficer>true</isOfficer>
+            <isTenPercentOwner>false</isTenPercentOwner>
+            <isOther>false</isOther>
+            <officerTitle>President &amp; CEO</officerTitle>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>false</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2023-03-28</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>S</transactionCode>
+                <equitySwapInvolved>false</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>41667</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>0.18</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>7655</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <ownerSignature>
+        <signatureName>/s/ Yalonda Howze, Attorney-in-Fact for Douglas E. Williams</signatureName>
+        <signatureDate>2023-03-30</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

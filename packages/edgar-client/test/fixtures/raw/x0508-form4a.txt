@@ -1,0 +1,181 @@
+<SEC-DOCUMENT>0000908834-24-000108.txt : 20240401
+<SEC-HEADER>0000908834-24-000108.hdr.sgml : 20240401
+<ACCEPTANCE-DATETIME>20240401140138
+ACCESSION NUMBER:		0000908834-24-000108
+CONFORMED SUBMISSION TYPE:	4/A
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20240301
+FILED AS OF DATE:		20240401
+DATE AS OF CHANGE:		20240401
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Thomas Warren
+		CENTRAL INDEX KEY:			0001982216
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4/A
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	000-56543
+		FILM NUMBER:		24808130
+
+	MAIL ADDRESS:	
+		STREET 1:		1055 E. COLORADO BLVD, SUITE 310
+		CITY:			PASADENA
+		STATE:			CA
+		ZIP:			91106
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			ExchangeRight Income Fund
+		CENTRAL INDEX KEY:			0001771514
+		STANDARD INDUSTRIAL CLASSIFICATION:	REAL ESTATE INVESTMENT TRUSTS [6798]
+		ORGANIZATION NAME:           	05 Real Estate & Construction
+		IRS NUMBER:				367729360
+		STATE OF INCORPORATION:			MD
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		1055 E. COLORADO BLVD., SUITE 310
+		STREET 2:		NONE
+		CITY:			PASADENA
+		STATE:			CA
+		ZIP:			91106
+		BUSINESS PHONE:		8553174448
+
+	MAIL ADDRESS:	
+		STREET 1:		1055 E. COLORADO BLVD., SUITE 310
+		STREET 2:		NONE
+		CITY:			PASADENA
+		STATE:			CA
+		ZIP:			91106
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	ExchangeRight Essential Income Strategy
+		DATE OF NAME CHANGE:	20200519
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	ExchangeRight Income Fund Class I
+		DATE OF NAME CHANGE:	20190418
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	ExchangeRight Income Fund, a Maryland statutory trust
+		DATE OF NAME CHANGE:	20190322
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4/A
+<SEQUENCE>1
+<FILENAME>form4.xml
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0508</schemaVersion>
+
+    <documentType>4/A</documentType>
+
+    <periodOfReport>2024-03-01</periodOfReport>
+
+    <dateOfOriginalSubmission>2024-04-01</dateOfOriginalSubmission>
+
+    <issuer>
+        <issuerCik>0001771514</issuerCik>
+        <issuerName>ExchangeRight Income Fund</issuerName>
+        <issuerTradingSymbol>NONE</issuerTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001982216</rptOwnerCik>
+            <rptOwnerName>Thomas Warren</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerStreet1>1055 E. COLORADO BLVD, SUITE 310</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>PASADENA</rptOwnerCity>
+            <rptOwnerState>CA</rptOwnerState>
+            <rptOwnerZipCode>91106</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>true</isDirector>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>false</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Class A Common Shares of beneficial interest</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2024-03-01</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>1852.377</value>
+                    <footnoteId id="F1"/>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>28.7</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>3760.377</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeHolding>
+            <securityTitle>
+                <value>Class A Common Shares of beneficial interest</value>
+            </securityTitle>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>994.082</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>By IRA</value>
+                    <footnoteId id="F2"/>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeHolding>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">Represents Class A Common Shares of beneficial interest, $0.01 par value per share, held by Mr. Thomas in a transfer-on-death account for the benefit of Alyson Thomas.  Mr. Thomas exercises sole voting and dispositive power with respect to the securities held in this account.</footnote>
+        <footnote id="F2">Represents Class A Common Shares of beneficial interest, $0.01 par value per share, held by Mainstar Trust Custodian FBO Warren Thomas SEP IRA, an individual retirement account owned by Mr. Thomas. These shares were mistakenly omitted from the reporting person's original Form 3, and also were omitted from the Form 4 filed by the reporting person after his original Form 3 was filed.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>/s/ Nicholas Partenza, as Attorney-in-Fact</signatureName>
+        <signatureDate>2024-04-01</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

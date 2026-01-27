@@ -19,13 +19,11 @@ export type {
 
   // Form 4 types
   DocumentType,
-  Form4DerivativeEntry,
   Form4DerivativeHolding,
   Form4DerivativeTable,
   Form4DerivativeTransaction,
   Form4Document,
   Form4Issuer,
-  Form4NonDerivativeEntry,
   Form4NonDerivativeHolding,
   Form4NonDerivativeTable,
   Form4NonDerivativeTransaction,
@@ -41,10 +39,13 @@ export type {
   Form4TransactionAmounts,
   Form4TransactionCoding,
   Form4UnderlyingSecurity,
-  Form4XmlUrls,
   RetryOptions,
   SchemaVersion,
   ValueWithFootnotes,
+
+  // Utility types
+  Logger,
+  Result,
 } from "./types";
 
 // Constants

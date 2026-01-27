@@ -1,0 +1,358 @@
+<SEC-DOCUMENT>0001104659-24-041917.txt : 20240401
+<SEC-HEADER>0001104659-24-041917.hdr.sgml : 20240401
+<ACCEPTANCE-DATETIME>20240401165200
+ACCESSION NUMBER:		0001104659-24-041917
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20240328
+FILED AS OF DATE:		20240401
+DATE AS OF CHANGE:		20240401
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			UAW GM RETIREES MEDICAL BENEFITS PLAN
+		CENTRAL INDEX KEY:			0001795050
+		ORGANIZATION NAME:           	
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	811-23818
+		FILM NUMBER:		24810377
+
+	BUSINESS ADDRESS:	
+		STREET 1:		200 WALKER STREET
+		CITY:			DETROIT
+		STATE:			MI
+		ZIP:			48207
+		BUSINESS PHONE:		313-324-5928
+
+	MAIL ADDRESS:	
+		STREET 1:		200 WALKER STREET
+		CITY:			DETROIT
+		STATE:			MI
+		ZIP:			48207
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			UAW Ford Retirees Medical Benefits Plan
+		CENTRAL INDEX KEY:			0001795052
+		ORGANIZATION NAME:           	
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	811-23818
+		FILM NUMBER:		24810378
+
+	BUSINESS ADDRESS:	
+		STREET 1:		200 WALKER STREET
+		CITY:			DETROIT
+		STATE:			MI
+		ZIP:			48207
+		BUSINESS PHONE:		313-324-5928
+
+	MAIL ADDRESS:	
+		STREET 1:		200 WALKER STREET
+		CITY:			DETROIT
+		STATE:			MI
+		ZIP:			48207
+
+	FORMER NAME:	
+		FORMER CONFORMED NAME:	UAW Ford Retireees Medical Benefits Plan
+		DATE OF NAME CHANGE:	20191125
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			UAW Chrysler Retirees Medical Benefits Plan
+		CENTRAL INDEX KEY:			0001795057
+		ORGANIZATION NAME:           	
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	811-23818
+		FILM NUMBER:		24810379
+
+	BUSINESS ADDRESS:	
+		STREET 1:		200 WALKER STREET
+		CITY:			DETROIT
+		STATE:			MI
+		ZIP:			48207
+		BUSINESS PHONE:		313-324-5928
+
+	MAIL ADDRESS:	
+		STREET 1:		200 WALKER STREET
+		CITY:			DETROIT
+		STATE:			MI
+		ZIP:			48207
+
+	FORMER NAME:	
+		FORMER CONFORMED NAME:	UAW Chrysler Retireees Medical Benefits Plan
+		DATE OF NAME CHANGE:	20191125
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			NC SLF Inc.
+		CENTRAL INDEX KEY:			0001844684
+		ORGANIZATION NAME:           	
+		IRS NUMBER:				000000000
+		STATE OF INCORPORATION:			MD
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		375 PARK AVENUE
+		STREET 2:		9TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10152
+		BUSINESS PHONE:		2122072003
+
+	MAIL ADDRESS:	
+		STREET 1:		375 PARK AVENUE
+		STREET 2:		9TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10152
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>tm2410216-1_4seq1.xml
+<DESCRIPTION>OWNERSHIP DOCUMENT
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0508</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2024-03-28</periodOfReport>
+
+    <notSubjectToSection16>0</notSubjectToSection16>
+
+    <issuer>
+        <issuerCik>0001844684</issuerCik>
+        <issuerName>NC SLF Inc.</issuerName>
+        <issuerTradingSymbol>NONE</issuerTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001795057</rptOwnerCik>
+            <rptOwnerName>UAW Chrysler Retirees Medical Benefits Plan</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerStreet1>C/O UAW RETIREE MEDICAL BENEFITS TRUST,</rptOwnerStreet1>
+            <rptOwnerStreet2>1155 BREWERY PARK BLVD., SUITE 400</rptOwnerStreet2>
+            <rptOwnerCity>DETROIT</rptOwnerCity>
+            <rptOwnerState>MI</rptOwnerState>
+            <rptOwnerZipCode>48207</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>0</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>1</isTenPercentOwner>
+            <isOther>0</isOther>
+            <officerTitle></officerTitle>
+            <otherText></otherText>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001795052</rptOwnerCik>
+            <rptOwnerName>UAW Ford Retirees Medical Benefits Plan</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerStreet1>C/O UAW RETIREE MEDICAL BENEFITS TRUST,</rptOwnerStreet1>
+            <rptOwnerStreet2>1155 BREWERY PARK BLVD., SUITE 400</rptOwnerStreet2>
+            <rptOwnerCity>DETROIT</rptOwnerCity>
+            <rptOwnerState>MI</rptOwnerState>
+            <rptOwnerZipCode>48207</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>0</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>1</isTenPercentOwner>
+            <isOther>0</isOther>
+            <officerTitle></officerTitle>
+            <otherText></otherText>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001795050</rptOwnerCik>
+            <rptOwnerName>UAW GM RETIREES MEDICAL BENEFITS PLAN</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerStreet1>C/O UAW RETIREE MEDICAL BENEFITS TRUST,</rptOwnerStreet1>
+            <rptOwnerStreet2>1155 BREWERY PARK BLVD., SUITE 400</rptOwnerStreet2>
+            <rptOwnerCity>DETROIT</rptOwnerCity>
+            <rptOwnerState>MI</rptOwnerState>
+            <rptOwnerZipCode>48207</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>0</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>1</isTenPercentOwner>
+            <isOther>0</isOther>
+            <officerTitle></officerTitle>
+            <otherText></otherText>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>0</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2024-03-28</value>
+            </transactionDate>
+            <deemedExecutionDate></deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionTimeliness></transactionTimeliness>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>484126</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>9.97</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>7814493</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                    <footnoteId id="F1"/>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2024-03-28</value>
+            </transactionDate>
+            <deemedExecutionDate></deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionTimeliness></transactionTimeliness>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>754739</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>9.97</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>12182595</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                    <footnoteId id="F2"/>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2024-03-28</value>
+            </transactionDate>
+            <deemedExecutionDate></deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionTimeliness></transactionTimeliness>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>1243831</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>9.97</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>20077240</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                    <footnoteId id="F3"/>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">These shares of common stock (the &quot;Shares&quot;) of NC SLF Inc. (the &quot;Issuer&quot;) are owned directly by the UAW Chrysler Retirees Medical Benefits Plan, as established and maintained by the UAW Chrysler Retirees Employees' Beneficiary Association, an employee organization within the meaning of Section 3(4) of the Employee Retirement Income Security Act of 1974, as amended (&quot;ERISA&quot;) under the UAW Retiree Medical Benefits Trust, organized as a 501(c)(9) Voluntary Employee Beneficiary Association (the &quot;UAW RMBT&quot;).</footnote>
+        <footnote id="F2">These Shares of the Issuer are owned directly by the UAW Ford Retirees Medical Benefits Plan, as established and maintained by the UAW Ford Retirees Employees' Beneficiary Association, an employee organization within the meaning of Section 3(4) of ERISA under the UAW RMBT.</footnote>
+        <footnote id="F3">These Shares of the Issuer are owned directly by the UAW GM Retirees Medical Benefits Plan, as established and maintained by the UAW GM Retirees Employees' Beneficiary Association, an employee organization within the meaning of Section 3(4) of ERISA under the UAW RMBT.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>UAW CHRYSLER RETIREES MEDICAL BENEFITS PLAN, By: /s/ Garon Meikle, Chief Financial Officer</signatureName>
+        <signatureDate>2024-04-01</signatureDate>
+    </ownerSignature>
+
+    <ownerSignature>
+        <signatureName>UAW FORD RETIREES MEDICAL BENEFITS PLAN, By: /s/ Garon Meikle, Chief Financial Officer</signatureName>
+        <signatureDate>2024-04-01</signatureDate>
+    </ownerSignature>
+
+    <ownerSignature>
+        <signatureName>UAW GM RETIREES MEDICAL BENEFITS PLAN, By: /s/ Garon Meikle, Chief Financial Officer</signatureName>
+        <signatureDate>2024-04-01</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

@@ -1,4 +1,4 @@
-import type { Form4SourceInfo, Form4XmlUrls } from "../../types";
+import type { Form4SourceInfo } from "../../types";
 
 /**
  * Parse filing base URL from an EDGAR fileName
@@ -33,29 +33,6 @@ export function extractXmlFilenameFromContent(content: string): string | null {
   // Format: <FILENAME>something.xml
   const match = content.match(/<FILENAME>([^\n<]+\.xml)/i);
   return match ? match[1].trim() : null;
-}
-
-/**
- * Get Form 4 XML URLs from the submission content (no extra HTTP request needed)
- *
- * @param fileName - EDGAR fileName, e.g. "edgar/data/1234567/0001234567-24-000001.txt"
- * @param content - The full SEC submission text content (already fetched)
- * @returns Object with rawXmlUrl and formattedXmlUrl, or null if not found
- */
-export function getForm4XmlUrls(
-  fileName: string,
-  content: string,
-): Form4XmlUrls | null {
-  const baseUrlInfo = getFilingBaseUrl(fileName);
-  if (!baseUrlInfo) return null;
-
-  const xmlFileName = extractXmlFilenameFromContent(content);
-  if (!xmlFileName) return null;
-
-  return {
-    rawXmlUrl: `${baseUrlInfo.baseUrl}/${xmlFileName}`,
-    formattedXmlUrl: `${baseUrlInfo.baseUrl}/xslF345X03/${xmlFileName}`,
-  };
 }
 
 /**

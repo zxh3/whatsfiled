@@ -7,16 +7,31 @@ import {
 import {
   type Form4Document,
   type Form4ParseOptions,
+  type Logger,
   type SchemaVersion,
   SUPPORTED_SCHEMA_VERSIONS,
 } from "../../types";
-import { normalizeForm4Document } from "./normalizers";
+import { normalizeForm4Document } from "./normalizers/index";
 import type { RawOwnershipDocument } from "./raw-types";
 import { FORM4_PARSER_OPTIONS } from "./xml-config";
 
-const DEFAULT_OPTIONS: Required<Form4ParseOptions> = {
+const DEFAULT_LOGGER: Logger = {
+  debug: console.debug,
+  info: console.info,
+  warn: console.warn,
+  error: console.error,
+};
+
+interface RequiredParseOptions {
+  validate: boolean;
+  strictSchemaVersion: boolean;
+  logger: Logger;
+}
+
+const DEFAULT_OPTIONS: RequiredParseOptions = {
   validate: true,
   strictSchemaVersion: true,
+  logger: DEFAULT_LOGGER,
 };
 
 /**
@@ -53,7 +68,7 @@ function createParser(): XMLParser {
  */
 function extractSchemaVersion(
   raw: RawOwnershipDocument,
-  options: Required<Form4ParseOptions>,
+  options: RequiredParseOptions,
 ): SchemaVersion {
   const version = raw.ownershipDocument?.schemaVersion;
 
@@ -68,8 +83,9 @@ function extractSchemaVersion(
       throw new UnsupportedSchemaVersionError(versionStr);
     }
     // Attempt to use latest known version
-    console.warn(
+    (options.logger.warn ?? console.warn)(
       `Unknown schema version "${versionStr}", attempting parse with X0508 rules`,
+      { schemaVersion: versionStr, fallbackVersion: "X0508" },
     );
     return "X0508";
   }

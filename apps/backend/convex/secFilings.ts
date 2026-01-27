@@ -261,19 +261,20 @@ export const parseForm4Docs = internalAction({
     for (const row of pendingRows) {
       const fileName = row.fileName;
       const content = await edgarClient.fetchFiling(fileName);
-      const parsed = edgarClient.parseForm4(content);
-      const sourceInfo = edgarClient.getForm4SourceInfo(fileName, content);
-      if (!sourceInfo) {
+      const parsed = edgarClient.parseForm4(content, { fileName });
+      const sourceInfoResult = edgarClient.getSourceInfo(fileName, content);
+      if (!sourceInfoResult.ok) {
         await ctx.runMutation(
           internal.secFilings._updateEdgarDailyIndexFormRows,
           {
             id: row._id,
             state: "failed",
-            failureReason: "Source info not found",
+            failureReason: `Source info not found: ${sourceInfoResult.error}`,
           },
         );
         continue;
       }
+      const sourceInfo = sourceInfoResult.value;
 
       // TODO: populate the parsed form4 docs
       // await ctx.runMutation(internal.secFilings._insertParsedForm4Docs, {

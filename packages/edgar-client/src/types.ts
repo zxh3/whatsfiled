@@ -6,6 +6,35 @@ export interface RetryOptions {
   maxRetries?: number;
   baseDelayMs?: number;
   maxDelayMs?: number;
+  /** HTTP status codes that should trigger a retry (default: [429, 500, 502, 503, 504]) */
+  retryStatusCodes?: number[];
+}
+
+// ============================================================
+// RESULT TYPE
+// ============================================================
+
+/**
+ * A discriminated union for operations that can fail with typed errors.
+ * Provides better error context than returning null.
+ */
+export type Result<T, E = string> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+// ============================================================
+// LOGGER TYPE
+// ============================================================
+
+/**
+ * Logger interface for the EdgarClient.
+ * All methods are optional and default to console methods.
+ */
+export interface Logger {
+  debug?: (message: string, context?: Record<string, unknown>) => void;
+  info?: (message: string, context?: Record<string, unknown>) => void;
+  warn?: (message: string, context?: Record<string, unknown>) => void;
+  error?: (message: string, context?: Record<string, unknown>) => void;
 }
 
 // ============================================================
@@ -133,7 +162,7 @@ export interface Form4PostTransactionAmounts {
 }
 
 export interface Form4OwnershipNature {
-  directOrIndirect: ValueWithFootnotes<"D" | "I" | null>;
+  isDirect: ValueWithFootnotes<boolean | null>;
   natureOfOwnership: ValueWithFootnotes<string | null>;
 }
 
@@ -144,7 +173,6 @@ export interface Form4UnderlyingSecurity {
 }
 
 export interface Form4NonDerivativeTransaction {
-  type: "transaction";
   securityTitle: ValueWithFootnotes<string>;
   transactionDate: ValueWithFootnotes<string | null>;
   /** Only present in X0306 (not in X0407 or X0508) */
@@ -158,15 +186,10 @@ export interface Form4NonDerivativeTransaction {
 }
 
 export interface Form4NonDerivativeHolding {
-  type: "holding";
   securityTitle: ValueWithFootnotes<string>;
   postTransactionAmounts: Form4PostTransactionAmounts;
   ownershipNature: Form4OwnershipNature;
 }
-
-export type Form4NonDerivativeEntry =
-  | Form4NonDerivativeTransaction
-  | Form4NonDerivativeHolding;
 
 export interface Form4NonDerivativeTable {
   transactions: Form4NonDerivativeTransaction[];
@@ -174,7 +197,6 @@ export interface Form4NonDerivativeTable {
 }
 
 export interface Form4DerivativeTransaction {
-  type: "transaction";
   securityTitle: ValueWithFootnotes<string>;
   conversionOrExercisePrice: ValueWithFootnotes<number | null>;
   transactionDate: ValueWithFootnotes<string | null>;
@@ -190,7 +212,6 @@ export interface Form4DerivativeTransaction {
 }
 
 export interface Form4DerivativeHolding {
-  type: "holding";
   securityTitle: ValueWithFootnotes<string>;
   conversionOrExercisePrice: ValueWithFootnotes<number | null>;
   exerciseDate: ValueWithFootnotes<string | null>;
@@ -199,10 +220,6 @@ export interface Form4DerivativeHolding {
   postTransactionAmounts: Form4PostTransactionAmounts;
   ownershipNature: Form4OwnershipNature;
 }
-
-export type Form4DerivativeEntry =
-  | Form4DerivativeTransaction
-  | Form4DerivativeHolding;
 
 export interface Form4DerivativeTable {
   transactions: Form4DerivativeTransaction[];
@@ -247,7 +264,7 @@ export interface Form4Document {
   /** Whether no securities are owned */
   noSecuritiesOwned: boolean;
   /** Whether reporting person is 10b5-1 affiliated (X0407 and X0508 only, null for X0306) */
-  aff10b5One: boolean | null;
+  is10b5OnePlan: boolean | null;
 
   /** Issuer (company) information */
   issuer: Form4Issuer;
@@ -267,7 +284,7 @@ export interface Form4Document {
   remarks: string | null;
 
   /** Source file information and URLs (optional, populated when available) */
-  _source?: Form4SourceInfo;
+  source?: Form4SourceInfo;
 }
 
 export interface Form4ParseOptions {
@@ -283,9 +300,17 @@ export interface Form4ParseOptions {
    * @default true
    */
   strictSchemaVersion?: boolean;
+
+  /**
+   * Logger for warnings (e.g., unknown schema version fallback)
+   * @default console
+   */
+  logger?: Logger;
+
+  /**
+   * EDGAR file path for auto-populating source info
+   * e.g. "edgar/data/1234567/0001234567-24-000001.txt"
+   */
+  fileName?: string;
 }
 
-export interface Form4XmlUrls {
-  rawXmlUrl: string;
-  formattedXmlUrl: string;
-}

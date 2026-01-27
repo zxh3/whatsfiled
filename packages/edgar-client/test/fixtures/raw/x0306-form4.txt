@@ -1,0 +1,153 @@
+<SEC-DOCUMENT>0001209191-22-021957.txt : 20220401
+<SEC-HEADER>0001209191-22-021957.hdr.sgml : 20220401
+<ACCEPTANCE-DATETIME>20220401160035
+ACCESSION NUMBER:		0001209191-22-021957
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20220331
+FILED AS OF DATE:		20220401
+DATE AS OF CHANGE:		20220401
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Narang Neha Jogani
+		CENTRAL INDEX KEY:			0001789425
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-35883
+		FILM NUMBER:		22798095
+
+	MAIL ADDRESS:	
+		STREET 1:		6240 SEA HARBOR DRIVE
+		CITY:			ORLANDO
+		STATE:			FL
+		ZIP:			32821
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			SeaWorld Entertainment, Inc.
+		CENTRAL INDEX KEY:			0001564902
+		STANDARD INDUSTRIAL CLASSIFICATION:	SERVICES-MISCELLANEOUS AMUSEMENT & RECREATION [7990]
+		IRS NUMBER:				271220297
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		6240 SEA HARBOR DRIVE
+		CITY:			ORLANDO
+		STATE:			FL
+		ZIP:			32821
+		BUSINESS PHONE:		(407) 226-5011
+
+	MAIL ADDRESS:	
+		STREET 1:		6240 SEA HARBOR DRIVE
+		CITY:			ORLANDO
+		STATE:			FL
+		ZIP:			32821
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>doc4.xml
+<DESCRIPTION>FORM 4 SUBMISSION
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0306</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2022-03-31</periodOfReport>
+
+    <notSubjectToSection16>0</notSubjectToSection16>
+
+    <issuer>
+        <issuerCik>0001564902</issuerCik>
+        <issuerName>SeaWorld Entertainment, Inc.</issuerName>
+        <issuerTradingSymbol>SEAS</issuerTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001789425</rptOwnerCik>
+            <rptOwnerName>Narang Neha Jogani</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerStreet1>C/O SEAWORLD ENTERTAINMENT, INC.</rptOwnerStreet1>
+            <rptOwnerStreet2>6240 SEA HARBOR DRIVE</rptOwnerStreet2>
+            <rptOwnerCity>ORLANDO</rptOwnerCity>
+            <rptOwnerState>FL</rptOwnerState>
+            <rptOwnerZipCode>32821</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>0</isTenPercentOwner>
+            <isOther>0</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2022-03-31</value>
+            </transactionDate>
+            <deemedExecutionDate></deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>A</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionTimeliness>
+                <value></value>
+            </transactionTimeliness>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>423</value>
+                    <footnoteId id="F1"/>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>0.00</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>19770</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">Granted under the Issuer's 2017 Omnibus Incentive Plan.</footnote>
+    </footnotes>
+
+    <remarks></remarks>
+
+    <ownerSignature>
+        <signatureName>/s/ Harold Herman, Power of Attorney</signatureName>
+        <signatureDate>2022-04-01</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

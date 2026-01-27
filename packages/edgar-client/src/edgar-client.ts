@@ -7,17 +7,29 @@ import {
   parseDailyIndex,
   parseDailyIndexFileName,
 } from "./internal/daily-index";
-import { parseForm4, getDocumentType, getSchemaVersion } from "./internal/form4/parser";
-import { buildForm4SourceInfo, getForm4XmlUrls } from "./internal/form4/urls";
+import {
+  getDocumentType as getDocumentTypeInternal,
+  getSchemaVersion as getSchemaVersionInternal,
+  isSchemaVersionSupported,
+  parseForm4 as parseForm4Internal,
+} from "./internal/form4/parser";
+import {
+  buildForm4SourceInfo,
+  extractXmlFilenameFromContent,
+  getFilingBaseUrl,
+} from "./internal/form4/urls";
 import { fetchWithBackoff, sleep } from "./internal/http";
 import type {
   DailyIndexResult,
   DailyIndexRow,
+  DocumentType,
   Form4Document,
   Form4ParseOptions,
   Form4SourceInfo,
-  Form4XmlUrls,
+  Logger,
+  Result,
   RetryOptions,
+  SchemaVersion,
 } from "./types";
 
 export interface EdgarClientOptions {
@@ -25,6 +37,10 @@ export interface EdgarClientOptions {
   userAgent?: string;
   /** Retry options for HTTP requests */
   retryOptions?: RetryOptions;
+  /** Delay between rate-limited requests in milliseconds (default: 300) */
+  rateLimitDelayMs?: number;
+  /** Logger for warnings and debug info (default: console) */
+  logger?: Logger;
 }
 
 const DEFAULT_USER_AGENT = "WhatsFiled whatsfiled@gmail.com";
@@ -43,15 +59,18 @@ const DEFAULT_USER_AGENT = "WhatsFiled whatsfiled@gmail.com";
  * const index = await client.fetchDailyIndex(fileNames[0]);
  * const rows = client.parseDailyIndex(index.content, { formTypes: ['4', '4/A'] });
  *
- * // Fetch and parse a Form 4
+ * // Fetch and parse a Form 4 with source info auto-populated
  * const content = await client.fetchFiling(rows[0].fileName);
- * const doc = client.parseForm4(content);
+ * const doc = client.parseForm4(content, { fileName: rows[0].fileName });
  * console.log(doc.issuer.name, doc.reportingOwners[0].id.name);
+ * console.log(doc.source?.formattedXmlUrl);
  * ```
  */
 export class EdgarClient {
   private readonly userAgent: string;
   private readonly retryOptions: RetryOptions;
+  private readonly rateLimitDelayMs: number;
+  private readonly logger: Logger;
 
   constructor(options: EdgarClientOptions = {}) {
     this.userAgent = options.userAgent ?? DEFAULT_USER_AGENT;
@@ -60,6 +79,13 @@ export class EdgarClient {
       baseDelayMs: 1000,
       maxDelayMs: 60000,
       ...options.retryOptions,
+    };
+    this.rateLimitDelayMs = options.rateLimitDelayMs ?? 300;
+    this.logger = options.logger ?? {
+      debug: console.debug,
+      info: console.info,
+      warn: console.warn,
+      error: console.error,
     };
   }
 
@@ -121,7 +147,7 @@ export class EdgarClient {
       const html = await this.fetch(url);
       const names = extractDailyIndexFileNames(html);
       fileNames.push(...names);
-      await sleep(300); // Rate limiting between quarters
+      await sleep(this.rateLimitDelayMs);
     }
 
     return fileNames;
@@ -175,63 +201,107 @@ export class EdgarClient {
 
   /**
    * Parse Form 4 or Form 4/A content into a structured document.
+   * If fileName is provided, the source field will be auto-populated with URLs.
    *
    * @param content - Raw content from fetchFiling
-   * @param options - Parse options
+   * @param options - Parse options (including optional fileName for source info)
    * @returns Normalized Form4Document
    * @throws {Form4ParseError} If parsing fails
    * @throws {UnsupportedSchemaVersionError} If schema version is not supported
    * @throws {ValidationError} If validation fails
    */
   parseForm4(content: string, options?: Form4ParseOptions): Form4Document {
-    return parseForm4(content, options);
+    const doc = parseForm4Internal(content, {
+      logger: this.logger,
+      ...options,
+    });
+
+    // Auto-populate source info if fileName is provided
+    if (options?.fileName) {
+      const sourceInfo = buildForm4SourceInfo(options.fileName, content);
+      if (sourceInfo) {
+        doc.source = sourceInfo;
+      }
+    }
+
+    return doc;
   }
 
-  /**
-   * Build source info for a Form 4 document.
-   * Use this to populate the _source field with URLs to the original filing.
-   *
-   * @param fileName - EDGAR file path
-   * @param content - Raw filing content
-   * @returns Form4SourceInfo object, or null if cannot be built
-   */
-  getForm4SourceInfo(
-    fileName: string,
-    content: string,
-  ): Form4SourceInfo | null {
-    return buildForm4SourceInfo(fileName, content);
-  }
-
-  /**
-   * Get Form 4 XML URLs without full parsing.
-   *
-   * @param fileName - EDGAR file path
-   * @param content - Raw filing content
-   * @returns URLs object, or null if not found
-   */
-  getForm4XmlUrls(fileName: string, content: string): Form4XmlUrls | null {
-    return getForm4XmlUrls(fileName, content);
-  }
+  // ============================================================
+  // RESULT-RETURNING METHODS
+  // ============================================================
 
   /**
    * Get schema version from Form 4 content without full parsing.
-   * Useful for filtering/routing.
+   * Useful for filtering/routing before parsing.
    *
    * @param content - Raw filing content
-   * @returns Schema version string, or null if not found
+   * @returns Result with SchemaVersion or error type
    */
-  getForm4SchemaVersion(content: string): string | null {
-    return getSchemaVersion(content);
+  getSchemaVersion(
+    content: string,
+  ): Result<SchemaVersion, "not_found" | "unsupported_version"> {
+    const version = getSchemaVersionInternal(content);
+
+    if (version === null) {
+      return { ok: false, error: "not_found" };
+    }
+
+    if (!isSchemaVersionSupported(version)) {
+      return { ok: false, error: "unsupported_version" };
+    }
+
+    return { ok: true, value: version as SchemaVersion };
   }
 
   /**
    * Get document type from Form 4 content without full parsing.
-   * Useful for filtering/routing.
+   * Useful for filtering/routing before parsing.
    *
    * @param content - Raw filing content
-   * @returns "4" or "4/A", or null if not found
+   * @returns Result with DocumentType ("4" or "4/A") or error type
    */
-  getForm4DocumentType(content: string): "4" | "4/A" | null {
-    return getDocumentType(content);
+  getDocumentType(
+    content: string,
+  ): Result<DocumentType, "not_found" | "invalid_type"> {
+    const docType = getDocumentTypeInternal(content);
+
+    if (docType === null) {
+      return { ok: false, error: "not_found" };
+    }
+
+    return { ok: true, value: docType };
+  }
+
+  /**
+   * Get Form 4 source info (URLs to original filing) without full parsing.
+   *
+   * @param fileName - EDGAR file path
+   * @param content - Raw filing content
+   * @returns Result with Form4SourceInfo or error type
+   */
+  getSourceInfo(
+    fileName: string,
+    content: string,
+  ): Result<Form4SourceInfo, "invalid_filename" | "xml_not_found"> {
+    const baseUrlInfo = getFilingBaseUrl(fileName);
+    if (!baseUrlInfo) {
+      return { ok: false, error: "invalid_filename" };
+    }
+
+    const xmlFileName = extractXmlFilenameFromContent(content);
+    if (!xmlFileName) {
+      return { ok: false, error: "xml_not_found" };
+    }
+
+    return {
+      ok: true,
+      value: {
+        fileName,
+        xmlFileName,
+        rawXmlUrl: `${baseUrlInfo.baseUrl}/${xmlFileName}`,
+        formattedXmlUrl: `${baseUrlInfo.baseUrl}/xslF345X03/${xmlFileName}`,
+      },
+    };
   }
 }

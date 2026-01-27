@@ -1,0 +1,171 @@
+<SEC-DOCUMENT>0001493152-23-016031.txt : 20230509
+<SEC-HEADER>0001493152-23-016031.hdr.sgml : 20230509
+<ACCEPTANCE-DATETIME>20230509200832
+ACCESSION NUMBER:		0001493152-23-016031
+CONFORMED SUBMISSION TYPE:	4/A
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20230405
+FILED AS OF DATE:		20230509
+DATE AS OF CHANGE:		20230509
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			GILBERT DON HAROLD
+		CENTRAL INDEX KEY:			0001397280
+
+	FILING VALUES:
+		FORM TYPE:		4/A
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	000-10210
+		FILM NUMBER:		23903940
+
+	MAIL ADDRESS:	
+		STREET 1:		PO BOX 090122
+		CITY:			STATEN ISLAND
+		STATE:			NY
+		ZIP:			10309
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			GLOBAL TECH INDUSTRIES GROUP, INC.
+		CENTRAL INDEX KEY:			0000356590
+		STANDARD INDUSTRIAL CLASSIFICATION:	SERVICES-MANAGEMENT SERVICES [8741]
+		IRS NUMBER:				830250943
+		STATE OF INCORPORATION:			NV
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		511 SIXTH AVENUE, SUITE 800
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10011
+		BUSINESS PHONE:		212-204-7926
+
+	MAIL ADDRESS:	
+		STREET 1:		511 SIXTH AVENUE, SUITE 800
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10011
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	TREE TOP INDUSTRIES, INC.
+		DATE OF NAME CHANGE:	20050401
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	GOHEALTH MD INC
+		DATE OF NAME CHANGE:	20000201
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	NUGGET EXPLORATION INC
+		DATE OF NAME CHANGE:	19920703
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4/A
+<SEQUENCE>1
+<FILENAME>ownership.xml
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0407</schemaVersion>
+
+    <documentType>4/A</documentType>
+
+    <periodOfReport>2023-04-05</periodOfReport>
+
+    <dateOfOriginalSubmission>2023-04-12</dateOfOriginalSubmission>
+
+    <notSubjectToSection16>0</notSubjectToSection16>
+
+    <issuer>
+        <issuerCik>0000356590</issuerCik>
+        <issuerName>GLOBAL TECH INDUSTRIES GROUP, INC.</issuerName>
+        <issuerTradingSymbol>GTII</issuerTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001397280</rptOwnerCik>
+            <rptOwnerName>GILBERT DON HAROLD</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerStreet1>29 ASHTON DRIVE</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>STATEN ISLAND</rptOwnerCity>
+            <rptOwnerState>NY</rptOwnerState>
+            <rptOwnerZipCode>10312</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>0</isTenPercentOwner>
+            <isOther>1</isOther>
+            <officerTitle></officerTitle>
+            <otherText>Audit Chair</otherText>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>1</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2023-04-05</value>
+            </transactionDate>
+            <deemedExecutionDate>
+                <footnoteId id="F1"/>
+            </deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>S</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+                <footnoteId id="F2"/>
+            </transactionCoding>
+            <transactionTimeliness></transactionTimeliness>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>3833</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>1.655</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>7992334</value>
+                    <footnoteId id="F3"/>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">On April 11, 2023, the reporting person filed a Form 4 which inadvertently reported a &quot;Deemed Execution Date&quot;, under column 2A.</footnote>
+        <footnote id="F2">On April 11, 2023, the reporting person filed a Form 4 which also inadvertently reported the incorrect &quot;Transaction Code&quot;, under column 3. Furthermore, the transaction reported on this Form 4 was effected pursuant to a Rule 10b5-1 trading plan, which was adopted by the reporting person on June 23, 2022.</footnote>
+        <footnote id="F3">On April 11, 2023, the reporting person filed a Form 4 which also inadvertently reported an inaccurate number of shares of common stock beneficially owned by the reporting person following the reported transaction. In fact, as reported in this amendment, the reporting person owned 3,416,114 more shares of common stock than was reported after the transaction.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>/s/ Donald Gilbert</signatureName>
+        <signatureDate>2023-05-09</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

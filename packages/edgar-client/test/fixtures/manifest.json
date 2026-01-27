@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-01-27T03:06:58.964Z",
+  "fixtures": [
+    {
+      "filename": "x0306-form4.txt",
+      "schemaVersion": "X0306",
+      "documentType": "4",
+      "issuerCik": "0001564902",
+      "issuerName": "SeaWorld Entertainment, Inc.",
+      "capturedAt": "2026-01-27T03:05:04.836Z",
+      "originalUrl": "https://www.sec.gov/Archives/edgar/data/1564902/0001209191-22-021957.txt"
+    },
+    {
+      "filename": "x0306-form4a.txt",
+      "schemaVersion": "X0306",
+      "documentType": "4/A",
+      "issuerCik": "0001167419",
+      "issuerName": "Riot Blockchain, Inc.",
+      "capturedAt": "2026-01-27T03:05:06.343Z",
+      "originalUrl": "https://www.sec.gov/Archives/edgar/data/1757880/0001079973-22-001212.txt"
+    },
+    {
+      "filename": "x0407-form4.txt",
+      "schemaVersion": "X0407",
+      "documentType": "4",
+      "issuerCik": "0001659352",
+      "issuerName": "Codiak BioSciences, Inc.",
+      "capturedAt": "2026-01-27T03:04:08.437Z",
+      "originalUrl": "https://www.sec.gov/Archives/edgar/data/1184847/0000950170-23-011025.txt"
+    },
+    {
+      "filename": "x0407-form4a.txt",
+      "schemaVersion": "X0407",
+      "documentType": "4/A",
+      "issuerCik": "0000356590",
+      "issuerName": "GLOBAL TECH INDUSTRIES GROUP, INC.",
+      "capturedAt": "2026-01-27T03:06:58.662Z",
+      "originalUrl": "https://www.sec.gov/Archives/edgar/data/1397280/0001493152-23-016031.txt"
+    },
+    {
+      "filename": "x0508-form4.txt",
+      "schemaVersion": "X0508",
+      "documentType": "4",
+      "issuerCik": "0001844684",
+      "issuerName": "NC SLF Inc.",
+      "capturedAt": "2026-01-27T03:03:05.898Z",
+      "originalUrl": "https://www.sec.gov/Archives/edgar/data/1844684/0001104659-24-041917.txt"
+    },
+    {
+      "filename": "x0508-form4a.txt",
+      "schemaVersion": "X0508",
+      "documentType": "4/A",
+      "issuerCik": "0001771514",
+      "issuerName": "ExchangeRight Income Fund",
+      "capturedAt": "2026-01-27T03:03:12.729Z",
+      "originalUrl": "https://www.sec.gov/Archives/edgar/data/1982216/0000908834-24-000108.txt"
+    }
+  ]
+}
