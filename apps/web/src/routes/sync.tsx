@@ -1,5 +1,4 @@
-"use client";
-
+import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
 import { Progress } from "@whatsfiled/ui/components/progress";
 import {
@@ -8,11 +7,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { CircleHelp } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { SiteHeader } from "@/components/layout/site-header";
+import { z } from "zod";
+
+const syncSearchSchema = z.object({
+  year: z.coerce.number().optional(),
+  showSkipped: z.string().optional(),
+});
+
+export const Route = createFileRoute("/sync")({
+  validateSearch: syncSearchSchema,
+  component: SyncPage,
+});
 
 function formatNumber(num: number): string {
   return num.toLocaleString();
@@ -124,13 +132,12 @@ function LegendItem({
   );
 }
 
-export default function AdminPage() {
+function SyncPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const searchParams = useSearchParams();
-  const showSkipped = searchParams.get("showSkipped") === "1";
-  const selectedYearParam = searchParams.get("year");
-  const selectedYear = selectedYearParam ? Number(selectedYearParam) : 2026;
+  const { year, showSkipped: showSkippedParam } = Route.useSearch();
+  const showSkipped = showSkippedParam === "1";
+  const selectedYear = year ?? 2026;
 
   const statsQuery = trpc.pipeline.getStats.useQuery(undefined, {
     refetchInterval: autoRefresh ? 5000 : false,
@@ -451,18 +458,18 @@ export default function AdminPage() {
                   Year
                 </label>
                 <div className="flex gap-2">
-                  {[2026, 2025, 2024, 2023].map((year) => (
+                  {[2026, 2025, 2024, 2023].map((y) => (
                     <Link
-                      key={year}
-                      href={`/sync?year=${year}${showSkipped ? "&showSkipped=1" : ""}`}
-                      scroll={false}
+                      key={y}
+                      to="/sync"
+                      search={{ year: y, showSkipped: showSkipped ? "1" : undefined }}
                       className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        year === selectedYear
+                        y === selectedYear
                           ? "bg-foreground text-background"
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
                     >
-                      {year}
+                      {y}
                     </Link>
                   ))}
                 </div>

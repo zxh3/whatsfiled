@@ -1,9 +1,12 @@
-"use client";
-
 import { ActivityFeed } from "@/components/filings";
 import { SiteHeader } from "@/components/layout/site-header";
+import { createFileRoute } from "@tanstack/react-router";
 
-export default function Page() {
+export const Route = createFileRoute("/")({
+  component: HomePage,
+});
+
+function HomePage() {
   return (
     <main className="min-h-screen">
       <SiteHeader />

@@ -1,13 +1,14 @@
-"use client";
-
 import { FilingCard } from "@/components/filings/filing-card";
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
-import { useParams } from "next/navigation";
+import { createFileRoute } from "@tanstack/react-router";
 
-export default function CompanyPage() {
-  const params = useParams<{ cik: string }>();
-  const cik = params?.cik ?? "";
+export const Route = createFileRoute("/company/$cik")({
+  component: CompanyPage,
+});
+
+function CompanyPage() {
+  const { cik } = Route.useParams();
   const { data, isLoading, isError } = trpc.companies.getByCik.useQuery(
     { cik, limit: 50 },
     { enabled: Boolean(cik) },

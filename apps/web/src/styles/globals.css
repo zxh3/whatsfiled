@@ -3,16 +3,17 @@
 @import "shadcn/tailwind.css";
 
 /* Include UI package and app components in Tailwind scanning */
-@source "../../../../packages/ui/src/**/*.tsx";
+@source "../../../../../packages/ui/src/**/*.tsx";
 @source "../components/**/*.tsx";
+@source "../routes/**/*.tsx";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Figtree", sans-serif;
+  --font-mono: "Geist Mono", monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -126,5 +127,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "Figtree", sans-serif;
   }
 }

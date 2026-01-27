@@ -1,15 +1,12 @@
-"use client";
-
 import { trpc } from "@/lib/trpc";
+import { keepPreviousData } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { FilingCard } from "./filing-card";
+import { FilingCard, type FilingCardProps } from "./filing-card";
 
 const PAGE_SIZE = 50;
 
-type Filing = NonNullable<
-  ReturnType<typeof trpc.filings.getRecentFilings.useQuery>["data"]
->["filings"][number];
+type Filing = FilingCardProps["filing"];
 
 export function ActivityFeed() {
   const [allFilings, setAllFilings] = useState<Filing[]>([]);
@@ -22,7 +19,7 @@ export function ActivityFeed() {
       limit: PAGE_SIZE,
       offset,
     }, {
-      keepPreviousData: true,
+      placeholderData: keepPreviousData,
       refetchInterval: offset === 0 ? 60000 : false,
       staleTime: 30000,
     });

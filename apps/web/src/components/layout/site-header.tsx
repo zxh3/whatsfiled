@@ -1,12 +1,10 @@
-"use client";
-
 import { trpc } from "@/lib/trpc";
+import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 export function SiteHeader() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -20,7 +18,7 @@ export function SiteHeader() {
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
-    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    navigate({ to: "/search", search: { q: trimmed } });
     setIsFocused(false);
   };
 
@@ -73,7 +71,7 @@ export function SiteHeader() {
       const selected = items[selectedIndex];
       if (selected) {
         event.preventDefault();
-        router.push(selected.href);
+        navigate({ to: selected.href });
         setIsFocused(false);
       }
     }

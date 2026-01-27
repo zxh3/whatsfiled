@@ -1,12 +1,20 @@
-"use client";
-
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
-import { useSearchParams } from "next/navigation";
+import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 
-export default function SearchPage() {
-  const params = useSearchParams();
-  const query = params.get("q")?.trim() ?? "";
+const searchSchema = z.object({
+  q: z.string().optional(),
+});
+
+export const Route = createFileRoute("/search")({
+  validateSearch: searchSchema,
+  component: SearchPage,
+});
+
+function SearchPage() {
+  const { q } = Route.useSearch();
+  const query = q?.trim() ?? "";
   const { data, isLoading } = trpc.search.search.useQuery(
     { query, limit: 12 },
     { enabled: query.length > 0 },
@@ -20,7 +28,7 @@ export default function SearchPage() {
           <h1 className="text-2xl font-semibold">Search</h1>
           {query ? (
             <p className="text-sm text-muted-foreground">
-              Results for “{query}”
+              Results for "{query}"
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">

@@ -1,13 +1,7 @@
-"use client";
-
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
+import { createFileRoute } from "@tanstack/react-router";
 import { formatInTimeZone } from "date-fns-tz";
-import { useParams } from "next/navigation";
-
-type Filing = NonNullable<
-  ReturnType<typeof trpc.filings.getByAccessionNumber.useQuery>["data"]
->;
 
 function formatNumber(value: number | string | null | undefined): string {
   if (value === null || value === undefined) return "—";
@@ -29,12 +23,13 @@ function formatDate(value: Date | string | null | undefined): string {
 }
 
 function sumNumber(values: Array<number | string | null | undefined>): number {
-  return values.reduce((acc, value) => {
-    if (value === null || value === undefined) return acc;
+  let sum = 0;
+  for (const value of values) {
+    if (value === null || value === undefined) continue;
     const num = typeof value === "string" ? Number(value) : value;
-    if (Number.isNaN(num)) return acc;
-    return acc + num;
-  }, 0);
+    if (!Number.isNaN(num)) sum += num;
+  }
+  return sum;
 }
 
 function resolveValue(params: {
@@ -62,9 +57,12 @@ function resolveValue(params: {
   return 0;
 }
 
-export default function FilingPage() {
-  const params = useParams<{ accessionNumber: string }>();
-  const accessionNumber = params?.accessionNumber ?? "";
+export const Route = createFileRoute("/filing/$accessionNumber")({
+  component: FilingPage,
+});
+
+function FilingPage() {
+  const { accessionNumber } = Route.useParams();
   const { data, isLoading, isError } =
     trpc.filings.getByAccessionNumber.useQuery(
       { accessionNumber },
@@ -93,7 +91,7 @@ export default function FilingPage() {
     );
   }
 
-  const filing = data as Filing;
+  const filing = data;
   const primaryOwner = filing.owners[0]?.insider;
   const company = filing.company;
   const nonDerivativeBuys = filing.transactions.filter(

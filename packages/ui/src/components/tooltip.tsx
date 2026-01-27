@@ -1,28 +1,53 @@
-"use client";
-
 import * as React from "react";
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 
 import { cn } from "../lib/utils";
 
-const TooltipProvider = TooltipPrimitive.Provider;
+// Props interface for TooltipProvider to match Radix-style API
+interface TooltipProviderProps {
+  children: React.ReactNode;
+  delayDuration?: number;
+  skipDelayDuration?: number;
+}
 
-const Tooltip = TooltipPrimitive.Root;
+// Provider that stores delay config in context
+const TooltipDelayContext = React.createContext<{ delay: number }>({ delay: 0 });
 
-// Wrapper to support Radix-style `asChild` prop
+const TooltipProvider = ({ children, delayDuration = 0 }: TooltipProviderProps) => {
+  const value = React.useMemo(() => ({ delay: delayDuration }), [delayDuration]);
+  return (
+    <TooltipPrimitive.Provider>
+      <TooltipDelayContext.Provider value={value}>
+        {children}
+      </TooltipDelayContext.Provider>
+    </TooltipPrimitive.Provider>
+  );
+};
+
+// Tooltip root
+const Tooltip = ({ children, ...props }: React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Root>) => {
+  return (
+    <TooltipPrimitive.Root {...props}>
+      {children}
+    </TooltipPrimitive.Root>
+  );
+};
+
+// Wrapper to support Radix-style `asChild` prop, applying delay from context
 const TooltipTrigger = React.forwardRef<
   HTMLButtonElement,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger> & {
     asChild?: boolean;
   }
 >(({ asChild, children, ...props }, ref) => {
+  const { delay } = React.useContext(TooltipDelayContext);
   if (asChild && React.isValidElement(children)) {
     return (
-      <TooltipPrimitive.Trigger ref={ref} render={children} {...props} />
+      <TooltipPrimitive.Trigger ref={ref} render={children} delay={delay} {...props} />
     );
   }
   return (
-    <TooltipPrimitive.Trigger ref={ref} {...props}>
+    <TooltipPrimitive.Trigger ref={ref} delay={delay} {...props}>
       {children}
     </TooltipPrimitive.Trigger>
   );
@@ -53,3 +78,4 @@ const TooltipContent = React.forwardRef<
 TooltipContent.displayName = "TooltipContent";
 
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+export type { TooltipProviderProps };

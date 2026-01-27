@@ -1,13 +1,14 @@
-"use client";
-
 import { FilingCard } from "@/components/filings/filing-card";
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
-import { useParams } from "next/navigation";
+import { createFileRoute } from "@tanstack/react-router";
 
-export default function InsiderPage() {
-  const params = useParams<{ cik: string }>();
-  const cik = params?.cik ?? "";
+export const Route = createFileRoute("/insider/$cik")({
+  component: InsiderPage,
+});
+
+function InsiderPage() {
+  const { cik } = Route.useParams();
   const { data, isLoading, isError } = trpc.insiders.getByCik.useQuery(
     { cik, limit: 50 },
     { enabled: Boolean(cik) },

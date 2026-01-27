@@ -1,12 +1,10 @@
-"use client";
-
 import * as React from "react";
 import { Progress as ProgressPrimitive } from "@base-ui/react/progress";
 
 import { cn } from "../lib/utils";
 
-interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
-  value?: number;
+interface ProgressProps extends Omit<React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>, "value"> {
+  value?: number | null;
   className?: string;
   indicatorClassName?: string;
 }
@@ -14,10 +12,10 @@ interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPr
 const Progress = React.forwardRef<
   React.ComponentRef<typeof ProgressPrimitive.Root>,
   ProgressProps
->(({ className, value = 0, indicatorClassName, ...props }, ref) => (
+>(({ className, value, indicatorClassName, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
-    value={value}
+    value={value ?? 0}
     className={cn("relative", className)}
     {...props}
   >
