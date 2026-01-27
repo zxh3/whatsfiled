@@ -14,7 +14,8 @@
       "!dist",
       "!build",
       "!.turbo",
-      "!archived"
+      "!archived",
+      "!**/routeTree.gen.ts"
     ]
   },
   "formatter": {
