@@ -24,9 +24,9 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@whatsfiled/typescript-config": "workspace:*",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@whatsfiled/typescript-config": "workspace:*",
     "typescript": "^5.9.3"
   }
 }
