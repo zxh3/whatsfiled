@@ -28,7 +28,7 @@ Redesign the company page (`/company/:cik`) to display insider trading data in a
 │ Company Header (name, ticker, CIK)                              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  [All] [Market Trades] [Options & Awards]     <- Filter tabs    │
+│  [All] [Common Stock] [Options & Awards]      <- Filter tabs    │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────────┐│
 │  │ Date     Type    Insider          Shares  Price  Value  ... ││
@@ -66,7 +66,7 @@ Redesign the company page (`/company/:cik`) to display insider trading data in a
 **Tab/chip options:**
 
 1. **All** - Show all transactions (default)
-2. **Market Trades** - Open market buys/sells only
+2. **Common Stock** - Direct stock purchases/sales
    - `P` = Purchase
    - `S` = Sale
 3. **Options & Awards** - Derivative-related transactions
@@ -119,7 +119,7 @@ Add a new procedure or modify `getByCik` to return transaction-level data:
 getTransactionsByCik: publicProcedure
   .input(z.object({
     cik: z.string(),
-    filter: z.enum(['all', 'market', 'options']).default('all'),
+    filter: z.enum(['all', 'common', 'options']).default('all'),
     limit: z.number().default(50),
     offset: z.number().default(0),
   }))
@@ -136,7 +136,7 @@ getTransactionsByCik: publicProcedure
 - Join `transactions` -> `filings` -> `filing_owners` -> `insiders`
 - Filter by company CIK
 - Filter by transaction code based on `filter` param:
-  - `market`: `transaction_code IN ('P', 'S')`
+  - `common`: `transaction_code IN ('P', 'S')`
   - `options`: `transaction_code IN ('M', 'A', 'F', 'C', 'G')`
   - `all`: no filter
 - Order by `transaction_date DESC, filed_at DESC`
@@ -178,11 +178,11 @@ interface Transaction {
 
 ```typescript
 interface TransactionFilterProps {
-  value: 'all' | 'market' | 'options';
-  onChange: (value: 'all' | 'market' | 'options') => void;
+  value: 'all' | 'common' | 'options';
+  onChange: (value: 'all' | 'common' | 'options') => void;
   counts?: {
     all: number;
-    market: number;
+    common: number;
     options: number;
   };
 }
@@ -201,7 +201,7 @@ interface TransactionFilterProps {
 **Search params schema:**
 ```typescript
 const searchSchema = z.object({
-  filter: z.enum(['all', 'market', 'options']).default('all'),
+  filter: z.enum(['all', 'common', 'options']).default('all'),
   page: z.coerce.number().default(1),
 });
 ```
