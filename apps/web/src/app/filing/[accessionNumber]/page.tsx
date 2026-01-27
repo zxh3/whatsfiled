@@ -1,7 +1,9 @@
 "use client";
 
+import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
 import { formatInTimeZone } from "date-fns-tz";
+import { useParams } from "next/navigation";
 
 type Filing = NonNullable<
   ReturnType<typeof trpc.filings.getByAccessionNumber.useQuery>["data"]
@@ -26,28 +28,67 @@ function formatDate(value: Date | string | null | undefined): string {
   return formatInTimeZone(new Date(value), "America/New_York", "MMM d, yyyy");
 }
 
-export default function FilingPage({
-  params,
-}: {
-  params: { accessionNumber: string };
-}) {
-  const { data, isLoading, isError } =
-    trpc.filings.getByAccessionNumber.useQuery({
-      accessionNumber: params.accessionNumber,
-    });
+function sumNumber(values: Array<number | string | null | undefined>): number {
+  return values.reduce((acc, value) => {
+    if (value === null || value === undefined) return acc;
+    const num = typeof value === "string" ? Number(value) : value;
+    if (Number.isNaN(num)) return acc;
+    return acc + num;
+  }, 0);
+}
 
-  if (isLoading) {
+function resolveValue(params: {
+  totalValue?: number | string | null;
+  shares?: number | string | null;
+  price?: number | string | null;
+}): number {
+  const total = params.totalValue;
+  if (total !== null && total !== undefined) {
+    const num = typeof total === "string" ? Number(total) : total;
+    if (!Number.isNaN(num)) return num;
+  }
+  const shares = params.shares;
+  const price = params.price;
+  const sharesNum = shares === null || shares === undefined ? null : Number(shares);
+  const priceNum = price === null || price === undefined ? null : Number(price);
+  if (
+    sharesNum !== null &&
+    priceNum !== null &&
+    !Number.isNaN(sharesNum) &&
+    !Number.isNaN(priceNum)
+  ) {
+    return sharesNum * priceNum;
+  }
+  return 0;
+}
+
+export default function FilingPage() {
+  const params = useParams<{ accessionNumber: string }>();
+  const accessionNumber = params?.accessionNumber ?? "";
+  const { data, isLoading, isError } =
+    trpc.filings.getByAccessionNumber.useQuery(
+      { accessionNumber },
+      { enabled: Boolean(accessionNumber) },
+    );
+
+  if (!accessionNumber || isLoading) {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-8">
-        <p className="text-muted-foreground">Loading filing…</p>
+      <main className="min-h-screen">
+        <SiteHeader />
+        <div className="mx-auto max-w-4xl px-4 py-8">
+          <p className="text-muted-foreground">Loading filing…</p>
+        </div>
       </main>
     );
   }
 
   if (isError || !data) {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-8">
-        <p className="text-red-500 font-medium">Filing not found</p>
+      <main className="min-h-screen">
+        <SiteHeader />
+        <div className="mx-auto max-w-4xl px-4 py-8">
+          <p className="text-red-500 font-medium">Filing not found</p>
+        </div>
       </main>
     );
   }
@@ -55,9 +96,52 @@ export default function FilingPage({
   const filing = data as Filing;
   const primaryOwner = filing.owners[0]?.insider;
   const company = filing.company;
+  const nonDerivativeBuys = filing.transactions.filter(
+    (txn) => txn.acquiredDisposed === "A",
+  );
+  const nonDerivativeSells = filing.transactions.filter(
+    (txn) => txn.acquiredDisposed === "D",
+  );
+  const totalBuyShares = sumNumber(nonDerivativeBuys.map((t) => t.shares));
+  const totalSellShares = sumNumber(nonDerivativeSells.map((t) => t.shares));
+  const totalBuyValue = sumNumber(
+    nonDerivativeBuys.map((t) =>
+      resolveValue({
+        totalValue: t.totalValue,
+        shares: t.shares,
+        price: t.pricePerShare,
+      }),
+    ),
+  );
+  const totalSellValue = sumNumber(
+    nonDerivativeSells.map((t) =>
+      resolveValue({
+        totalValue: t.totalValue,
+        shares: t.shares,
+        price: t.pricePerShare,
+      }),
+    ),
+  );
+  const netShares = totalBuyShares - totalSellShares;
+
+  const sharesOwnedAfter =
+    filing.transactions
+      .map((t) => (t.sharesOwnedAfter ? Number(t.sharesOwnedAfter) : null))
+      .filter((v): v is number => v !== null)
+      .sort((a, b) => b - a)[0] ??
+    filing.holdings
+      .map((h) => (h.sharesOwned ? Number(h.sharesOwned) : null))
+      .filter((v): v is number => v !== null)
+      .sort((a, b) => b - a)[0] ??
+    null;
+
+  const sharesOwnedBefore =
+    sharesOwnedAfter !== null ? sharesOwnedAfter - netShares : null;
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8 space-y-8">
+    <main className="min-h-screen">
+      <SiteHeader />
+      <div className="mx-auto max-w-4xl px-4 py-8 space-y-8">
       <header className="space-y-2">
         <div className="text-xs text-muted-foreground">Form {filing.formType}</div>
         <h1 className="text-2xl font-semibold">
@@ -99,6 +183,39 @@ export default function FilingPage({
         )}
       </header>
 
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-xs text-muted-foreground">Total buy</div>
+          <div className="mt-2 text-lg font-semibold">
+            {formatNumber(totalBuyShares)} shares
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {formatCurrency(totalBuyValue)}
+          </div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-xs text-muted-foreground">Total sell</div>
+          <div className="mt-2 text-lg font-semibold">
+            {formatNumber(totalSellShares)} shares
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {formatCurrency(totalSellValue)}
+          </div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-xs text-muted-foreground">Net change</div>
+          <div className="mt-2 text-lg font-semibold">
+            {netShares >= 0 ? "+" : "-"}
+            {formatNumber(Math.abs(netShares))} shares
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {sharesOwnedBefore !== null && sharesOwnedAfter !== null
+              ? `${formatNumber(sharesOwnedBefore)} → ${formatNumber(sharesOwnedAfter)}`
+              : "Ownership data unavailable"}
+          </div>
+        </div>
+      </section>
+
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Non-derivative transactions</h2>
         {filing.transactions.length === 0 ? (
@@ -130,7 +247,15 @@ export default function FilingPage({
                     </td>
                     <td className="py-2">{formatNumber(txn.shares)}</td>
                     <td className="py-2">{formatCurrency(txn.pricePerShare)}</td>
-                    <td className="py-2">{formatCurrency(txn.totalValue)}</td>
+                    <td className="py-2">
+                      {formatCurrency(
+                        resolveValue({
+                          totalValue: txn.totalValue,
+                          shares: txn.shares,
+                          price: txn.pricePerShare,
+                        }),
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -194,6 +319,7 @@ export default function FilingPage({
           </div>
         )}
       </section>
+      </div>
     </main>
   );
 }

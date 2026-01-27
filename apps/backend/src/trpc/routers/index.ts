@@ -4,6 +4,7 @@ import { filingsRouter } from "./filings.js";
 import { companiesRouter } from "./companies.js";
 import { insidersRouter } from "./insiders.js";
 import { pipelineRouter } from "./pipeline.js";
+import { searchRouter } from "./search.js";
 
 export const appRouter = router({
   health: publicProcedure.query(() => {
@@ -21,6 +22,7 @@ export const appRouter = router({
   filings: filingsRouter,
   companies: companiesRouter,
   insiders: insidersRouter,
+  search: searchRouter,
 
   // Pipeline management (admin)
   pipeline: pipelineRouter,

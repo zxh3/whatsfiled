@@ -21,6 +21,8 @@ export function ActivityFeed() {
       limit: PAGE_SIZE,
       offset,
       formType: formType === "all" ? undefined : formType,
+    }, {
+      refetchInterval: offset === 0 ? 60000 : false,
     });
 
   // Accumulate filings when data changes

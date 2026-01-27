@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/index.js";
 import {
@@ -7,6 +7,7 @@ import {
   filingOwners,
   filings,
   insiders,
+  insiderRoles,
   transactions,
 } from "../../db/schema.js";
 import { publicProcedure, router } from "../init.js";
@@ -20,6 +21,7 @@ export const companiesRouter = router({
       }),
     )
     .query(async ({ input }) => {
+      const normalizedCik = input.cik.replace(/^0+/, "");
       const company = await db
         .select({
           id: companies.id,
@@ -27,7 +29,12 @@ export const companiesRouter = router({
           cik: companies.cik,
         })
         .from(companies)
-        .where(eq(companies.cik, input.cik))
+        .where(
+          or(
+            eq(companies.cik, input.cik),
+            sql`ltrim(${companies.cik}, '0') = ${normalizedCik}`,
+          ),
+        )
         .limit(1);
 
       if (company.length === 0) {
@@ -58,6 +65,24 @@ export const companiesRouter = router({
         .where(eq(filings.companyId, company[0].id))
         .orderBy(desc(filings.filedAt), desc(filings.createdAt))
         .limit(input.limit);
+
+      const roster = await db
+        .select({
+          insiderId: insiders.id,
+          insiderName: insiders.name,
+          insiderCik: insiders.cik,
+          isDirector: insiderRoles.isDirector,
+          isOfficer: insiderRoles.isOfficer,
+          isTenPercentOwner: insiderRoles.isTenPercentOwner,
+          isOther: insiderRoles.isOther,
+          officerTitle: insiderRoles.officerTitle,
+          otherText: insiderRoles.otherText,
+          lastSeenAt: insiderRoles.lastSeenAt,
+        })
+        .from(insiderRoles)
+        .innerJoin(insiders, eq(insiderRoles.insiderId, insiders.id))
+        .where(eq(insiderRoles.companyId, company[0].id))
+        .orderBy(desc(insiderRoles.lastSeenAt), insiders.name);
 
       const filingsWithDetails = await Promise.all(
         recentFilings.map(async (filing) => {
@@ -182,6 +207,17 @@ export const companiesRouter = router({
           ...company[0],
           ticker: ticker[0]?.ticker || null,
         },
+        roster: roster.map((entry) => ({
+          id: entry.insiderId,
+          name: entry.insiderName,
+          cik: entry.insiderCik,
+          title: entry.officerTitle || getOwnerRole(entry),
+          isDirector: entry.isDirector,
+          isOfficer: entry.isOfficer,
+          isTenPercentOwner: entry.isTenPercentOwner,
+          otherText: entry.otherText,
+          lastSeenAt: entry.lastSeenAt,
+        })),
         filings: filingsWithDetails,
       };
     }),
@@ -191,10 +227,12 @@ function getOwnerRole(owner: {
   isDirector: boolean;
   isOfficer: boolean;
   isTenPercentOwner: boolean;
+  isOther?: boolean;
 }): string {
   const roles: string[] = [];
   if (owner.isDirector) roles.push("Director");
   if (owner.isOfficer) roles.push("Officer");
   if (owner.isTenPercentOwner) roles.push("10% Owner");
+  if (owner.isOther) roles.push("Other");
   return roles.join(", ") || "Insider";
 }

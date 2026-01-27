@@ -10,6 +10,7 @@ import {
 } from "@whatsfiled/ui/components/tooltip";
 import { CircleHelp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { SiteHeader } from "@/components/layout/site-header";
 
 function formatNumber(num: number): string {
   return num.toLocaleString();
@@ -136,35 +137,33 @@ export default function AdminPage() {
   return (
     <TooltipProvider delayDuration={300}>
       <main className="min-h-screen">
-        {/* Header */}
-        <header className="border-b border-border">
-          <div className="mx-auto max-w-4xl px-4 py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold">Sync Status</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  SEC EDGAR data ingestion progress
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={autoRefresh}
-                    onChange={(e) => setAutoRefresh(e.target.checked)}
-                    className="rounded"
-                  />
-                  Auto-refresh
-                </label>
-                {lastUpdated && (
-                  <span className="text-xs text-muted-foreground">
-                    Updated {lastUpdated.toLocaleTimeString()}
-                  </span>
-                )}
-              </div>
+        <SiteHeader />
+        <div className="mx-auto max-w-4xl px-4 py-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">Sync Status</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                SEC EDGAR data ingestion progress
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={autoRefresh}
+                  onChange={(e) => setAutoRefresh(e.target.checked)}
+                  className="rounded"
+                />
+                Auto-refresh
+              </label>
+              {lastUpdated && (
+                <span className="text-xs text-muted-foreground">
+                  Updated {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
             </div>
           </div>
-        </header>
+        </div>
 
         <div className="mx-auto max-w-4xl px-4 py-6 space-y-8">
           {/* Loading state */}

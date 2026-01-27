@@ -119,36 +119,34 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 - [x] Filter by form type (4, 4/A)
 - [x] Highlight notable transactions (heuristic: value/shares threshold)
 - [x] Click to drill into filing/company/insider
-  - _Note_: Feed is not live-updated yet; add polling or WebSocket for real-time.
+- [x] Live refresh (polling)
 
 ### 3.2 Filing View
 - [x] Filing detail page (`/filing/[accessionNumber]`)
-- [ ] Visual transaction summary
-- [ ] Before/after ownership comparison
+- [x] Visual transaction summary
+- [x] Before/after ownership comparison
 - [x] All transactions in the filing
 - [x] Footnotes display
 - [x] Link to original SEC document
-  - _Note_: Summary/ownership comparison still needed.
 
 ### 3.3 Company View
 - [x] Company profile page (`/company/[cik]`)
 - [x] Company name, ticker, basic info
 - [x] Recent insider transactions list
-- [ ] Insider roster with titles
+- [x] Insider roster with titles
 - [ ] Transaction history chart (future)
-  - _Note_: Insider roster still needed; current view relies on filings list only.
+  - _Note_: Chart still needed.
 
 ### 3.4 Insider View
 - [x] Insider profile page (`/insider/[cik]`)
-- [ ] All companies they're affiliated with
+- [x] All companies they're affiliated with
 - [x] Transaction history across companies
-- [ ] Role at each company
-  - _Note_: Company affiliation summary/roles still needed.
+- [x] Role at each company
 
 ### 3.5 Search
-- [ ] Global search (companies, insiders, tickers)
-- [ ] Autocomplete with suggestions
-- [ ] Search results page
+- [x] Global search (companies, insiders, tickers)
+- [x] Autocomplete with suggestions
+- [x] Search results page
 
 ---
 
@@ -248,7 +246,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 4. Backfill 2026 data
 5. ~~Activity Feed homepage (Phase 3.1)~~ ✅
 6. ~~Filing detail view (Phase 3.2)~~ ✅
-7. Company/Insider views: add rosters + roles
+7. Polished charting for company/insider views
 
 ### Mid-term
 1. Company view (Phase 3.3)
@@ -292,9 +290,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 4. **Backfill 2026 data** ← Current
 5. ~~Build Activity Feed homepage (Phase 3.1)~~ ✅
 6. ~~Build Filing detail view (Phase 3.2)~~ ✅
-7. Build Company view roster (Phase 3.3)
-8. Build Insider view roles (Phase 3.4)
-9. Add Search (Phase 3.5)
+7. Add company/insider charts (Phase 3.3/3.4)
 
 ---
 

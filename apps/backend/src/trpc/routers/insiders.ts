@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/index.js";
 import {
@@ -7,6 +7,7 @@ import {
   filingOwners,
   filings,
   insiders,
+  insiderRoles,
   transactions,
 } from "../../db/schema.js";
 import { publicProcedure, router } from "../init.js";
@@ -20,6 +21,7 @@ export const insidersRouter = router({
       }),
     )
     .query(async ({ input }) => {
+      const normalizedCik = input.cik.replace(/^0+/, "");
       const insider = await db
         .select({
           id: insiders.id,
@@ -28,7 +30,12 @@ export const insidersRouter = router({
           isEntity: insiders.isEntity,
         })
         .from(insiders)
-        .where(eq(insiders.cik, input.cik))
+        .where(
+          or(
+            eq(insiders.cik, input.cik),
+            sql`ltrim(${insiders.cik}, '0') = ${normalizedCik}`,
+          ),
+        )
         .limit(1);
 
       if (insider.length === 0) {
@@ -54,6 +61,36 @@ export const insidersRouter = router({
         .where(eq(filingOwners.insiderId, insider[0].id))
         .orderBy(desc(filings.filedAt), desc(filings.createdAt))
         .limit(input.limit);
+
+      const affiliations = await db
+        .select({
+          companyId: companies.id,
+          companyName: companies.name,
+          companyCik: companies.cik,
+          isDirector: insiderRoles.isDirector,
+          isOfficer: insiderRoles.isOfficer,
+          isTenPercentOwner: insiderRoles.isTenPercentOwner,
+          isOther: insiderRoles.isOther,
+          officerTitle: insiderRoles.officerTitle,
+          otherText: insiderRoles.otherText,
+          lastSeenAt: insiderRoles.lastSeenAt,
+        })
+        .from(insiderRoles)
+        .innerJoin(companies, eq(insiderRoles.companyId, companies.id))
+        .where(eq(insiderRoles.insiderId, insider[0].id))
+        .orderBy(desc(insiderRoles.lastSeenAt), companies.name);
+
+      const affiliationCompanyIds = affiliations.map((entry) => entry.companyId);
+      const affiliationTickers =
+        affiliationCompanyIds.length === 0
+          ? []
+          : await db
+              .select({
+                companyId: companyTickers.companyId,
+                ticker: companyTickers.ticker,
+              })
+              .from(companyTickers)
+              .where(inArray(companyTickers.companyId, affiliationCompanyIds));
 
       const filingsWithDetails = await Promise.all(
         recentFilings.map(async (filing) => {
@@ -181,6 +218,20 @@ export const insidersRouter = router({
 
       return {
         insider: insider[0],
+        affiliations: affiliations.map((entry) => ({
+          id: entry.companyId,
+          name: entry.companyName,
+          cik: entry.companyCik,
+          ticker:
+            affiliationTickers.find((t) => t.companyId === entry.companyId)
+              ?.ticker || null,
+          title: entry.officerTitle || getOwnerRole(entry),
+          isDirector: entry.isDirector,
+          isOfficer: entry.isOfficer,
+          isTenPercentOwner: entry.isTenPercentOwner,
+          otherText: entry.otherText,
+          lastSeenAt: entry.lastSeenAt,
+        })),
         filings: filingsWithDetails,
       };
     }),
@@ -190,10 +241,12 @@ function getOwnerRole(owner: {
   isDirector: boolean;
   isOfficer: boolean;
   isTenPercentOwner: boolean;
+  isOther?: boolean;
 }): string {
   const roles: string[] = [];
   if (owner.isDirector) roles.push("Director");
   if (owner.isOfficer) roles.push("Officer");
   if (owner.isTenPercentOwner) roles.push("10% Owner");
+  if (owner.isOther) roles.push("Other");
   return roles.join(", ") || "Insider";
 }
