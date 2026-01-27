@@ -43,9 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# docs
-.docs
-
 # script output
 scripts/tmp
 
