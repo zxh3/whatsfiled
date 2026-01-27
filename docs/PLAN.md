@@ -147,6 +147,43 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 - [x] Autocomplete with suggestions
 - [x] Search results page
 
+### 3.6 Community + Interactivity (Public-first)
+> Make the app fun, social, and habit‑forming while keeping the core browsing experience fast.
+
+**Product Principles**
+- Comments are tied to real entities (company, insider, filing), not generic threads
+- Lightweight first; meaningful after. Avoid heavy social mechanics early
+- Surface insight and context, not noise
+- No auth required to read; auth required to write (Phase 4 enabling)
+
+**Experience Design**
+- **Entity timelines**: Comments appear alongside key events (filings, price moves)
+- **Contextual prompts**: “What changed?”, “Is this a pattern?”, “Relevant past filings?”
+- **Inline reactions**: Useful/Agree/Flag to promote signal (not vanity likes)
+- **Highlight mode**: Pin comments that explain unusual activity
+- **Comment decks**: Top 3 insights per entity on the right rail
+- **Follow‑ups**: Subscribe to a thread when a filing is updated (Form 4/A)
+
+**MVP Feature Set**
+- [ ] Comment model: entity type + entity id + optional filing id + author + body
+- [ ] Read-only comments UI on company/insider/filing pages
+- [ ] Simple moderation workflow (report + hide)
+- [ ] “Top insights” sorting (reactions + recency)
+- [ ] Mentions of insiders/tickers to auto-link
+
+**Make It Fun / Interesting**
+- **Streaks** for contributors who add high‑signal comments (Phase 4)
+- **Insight badges** (“Pattern Spotter”, “Early Signal”)
+- **Weekly highlights**: Most‑explained filings & companies
+- **What changed?** auto‑summary prompt from filing diffs
+
+**Tech & Data**
+- [ ] New tables: comments, comment_reactions, comment_reports
+- [ ] Full‑text search on comments
+- [ ] tRPC endpoints for read + write
+- [ ] Rate limiting & abuse detection
+- [ ] Moderation tooling in `/sync` or admin UI
+
 ---
 
 ## Phase 4: Personalization (Requires Auth)
@@ -179,6 +216,46 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 - [ ] Ownership pie charts
 - [ ] Timeline views
 - [ ] Comparison tools
+- [ ] Insider buy/sell volume over time (by company, insider, sector)
+- [ ] Buy vs sell ratio (rolling 30/90/180 days)
+- [ ] Net dollar flow (insider buying minus selling)
+- [ ] Transaction size distribution (histogram)
+- [ ] Top insiders/companies by activity (leaderboards)
+- [ ] Heatmap of activity by day-of-week / time-of-day
+
+---
+
+## Visualization Roadmap (Detailed)
+
+### Goals
+- Make trends obvious at a glance
+- Help users answer “what changed?” quickly
+- Provide context around outliers and unusual activity
+
+### Chart Modules (Reusable)
+- **Volume Trend**: buy/sell count + dollars over time
+- **Net Flow**: net dollars (buy - sell) with zero line
+- **Distribution**: histogram of transaction sizes
+- **Roster Mix**: insider role mix (director/officer/10% owner)
+- **Activity Heatmap**: filings by day-of-week/time
+
+### Where They Live
+- **Company page**: buy/sell trend, net flow, top insiders
+- **Insider page**: personal activity trend + role timeline
+- **Homepage**: market‑wide “insider sentiment” snapshot
+- **Filing page**: micro‑chart of the filing’s transactions
+
+### UX Notes
+- Default to last 12 months; allow 3y/5y toggles
+- Use dollar‑weighted visuals for impact
+- Tooltips with: # shares, $ value, % ownership change
+- Provide “compare to sector” overlay (later)
+
+### Data & Engineering
+- [ ] Aggregate tables/materialized views for monthly stats
+- [ ] Incremental backfill for aggregates
+- [ ] tRPC endpoints for chart data
+- [ ] Cache charts (Redis) for hot entities
 
 ---
 
@@ -251,6 +328,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 1. Company view (Phase 3.3)
 2. Insider view (Phase 3.4)
 3. Search functionality (Phase 3.5)
+4. Community interactivity (Phase 3.6)
 4. Public API endpoints (Phase 5)
 
 ### Long-term
@@ -290,6 +368,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 5. ~~Build Activity Feed homepage (Phase 3.1)~~ ✅
 6. ~~Build Filing detail view (Phase 3.2)~~ ✅
 7. Add insider/company refinements (Phase 3.3/3.4)
+8. Design and ship read‑only comments UI + schema (Phase 3.6 MVP)
 
 ---
 

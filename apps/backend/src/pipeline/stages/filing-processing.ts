@@ -10,6 +10,7 @@ import { mapForm4ToDb } from "../mappers/form4-to-db.js";
 
 const MAX_RETRIES = 3;
 const LOCK_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const LOCK_REFRESH_INTERVAL_MS = 60 * 1000; // 1 minute
 
 export interface FilingProcessingOptions {
   /** Maximum number of filings to process in one run */
@@ -78,10 +79,35 @@ export async function processFilings(
     `[filing-processing] Acquired ${queueEntries.length} filings to process`,
   );
 
-  for (const entry of queueEntries) {
-    console.log(
-      `[filing-processing] Processing ${entry.fileName} (${entry.formType})...`,
-    );
+  const queueEntryIds = queueEntries.map((entry) => entry.id);
+  const refreshLocks = async () => {
+    if (queueEntryIds.length === 0) return;
+    const nextLockUntil = new Date(Date.now() + LOCK_DURATION_MS);
+    await db
+      .update(filingQueue)
+      .set({ lockedUntil: nextLockUntil })
+      .where(
+        and(
+          eq(filingQueue.status, "processing"),
+          sql`${filingQueue.id} = ANY(${queueEntryIds})`,
+        ),
+      );
+  };
+
+  const refreshTimer =
+    !dryRun && queueEntryIds.length > 0
+      ? setInterval(() => {
+          void refreshLocks().catch((error) => {
+            console.error("[filing-processing] Lock refresh failed:", error);
+          });
+        }, LOCK_REFRESH_INTERVAL_MS)
+      : null;
+
+  try {
+    for (const entry of queueEntries) {
+      console.log(
+        `[filing-processing] Processing ${entry.fileName} (${entry.formType})...`,
+      );
 
     if (dryRun) {
       console.log(
@@ -189,6 +215,11 @@ export async function processFilings(
 
       // Still rate limit after failures
       await sleep(RATE_LIMIT_DELAY_MS);
+    }
+    }
+  } finally {
+    if (refreshTimer) {
+      clearInterval(refreshTimer);
     }
   }
 

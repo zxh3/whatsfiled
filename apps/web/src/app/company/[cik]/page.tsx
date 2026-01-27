@@ -110,7 +110,7 @@ export default function CompanyPage() {
       <section className="rounded-lg border border-border p-4">
         <h2 className="text-lg font-semibold">Activity over time</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Form 4 filings per month
+          Form 4 filings per month (last 12 months)
         </p>
         <div className="mt-4">
           <MonthlyChart filings={data.filings} />
@@ -143,30 +143,87 @@ function MonthlyChart({ filings }: { filings: Array<{ filedAt: Date }> }) {
     buckets.set(key, (buckets.get(key) ?? 0) + 1);
   }
 
-  const entries = Array.from(buckets.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-6);
-  const max = Math.max(...entries.map(([, count]) => count), 1);
+  const base = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+  const months = Array.from({ length: 12 }, (_, index) => {
+    const d = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() - (11 - index), 1));
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    const label = new Intl.DateTimeFormat("en-US", {
+      month: "short",
+    }).format(d);
+    return { key, label };
+  });
 
-  if (entries.length === 0) {
+  const counts = months.map((m) => buckets.get(m.key) ?? 0);
+  const max = Math.max(...counts, 1);
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  const thisMonth = counts[counts.length - 1] ?? 0;
+  const lastMonth = counts[counts.length - 2] ?? 0;
+  const delta = thisMonth - lastMonth;
+
+  if (total === 0) {
     return <p className="text-sm text-muted-foreground">No data yet.</p>;
   }
 
   return (
-    <div className="flex items-end gap-3">
-      {entries.map(([label, count]) => (
-        <div key={label} className="flex flex-col items-center gap-2">
-          <div className="h-24 w-6 rounded-full bg-muted relative overflow-hidden">
-            <div
-              className="absolute bottom-0 w-full rounded-full bg-foreground/70"
-              style={{ height: `${Math.max(10, (count / max) * 100)}%` }}
-            />
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+        <span>
+          Total last 12 months:{" "}
+          <span className="font-mono text-foreground">{total.toLocaleString()}</span>
+        </span>
+        <span>
+          This month:{" "}
+          <span className="font-mono text-foreground">{thisMonth.toLocaleString()}</span>
+        </span>
+        <span>
+          vs last month:{" "}
+          <span className={`font-mono ${delta >= 0 ? "text-green-600" : "text-red-600"}`}>
+            {delta >= 0 ? "+" : ""}
+            {delta.toLocaleString()}
+          </span>
+        </span>
+        <span>Based on last {filings.length} filings loaded</span>
+      </div>
+
+      <div className="grid grid-cols-[32px_1fr] gap-3">
+        <div className="flex h-32 flex-col justify-between text-[11px] text-muted-foreground">
+          <span>{max}</span>
+          <span>{Math.round(max / 2)}</span>
+          <span>0</span>
+        </div>
+
+        <div className="relative h-32">
+          <div className="absolute inset-0 flex flex-col justify-between">
+            <div className="border-t border-border/60" />
+            <div className="border-t border-border/40" />
+            <div className="border-t border-border/60" />
           </div>
-          <div className="text-[11px] text-muted-foreground">
-            {label.slice(5)}
+
+          <div className="absolute inset-0 flex items-end gap-2">
+            {months.map((month, index) => {
+              const count = counts[index] ?? 0;
+              const height = Math.max(4, (count / max) * 100);
+              return (
+                <div key={month.key} className="flex h-full flex-1 flex-col items-center gap-2">
+                  <div
+                    className="w-full max-w-[20px] rounded-sm bg-foreground/80"
+                    style={{ height: `${height}%` }}
+                    title={`${month.label}: ${count.toLocaleString()} filings`}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
-      ))}
+      </div>
+
+      <div className="grid grid-cols-12 gap-2 text-[11px] text-muted-foreground">
+        {months.map((month, index) => (
+          <div key={month.key} className="text-center">
+            {index % 2 === 0 ? month.label : ""}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

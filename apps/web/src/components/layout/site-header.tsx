@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -54,74 +55,83 @@ export function SiteHeader() {
             >
               Search
             </button>
-            {isFocused && query.trim().length >= 2 && data && (
-              <div className="absolute left-0 top-full z-20 mt-2 w-full rounded-md border border-border bg-background p-2 text-sm shadow-lg">
-                {data.companies.length === 0 && data.insiders.length === 0 ? (
-                  <div className="text-xs text-muted-foreground">
-                    No matches found.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {data.companies.length > 0 && (
-                      <div>
-                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Companies
-                        </div>
-                        <div className="mt-1 space-y-1">
-                          {data.companies.map((company) => (
-                            <a
-                              key={company.id}
-                              href={`/company/${company.cik}`}
-                              className="block rounded-md px-2 py-1 hover:bg-muted/40"
-                            >
-                              <span className="font-medium text-foreground">
-                                {company.ticker ? (
-                                  <span className="font-mono">
-                                    {company.ticker}
+            <AnimatePresence>
+              {isFocused && query.trim().length >= 2 && data && (
+                <motion.div
+                  key="search-dropdown"
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute left-0 top-full z-20 mt-2 w-full rounded-md border border-border bg-background p-2 text-sm shadow-lg"
+                >
+                  {data.companies.length === 0 && data.insiders.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">
+                      No matches found.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {data.companies.length > 0 && (
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            Companies
+                          </div>
+                          <div className="mt-1 space-y-1">
+                            {data.companies.map((company) => (
+                              <a
+                                key={company.id}
+                                href={`/company/${company.cik}`}
+                                className="block rounded-md px-2 py-1 hover:bg-muted/40"
+                              >
+                                <span className="font-medium text-foreground">
+                                  {company.ticker ? (
+                                    <span className="font-mono">
+                                      {company.ticker}
+                                    </span>
+                                  ) : (
+                                    company.name
+                                  )}
+                                </span>
+                                {company.ticker && (
+                                  <span className="ml-2 text-xs text-muted-foreground">
+                                    {company.name}
                                   </span>
-                                ) : (
-                                  company.name
                                 )}
-                              </span>
-                              {company.ticker && (
-                                <span className="ml-2 text-xs text-muted-foreground">
-                                  {company.name}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {data.insiders.length > 0 && (
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            Insiders
+                          </div>
+                          <div className="mt-1 space-y-1">
+                            {data.insiders.map((insider) => (
+                              <a
+                                key={insider.id}
+                                href={`/insider/${insider.cik}`}
+                                className="block rounded-md px-2 py-1 hover:bg-muted/40"
+                              >
+                                <span className="font-medium text-foreground">
+                                  {insider.name}
                                 </span>
-                              )}
-                            </a>
-                          ))}
+                                {insider.cik && (
+                                  <span className="ml-2 text-xs text-muted-foreground">
+                                    CIK {insider.cik}
+                                  </span>
+                                )}
+                              </a>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {data.insiders.length > 0 && (
-                      <div>
-                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Insiders
-                        </div>
-                        <div className="mt-1 space-y-1">
-                          {data.insiders.map((insider) => (
-                            <a
-                              key={insider.id}
-                              href={`/insider/${insider.cik}`}
-                              className="block rounded-md px-2 py-1 hover:bg-muted/40"
-                            >
-                              <span className="font-medium text-foreground">
-                                {insider.name}
-                              </span>
-                              {insider.cik && (
-                                <span className="ml-2 text-xs text-muted-foreground">
-                                  CIK {insider.cik}
-                                </span>
-                              )}
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </form>
           <div className="text-xs text-muted-foreground">
             <a href="/sync" className="hover:text-foreground">

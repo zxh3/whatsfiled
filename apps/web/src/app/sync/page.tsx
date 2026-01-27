@@ -10,6 +10,7 @@ import {
 } from "@whatsfiled/ui/components/tooltip";
 import { CircleHelp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 
 function formatNumber(num: number): string {
@@ -103,6 +104,8 @@ function LegendItem({
 export default function AdminPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const searchParams = useSearchParams();
+  const showSkipped = searchParams.get("showSkipped") === "1";
 
   const statsQuery = trpc.pipeline.getStats.useQuery(undefined, {
     refetchInterval: autoRefresh ? 5000 : false,
@@ -127,12 +130,19 @@ export default function AdminPage() {
       stats.queue.processing +
       stats.queue.completed +
       stats.queue.failed +
-      stats.queue.skipped
+      (showSkipped ? stats.queue.skipped : 0)
     : 0;
 
-  const completedPercent = queueTotal > 0 && stats
-    ? ((stats.queue.completed + stats.queue.skipped) / queueTotal) * 100
+  const completedCount = stats
+    ? stats.queue.completed + (showSkipped ? stats.queue.skipped : 0)
     : 0;
+
+  const completedPercent = queueTotal > 0
+    ? (completedCount / queueTotal) * 100
+    : 0;
+
+  const queuePercent = (count: number) =>
+    queueTotal > 0 ? (count / queueTotal) * 100 : 0;
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -194,7 +204,7 @@ export default function AdminPage() {
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Progress</span>
                     <span className="font-mono">
-                      {formatNumber(stats.queue.completed + stats.queue.skipped)} / {formatNumber(queueTotal)}
+                      {formatNumber(completedCount)} / {formatNumber(queueTotal)}
                       <span className="text-muted-foreground ml-2">
                         ({completedPercent.toFixed(1)}%)
                       </span>
@@ -204,22 +214,24 @@ export default function AdminPage() {
                     {/* Completed - green */}
                     <div
                       className="h-full bg-green-500 transition-all duration-500"
-                      style={{ width: `${(stats.queue.completed / queueTotal) * 100}%` }}
+                      style={{ width: `${queuePercent(stats.queue.completed)}%` }}
                     />
                     {/* Skipped - gray */}
-                    <div
-                      className="h-full bg-gray-400 transition-all duration-500"
-                      style={{ width: `${(stats.queue.skipped / queueTotal) * 100}%` }}
-                    />
+                    {showSkipped && (
+                      <div
+                        className="h-full bg-gray-400 transition-all duration-500"
+                        style={{ width: `${queuePercent(stats.queue.skipped)}%` }}
+                      />
+                    )}
                     {/* Processing - blue */}
                     <div
                       className="h-full bg-blue-500 transition-all duration-500"
-                      style={{ width: `${(stats.queue.processing / queueTotal) * 100}%` }}
+                      style={{ width: `${queuePercent(stats.queue.processing)}%` }}
                     />
                     {/* Failed - red */}
                     <div
                       className="h-full bg-red-500 transition-all duration-500"
-                      style={{ width: `${(stats.queue.failed / queueTotal) * 100}%` }}
+                      style={{ width: `${queuePercent(stats.queue.failed)}%` }}
                     />
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs">
@@ -228,11 +240,13 @@ export default function AdminPage() {
                       label="Completed"
                       tooltip="Successfully fetched, parsed, and stored in the database"
                     />
-                    <LegendItem
-                      color="bg-gray-400"
-                      label="Skipped"
-                      tooltip="Already exists in database from a previous run (duplicate prevention)"
-                    />
+                    {showSkipped && (
+                      <LegendItem
+                        color="bg-gray-400"
+                        label="Skipped"
+                        tooltip="Already exists in database from a previous run (duplicate prevention)"
+                      />
+                    )}
                     <LegendItem
                       color="bg-blue-500"
                       label="Processing"
@@ -247,7 +261,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Stats grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <div className={`grid grid-cols-2 ${showSkipped ? "sm:grid-cols-5" : "sm:grid-cols-4"} gap-4`}>
                   <StatCard
                     label="Pending"
                     value={stats.queue.pending}
@@ -272,12 +286,14 @@ export default function AdminPage() {
                     tooltip="Failed to process after 3 attempts. Usually due to malformed XML or network errors. Can be manually retried."
                     color="text-red-600"
                   />
-                  <StatCard
-                    label="Skipped"
-                    value={stats.queue.skipped}
-                    tooltip="Already exists in database (same accession number). Prevents duplicate data when re-running backfill."
-                    color="text-gray-500"
-                  />
+                  {showSkipped && (
+                    <StatCard
+                      label="Skipped"
+                      value={stats.queue.skipped}
+                      tooltip="Already exists in database (same accession number). Prevents duplicate data when re-running backfill."
+                      color="text-gray-500"
+                    />
+                  )}
                 </div>
               </section>
 
@@ -335,7 +351,11 @@ export default function AdminPage() {
                             <span className="cursor-help">Filing Progress</span>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
-                            <p>Actual progress of fetching, parsing, and storing filings for this date. Green = completed, Gray = skipped (duplicates), Blue = processing, Yellow = pending.</p>
+                            <p>
+                              {showSkipped
+                                ? "Actual progress of fetching, parsing, and storing filings for this date. Green = completed, Gray = skipped (duplicates), Blue = processing, Yellow = pending."
+                                : "Actual progress of fetching, parsing, and storing filings for this date. Green = completed, Blue = processing, Yellow = pending."}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </th>
@@ -345,7 +365,11 @@ export default function AdminPage() {
                             <span className="cursor-help">Done</span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Filings successfully processed (completed + skipped duplicates)</p>
+                            <p>
+                              {showSkipped
+                                ? "Filings successfully processed (completed + skipped duplicates)"
+                                : "Filings successfully processed (completed only)"}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </th>
@@ -364,8 +388,11 @@ export default function AdminPage() {
                   <tbody>
                     {coverage.coverage.slice(-20).reverse().map((day) => {
                       const p = day.filingProgress;
-                      const hasData = p.total > 0;
-                      const isComplete = hasData && p.done === p.total;
+                      const total = showSkipped ? p.total : Math.max(p.total - p.skipped, 0);
+                      const done = showSkipped ? p.done : p.completed;
+                      const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+                      const hasData = total > 0;
+                      const isComplete = hasData && done === total;
 
                       return (
                         <tr key={day.date} className="border-t border-border">
@@ -374,7 +401,7 @@ export default function AdminPage() {
                             {hasData ? (
                               <div className="flex items-center gap-2">
                                 <Progress
-                                  value={p.percent}
+                                  value={percent}
                                   className="flex-1"
                                   indicatorClassName="bg-green-500"
                                 />
@@ -383,7 +410,7 @@ export default function AdminPage() {
                                     isComplete ? "text-green-600" : "text-muted-foreground"
                                   }`}
                                 >
-                                  {p.percent}%
+                                  {percent}%
                                 </span>
                               </div>
                             ) : (
@@ -395,14 +422,14 @@ export default function AdminPage() {
                           <td className="px-4 py-2 text-right font-mono">
                             {hasData ? (
                               <span className={isComplete ? "text-green-600" : ""}>
-                                {p.done.toLocaleString()}
+                                {done.toLocaleString()}
                               </span>
                             ) : (
                               "-"
                             )}
                           </td>
                           <td className="px-4 py-2 text-right font-mono">
-                            {hasData ? p.total.toLocaleString() : "-"}
+                            {hasData ? total.toLocaleString() : "-"}
                           </td>
                         </tr>
                       );
