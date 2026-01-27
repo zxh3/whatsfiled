@@ -109,8 +109,30 @@ pnpm db:push
 
 ## Testing
 
+### Unit Tests
 - edgar-client: Vitest with fixtures in `packages/edgar-client/test/`
 - Run: `pnpm --filter @whatsfiled/edgar-client test`
+
+### E2E Testing (Local)
+When asked to test E2E locally, use the **chrome-devtools MCP server** to interact with the browser:
+
+1. Ensure dev servers are running (`pnpm dev`)
+2. Use MCP tools to test:
+   - `mcp__chrome-devtools__navigate_page` - Navigate to http://localhost:3001
+   - `mcp__chrome-devtools__take_snapshot` - Get page content/structure
+   - `mcp__chrome-devtools__take_screenshot` - Capture visual state
+   - `mcp__chrome-devtools__click` / `mcp__chrome-devtools__fill` - Interact with elements
+   - `mcp__chrome-devtools__list_console_messages` - Check for errors
+   - `mcp__chrome-devtools__list_network_requests` - Verify API calls
+
+Example E2E test flow:
+```
+1. navigate_page to http://localhost:3001
+2. wait_for expected text/element
+3. take_snapshot to verify page structure
+4. list_console_messages to check for errors
+5. take_screenshot to capture final state
+```
 
 ## Path Aliases
 
