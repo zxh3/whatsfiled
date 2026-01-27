@@ -1,4 +1,4 @@
-import { eq, ilike, or } from "drizzle-orm";
+import { eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/index.js";
 import { companies, companyTickers, insiders } from "../../db/schema.js";
@@ -13,7 +13,9 @@ export const searchRouter = router({
       }),
     )
     .query(async ({ input }) => {
-      const term = `%${input.query}%`;
+      const rawQuery = input.query.trim();
+      const term = `%${rawQuery}%`;
+      const upperQuery = rawQuery.toUpperCase();
 
       const companyMatches = await db
         .select({
@@ -30,6 +32,18 @@ export const searchRouter = router({
             ilike(companies.cik, term),
             ilike(companyTickers.ticker, term),
           ),
+        )
+        .orderBy(
+          sql`case
+            when upper(${companyTickers.ticker}) = ${upperQuery} then 0
+            when upper(${companyTickers.ticker}) like ${`${upperQuery}%`} then 1
+            when upper(${companies.cik}) = ${upperQuery} then 2
+            when upper(${companyTickers.ticker}) like ${`%${upperQuery}%`} then 3
+            when upper(${companies.name}) like ${`%${upperQuery}%`} then 4
+            else 5
+          end`,
+          companyTickers.ticker,
+          companies.name,
         )
         .limit(input.limit);
 

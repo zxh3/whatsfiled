@@ -120,6 +120,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 - [x] Highlight notable transactions (heuristic: value/shares threshold)
 - [x] Click to drill into filing/company/insider
 - [x] Live refresh (polling)
+  - Note: Form type filter removed in UI; keep backend capability if needed.
 
 ### 3.2 Filing View
 - [x] Filing detail page (`/filing/[accessionNumber]`)
@@ -183,6 +184,11 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 - [ ] tRPC endpoints for read + write
 - [ ] Rate limiting & abuse detection
 - [ ] Moderation tooling in `/sync` or admin UI
+
+### 3.7 Real-time Filing Intake (Future)
+- [ ] Investigate SEC RSS/Atom feeds for near-real-time filings ingestion
+- [ ] Design pipeline to ingest RSS/Atom stream, dedupe with daily index
+- [ ] Build alerting path for newly published filings
 
 ---
 

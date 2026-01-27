@@ -3,12 +3,13 @@
 import { trpc } from "@/lib/trpc";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export function SiteHeader() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const { data } = trpc.search.search.useQuery(
     { query, limit: 6 },
@@ -21,6 +22,61 @@ export function SiteHeader() {
     if (!trimmed) return;
     router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     setIsFocused(false);
+  };
+
+  const items = useMemo(() => {
+    if (!data || query.trim().length < 2) {
+      return [];
+    }
+
+    const companyItems = data.companies.map((company) => ({
+      key: `company:${company.id}:${company.ticker ?? company.cik}`,
+      href: `/company/${company.cik}`,
+      label: company.ticker ? company.ticker : company.name,
+      subtitle: company.ticker ? company.name : undefined,
+    }));
+
+    const insiderItems = data.insiders.map((insider) => ({
+      key: `insider:${insider.id}:${insider.cik ?? "unknown"}`,
+      href: `/insider/${insider.cik}`,
+      label: insider.name,
+      subtitle: insider.cik ? `CIK ${insider.cik}` : undefined,
+    }));
+
+    return [...companyItems, ...insiderItems];
+  }, [data, query]);
+
+  useEffect(() => {
+    if (!isFocused || items.length === 0) {
+      setSelectedIndex(0);
+      return;
+    }
+    setSelectedIndex(0);
+  }, [items.length, isFocused]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isFocused || items.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % items.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setSelectedIndex((prev) => (prev - 1 + items.length) % items.length);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      const selected = items[selectedIndex];
+      if (selected) {
+        event.preventDefault();
+        router.push(selected.href);
+        setIsFocused(false);
+      }
+    }
   };
 
   useEffect(() => {
@@ -46,6 +102,7 @@ export function SiteHeader() {
               onChange={(event) => setQuery(event.target.value)}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+              onKeyDown={handleKeyDown}
               placeholder="Search companies, tickers, insiders"
               className="w-full rounded-l-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/20"
             />
@@ -77,28 +134,38 @@ export function SiteHeader() {
                             Companies
                           </div>
                           <div className="mt-1 space-y-1">
-                            {data.companies.map((company) => (
-                              <a
-                                key={company.id}
-                                href={`/company/${company.cik}`}
-                                className="block rounded-md px-2 py-1 hover:bg-muted/40"
-                              >
-                                <span className="font-medium text-foreground">
-                                  {company.ticker ? (
-                                    <span className="font-mono">
-                                      {company.ticker}
-                                    </span>
-                                  ) : (
-                                    company.name
-                                  )}
-                                </span>
-                                {company.ticker && (
-                                  <span className="ml-2 text-xs text-muted-foreground">
-                                    {company.name}
+                            {data.companies.map((company) => {
+                              const itemKey = `company:${company.id}:${company.ticker ?? company.cik}`;
+                              const itemIndex = items.findIndex((item) => item.key === itemKey);
+                              const isSelected = itemIndex === selectedIndex;
+                              return (
+                                <a
+                                  key={`${company.id}:${company.ticker ?? company.cik}`}
+                                  href={`/company/${company.cik}`}
+                                  className={`block rounded-md px-2 py-1 hover:bg-muted/40 ${
+                                    isSelected ? "bg-muted/60" : ""
+                                  }`}
+                                  onMouseEnter={() => {
+                                    if (itemIndex >= 0) setSelectedIndex(itemIndex);
+                                  }}
+                                >
+                                  <span className="font-medium text-foreground">
+                                    {company.ticker ? (
+                                      <span className="font-mono">
+                                        {company.ticker}
+                                      </span>
+                                    ) : (
+                                      company.name
+                                    )}
                                   </span>
-                                )}
-                              </a>
-                            ))}
+                                  {company.ticker && (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      {company.name}
+                                    </span>
+                                  )}
+                                </a>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -108,22 +175,32 @@ export function SiteHeader() {
                             Insiders
                           </div>
                           <div className="mt-1 space-y-1">
-                            {data.insiders.map((insider) => (
-                              <a
-                                key={insider.id}
-                                href={`/insider/${insider.cik}`}
-                                className="block rounded-md px-2 py-1 hover:bg-muted/40"
-                              >
-                                <span className="font-medium text-foreground">
-                                  {insider.name}
-                                </span>
-                                {insider.cik && (
-                                  <span className="ml-2 text-xs text-muted-foreground">
-                                    CIK {insider.cik}
+                            {data.insiders.map((insider) => {
+                              const itemKey = `insider:${insider.id}:${insider.cik ?? "unknown"}`;
+                              const itemIndex = items.findIndex((item) => item.key === itemKey);
+                              const isSelected = itemIndex === selectedIndex;
+                              return (
+                                <a
+                                  key={`${insider.id}:${insider.cik ?? "unknown"}`}
+                                  href={`/insider/${insider.cik}`}
+                                  className={`block rounded-md px-2 py-1 hover:bg-muted/40 ${
+                                    isSelected ? "bg-muted/60" : ""
+                                  }`}
+                                  onMouseEnter={() => {
+                                    if (itemIndex >= 0) setSelectedIndex(itemIndex);
+                                  }}
+                                >
+                                  <span className="font-medium text-foreground">
+                                    {insider.name}
                                   </span>
-                                )}
-                              </a>
-                            ))}
+                                  {insider.cik && (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      CIK {insider.cik}
+                                    </span>
+                                  )}
+                                </a>
+                              );
+                            })}
                           </div>
                         </div>
                       )}

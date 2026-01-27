@@ -15,12 +15,14 @@ export function ActivityFeed() {
   const [allFilings, setAllFilings] = useState<Filing[]>([]);
   const [offset, setOffset] = useState(0);
   const prevOffset = useRef(0);
+  const [hasMore, setHasMore] = useState(true);
 
   const { data, isLoading, isError, error, isFetching } =
     trpc.filings.getRecentFilings.useQuery({
       limit: PAGE_SIZE,
       offset,
     }, {
+      keepPreviousData: true,
       refetchInterval: offset === 0 ? 60000 : false,
       staleTime: 30000,
     });
@@ -34,6 +36,9 @@ export function ActivityFeed() {
         setAllFilings((prev) => [...prev, ...data.filings]);
       }
       prevOffset.current = offset;
+      if (typeof data.hasMore === "boolean") {
+        setHasMore(data.hasMore);
+      }
     }
   }, [data, offset]);
 
@@ -80,15 +85,12 @@ export function ActivityFeed() {
     );
   }
 
-  const hasMore = data?.hasMore ?? false;
-
   return (
     <div>
       <AnimatePresence initial={false}>
         {allFilings.map((filing, index) => (
           <motion.div
             key={filing.id}
-            layout
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
@@ -99,8 +101,8 @@ export function ActivityFeed() {
         ))}
       </AnimatePresence>
 
-      {hasMore && (
-        <div className="py-4 text-center">
+      <div className="py-4 text-center min-h-[44px]">
+        {hasMore ? (
           <button
             onClick={handleLoadMore}
             disabled={isFetching}
@@ -108,8 +110,10 @@ export function ActivityFeed() {
           >
             {isFetching ? "Loading..." : "Load more"}
           </button>
-        </div>
-      )}
+        ) : (
+          <span className="text-xs text-muted-foreground">No more filings</span>
+        )}
+      </div>
     </div>
   );
 }

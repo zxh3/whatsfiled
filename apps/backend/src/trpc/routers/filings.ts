@@ -43,7 +43,7 @@ export const filingsRouter = router({
         })
         .from(filings)
         .innerJoin(companies, eq(filings.companyId, companies.id))
-        .orderBy(desc(filings.filedAt), desc(filings.createdAt))
+        .orderBy(desc(filings.filedAt), desc(filings.createdAt), desc(filings.id))
         .limit(limit)
         .offset(offset);
 

@@ -5,6 +5,7 @@ import {
   processFilings,
   processIndexFiles,
 } from "../pipeline/index.js";
+import { withWorkerHeartbeat } from "../pipeline/worker-heartbeat.js";
 
 /**
  * Initialize all cron jobs for SEC data fetching.
@@ -21,15 +22,23 @@ export function initCronJobs() {
   cron.schedule(
     "0 0 * * *",
     async () => {
-      console.log("[cron] Starting index discovery...");
-      try {
-        const result = await discoverRecentIndexFiles();
-        console.log(
-          `[cron] Index discovery completed: ${result.inserted} new, ${result.skipped} skipped`,
-        );
-      } catch (error) {
-        console.error("[cron] Index discovery failed:", error);
-      }
+      await withWorkerHeartbeat(
+        {
+          workerType: "cron",
+          stage: "index-discovery",
+        },
+        async () => {
+          console.log("[cron] Starting index discovery...");
+          try {
+            const result = await discoverRecentIndexFiles();
+            console.log(
+              `[cron] Index discovery completed: ${result.inserted} new, ${result.skipped} skipped`,
+            );
+          } catch (error) {
+            console.error("[cron] Index discovery failed:", error);
+          }
+        },
+      );
     },
     {
       timezone: "UTC",
@@ -40,15 +49,24 @@ export function initCronJobs() {
   cron.schedule(
     "30 0 * * *",
     async () => {
-      console.log("[cron] Starting index processing...");
-      try {
-        const result = await processIndexFiles({ batchSize: 20 });
-        console.log(
-          `[cron] Index processing completed: ${result.processed} processed, ${result.filingsQueued} queued`,
-        );
-      } catch (error) {
-        console.error("[cron] Index processing failed:", error);
-      }
+      await withWorkerHeartbeat(
+        {
+          workerType: "cron",
+          stage: "index-processing",
+          details: { batchSize: 20 },
+        },
+        async () => {
+          console.log("[cron] Starting index processing...");
+          try {
+            const result = await processIndexFiles({ batchSize: 20 });
+            console.log(
+              `[cron] Index processing completed: ${result.processed} processed, ${result.filingsQueued} queued`,
+            );
+          } catch (error) {
+            console.error("[cron] Index processing failed:", error);
+          }
+        },
+      );
     },
     {
       timezone: "UTC",
@@ -60,19 +78,28 @@ export function initCronJobs() {
   cron.schedule(
     "0 1-5 * * *",
     async () => {
-      console.log("[cron] Starting filing processing...");
-      try {
-        // Clean up any stale locks first
-        await cleanupStaleLocks();
+      await withWorkerHeartbeat(
+        {
+          workerType: "cron",
+          stage: "filing-processing",
+          details: { batchSize: 100 },
+        },
+        async () => {
+          console.log("[cron] Starting filing processing...");
+          try {
+            // Clean up any stale locks first
+            await cleanupStaleLocks();
 
-        // Process filings in batches
-        const result = await processFilings({ batchSize: 100 });
-        console.log(
-          `[cron] Filing processing completed: ${result.completed} completed, ${result.failed} failed`,
-        );
-      } catch (error) {
-        console.error("[cron] Filing processing failed:", error);
-      }
+            // Process filings in batches
+            const result = await processFilings({ batchSize: 100 });
+            console.log(
+              `[cron] Filing processing completed: ${result.completed} completed, ${result.failed} failed`,
+            );
+          } catch (error) {
+            console.error("[cron] Filing processing failed:", error);
+          }
+        },
+      );
     },
     {
       timezone: "UTC",
@@ -83,14 +110,22 @@ export function initCronJobs() {
   cron.schedule(
     "*/30 * * * *",
     async () => {
-      try {
-        const result = await cleanupStaleLocks();
-        if (result.cleaned > 0) {
-          console.log(`[cron] Cleaned up ${result.cleaned} stale locks`);
-        }
-      } catch (error) {
-        console.error("[cron] Stale lock cleanup failed:", error);
-      }
+      await withWorkerHeartbeat(
+        {
+          workerType: "cron",
+          stage: "cleanup-stale-locks",
+        },
+        async () => {
+          try {
+            const result = await cleanupStaleLocks();
+            if (result.cleaned > 0) {
+              console.log(`[cron] Cleaned up ${result.cleaned} stale locks`);
+            }
+          } catch (error) {
+            console.error("[cron] Stale lock cleanup failed:", error);
+          }
+        },
+      );
     },
     {
       timezone: "UTC",

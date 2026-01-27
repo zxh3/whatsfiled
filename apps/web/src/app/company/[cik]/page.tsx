@@ -139,18 +139,20 @@ function MonthlyChart({ filings }: { filings: Array<{ filedAt: Date }> }) {
   const buckets = new Map<string, number>();
   for (const filing of filings) {
     const date = new Date(filing.filedAt);
-    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     buckets.set(key, (buckets.get(key) ?? 0) + 1);
   }
 
-  const base = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+  const now = new Date();
+  const base = new Date(now.getFullYear(), now.getMonth(), 1);
   const months = Array.from({ length: 12 }, (_, index) => {
-    const d = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() - (11 - index), 1));
-    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    const d = new Date(base.getFullYear(), base.getMonth() - (11 - index), 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const label = new Intl.DateTimeFormat("en-US", {
       month: "short",
     }).format(d);
-    return { key, label };
+    const year = d.getFullYear();
+    return { key, label, year, date: d };
   });
 
   const counts = months.map((m) => buckets.get(m.key) ?? 0);
@@ -165,7 +167,7 @@ function MonthlyChart({ filings }: { filings: Array<{ filedAt: Date }> }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
         <span>
           Total last 12 months:{" "}
@@ -182,17 +184,19 @@ function MonthlyChart({ filings }: { filings: Array<{ filedAt: Date }> }) {
             {delta.toLocaleString()}
           </span>
         </span>
-        <span>Based on last {filings.length} filings loaded</span>
+        <span className="text-muted-foreground/70">
+          Based on last {filings.length} filings loaded
+        </span>
       </div>
 
-      <div className="grid grid-cols-[32px_1fr] gap-3">
-        <div className="flex h-32 flex-col justify-between text-[11px] text-muted-foreground">
+      <div className="grid grid-cols-[40px_1fr] gap-4">
+        <div className="flex h-36 flex-col justify-between text-[11px] text-muted-foreground">
           <span>{max}</span>
           <span>{Math.round(max / 2)}</span>
           <span>0</span>
         </div>
 
-        <div className="relative h-32">
+        <div className="relative h-36">
           <div className="absolute inset-0 flex flex-col justify-between">
             <div className="border-t border-border/60" />
             <div className="border-t border-border/40" />
@@ -203,13 +207,19 @@ function MonthlyChart({ filings }: { filings: Array<{ filedAt: Date }> }) {
             {months.map((month, index) => {
               const count = counts[index] ?? 0;
               const height = Math.max(4, (count / max) * 100);
+              const isCurrent = index === months.length - 1;
               return (
-                <div key={month.key} className="flex h-full flex-1 flex-col items-center gap-2">
+                <div key={month.key} className="group relative flex h-full flex-1 items-end">
                   <div
-                    className="w-full max-w-[20px] rounded-sm bg-foreground/80"
+                    className={`w-full max-w-[22px] rounded-md transition-colors ${
+                      isCurrent ? "bg-foreground" : "bg-foreground/70"
+                    }`}
                     style={{ height: `${height}%` }}
-                    title={`${month.label}: ${count.toLocaleString()} filings`}
                   />
+                  <div className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 rounded-md border border-border bg-background px-2 py-1 text-[11px] text-foreground shadow-sm group-hover:block">
+                    <span className="font-medium">{month.label}</span>
+                    <span className="text-muted-foreground"> · {count.toLocaleString()}</span>
+                  </div>
                 </div>
               );
             })}

@@ -47,7 +47,7 @@ export default function SearchPage() {
                 <div className="mt-3 space-y-3 text-sm">
                   {data.companies.map((company) => (
                     <a
-                      key={company.id}
+                      key={`${company.id}:${company.ticker ?? company.cik}`}
                       href={`/company/${company.cik}`}
                       className="block rounded-md border border-border px-3 py-2 hover:bg-muted/40"
                     >

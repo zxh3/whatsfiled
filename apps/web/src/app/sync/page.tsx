@@ -17,14 +17,23 @@ function formatNumber(num: number): string {
   return num.toLocaleString();
 }
 
-function formatTimestamp(value?: Date | null): string {
-  if (!value) return "—";
-  return value.toLocaleTimeString();
+function toDate(value?: Date | string | number | null): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function formatRelativeMinutes(target?: Date | null): string {
-  if (!target) return "—";
-  const diffMs = target.getTime() - Date.now();
+function formatTimestamp(value?: Date | string | number | null): string {
+  const date = toDate(value);
+  if (!date) return "—";
+  return date.toLocaleTimeString();
+}
+
+function formatRelativeMinutes(target?: Date | string | number | null): string {
+  const date = toDate(target);
+  if (!date) return "—";
+  const diffMs = date.getTime() - Date.now();
   const minutes = Math.round(diffMs / 60000);
   if (minutes <= 0) return "Now";
   return `${minutes}m`;

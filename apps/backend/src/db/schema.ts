@@ -107,6 +107,10 @@ export const companyTickers = pgTable(
   },
   (table) => [
     index("company_tickers_ticker_idx").on(table.ticker),
+    uniqueIndex("company_tickers_company_ticker_idx").on(
+      table.companyId,
+      table.ticker,
+    ),
     index("company_tickers_company_primary_idx").on(
       table.companyId,
       table.isPrimary,
@@ -219,6 +223,7 @@ export const filings = pgTable(
     uniqueIndex("filings_accession_number_idx").on(table.accessionNumber),
     index("filings_company_idx").on(table.companyId),
     index("filings_filed_at_idx").on(table.filedAt),
+    index("filings_filed_at_created_at_idx").on(table.filedAt, table.createdAt),
     index("filings_form_type_idx").on(table.formType),
   ],
 );
