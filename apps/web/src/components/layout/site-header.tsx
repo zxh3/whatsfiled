@@ -232,13 +232,13 @@ export function SiteHeader() {
                 setTheme(resolvedTheme === "dark" ? "light" : "dark")
               }
               className="hover:text-foreground p-1 -m-1"
-              aria-label={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}
+              aria-label={`Currently ${resolvedTheme} mode, click to switch`}
             >
               {mounted &&
                 (resolvedTheme === "dark" ? (
-                  <Sun className="h-3.5 w-3.5" />
-                ) : (
                   <Moon className="h-3.5 w-3.5" />
+                ) : (
+                  <Sun className="h-3.5 w-3.5" />
                 ))}
             </button>
           </div>
