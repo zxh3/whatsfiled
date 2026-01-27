@@ -17,6 +17,19 @@ function formatNumber(num: number): string {
   return num.toLocaleString();
 }
 
+function formatTimestamp(value?: Date | null): string {
+  if (!value) return "—";
+  return value.toLocaleTimeString();
+}
+
+function formatRelativeMinutes(target?: Date | null): string {
+  if (!target) return "—";
+  const diffMs = target.getTime() - Date.now();
+  const minutes = Math.round(diffMs / 60000);
+  if (minutes <= 0) return "Now";
+  return `${minutes}m`;
+}
+
 function HelpIcon() {
   return (
     <CircleHelp className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-muted-foreground ml-1" />
@@ -45,7 +58,7 @@ function StatCard({
   color,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   tooltip?: string;
   color?: string;
 }) {
@@ -56,7 +69,7 @@ function StatCard({
         {tooltip && <InfoTooltip content={tooltip} />}
       </div>
       <div className={`text-2xl font-mono font-bold ${color || "text-foreground"}`}>
-        {formatNumber(value)}
+        {typeof value === "number" ? formatNumber(value) : value}
       </div>
     </div>
   );
@@ -293,6 +306,87 @@ export default function AdminPage() {
                       tooltip="Already exists in database (same accession number). Prevents duplicate data when re-running backfill."
                       color="text-gray-500"
                     />
+                  )}
+                </div>
+              </section>
+
+              {/* Queue Health */}
+              <section>
+                <SectionHeader
+                  title="Queue Health"
+                  tooltip="Signals that show whether processing is active and healthy."
+                />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <StatCard
+                    label="Processed (15m)"
+                    value={stats.queueHealth.processedLast15m}
+                    tooltip="Filings completed or skipped in the last 15 minutes."
+                    color="text-green-600"
+                  />
+                  <StatCard
+                    label="Last processed"
+                    value={formatTimestamp(stats.queueHealth.lastProcessedAt)}
+                    tooltip="Most recent completed or skipped filing."
+                  />
+                  <StatCard
+                    label="Stale locks"
+                    value={stats.queueHealth.staleLocks}
+                    tooltip="Processing rows whose locks have expired."
+                    color={stats.queueHealth.staleLocks > 0 ? "text-red-600" : "text-muted-foreground"}
+                  />
+                  <StatCard
+                    label="Next lock expiry"
+                    value={formatRelativeMinutes(stats.queueHealth.nextLockExpiryAt)}
+                    tooltip="Time until the oldest processing lock expires."
+                  />
+                </div>
+              </section>
+
+              {/* Active Workers */}
+              <section>
+                <SectionHeader
+                  title="Active Workers"
+                  tooltip="Backfill or cron workers currently processing filings."
+                />
+                <div className="bg-card border border-border rounded-lg p-4 text-sm">
+                  {stats.workers.length === 0 ? (
+                    <p className="text-muted-foreground">No worker heartbeats yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {stats.workers.map((worker) => (
+                        <div
+                          key={worker.workerKey}
+                          className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3 last:border-b-0 last:pb-0"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex h-2.5 w-2.5 rounded-full ${
+                                  worker.isActive ? "bg-green-500" : "bg-muted-foreground/60"
+                                }`}
+                              />
+                              <span className="font-medium text-foreground">
+                                {worker.workerType} {worker.stage ? `· ${worker.stage}` : ""}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {worker.host || "unknown host"} · pid {worker.pid ?? "?"}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground text-right">
+                            <div>
+                              Last heartbeat{" "}
+                              <span className={worker.isActive ? "text-green-600" : ""}>
+                                {formatTimestamp(worker.lastHeartbeatAt)}
+                              </span>
+                            </div>
+                            <div>
+                              Started {formatTimestamp(worker.startedAt)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </section>

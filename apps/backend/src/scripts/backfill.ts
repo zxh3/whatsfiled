@@ -9,7 +9,10 @@
  *   pnpm --filter @whatsfiled/backend tsx src/scripts/backfill.ts --year 2026 --stage all
  */
 
+import os from "node:os";
 import { parseArgs } from "node:util";
+import { db } from "../db/index.js";
+import { pipelineWorkers } from "../db/schema.js";
 import {
   cleanupStaleLocks,
   discoverDailyIndexFiles,
@@ -84,18 +87,86 @@ Examples:
 async function main() {
   if (values.help) {
     printHelp();
-    process.exit(0);
+    return;
   }
 
   const stage = values.stage || "all";
   const dryRun = values["dry-run"] || false;
   const limit = values.limit ? parseInt(values.limit, 10) : undefined;
+  const workerKey = `backfill:${stage}:${process.pid}`;
+  const startedAt = new Date();
+  const details = JSON.stringify({
+    stage,
+    year: values.year ? Number(values.year) : undefined,
+    limit,
+    dryRun,
+  });
+
+  const upsertHeartbeat = async (status: "running" | "stopped") => {
+    const now = new Date();
+    await db
+      .insert(pipelineWorkers)
+      .values({
+        workerKey,
+        workerType: "backfill",
+        stage,
+        host: os.hostname(),
+        pid: process.pid,
+        status,
+        startedAt,
+        lastHeartbeatAt: now,
+        endedAt: status === "stopped" ? now : null,
+        details,
+      })
+      .onConflictDoUpdate({
+        target: pipelineWorkers.workerKey,
+        set: {
+          workerType: "backfill",
+          stage,
+          host: os.hostname(),
+          pid: process.pid,
+          status,
+          lastHeartbeatAt: now,
+          endedAt: status === "stopped" ? now : null,
+          details,
+        },
+      });
+  };
+
+  const startHeartbeat = () => {
+    if (stage === "stats") return { stop: async () => {} };
+    let active = true;
+    void upsertHeartbeat("running");
+    const interval = setInterval(() => {
+      if (!active) return;
+      void upsertHeartbeat("running");
+    }, 30000);
+
+    const stop = async () => {
+      if (!active) return;
+      active = false;
+      clearInterval(interval);
+      await upsertHeartbeat("stopped");
+    };
+
+    const handleSignal = async () => {
+      await stop();
+      process.exit(0);
+    };
+
+    process.on("SIGINT", handleSignal);
+    process.on("SIGTERM", handleSignal);
+
+    return { stop };
+  };
 
   console.log(`\n=== SEC EDGAR Backfill ===`);
   console.log(`Stage: ${stage}`);
   console.log(`Dry run: ${dryRun}`);
   if (limit) console.log(`Limit: ${limit}`);
   console.log("");
+
+  const heartbeat = startHeartbeat();
 
   try {
     // Show stats
@@ -112,7 +183,8 @@ async function main() {
       console.log("");
 
       if (stage === "stats") {
-        process.exit(0);
+        await heartbeat.stop();
+        return;
       }
     }
 
@@ -120,13 +192,17 @@ async function main() {
     if (stage === "discovery" || stage === "all") {
       if (!values.year) {
         console.error("Error: --year is required for discovery stage");
-        process.exit(1);
+        await heartbeat.stop();
+        process.exitCode = 1;
+        return;
       }
 
       const year = parseInt(values.year, 10);
       if (Number.isNaN(year) || year < 2000 || year > 2100) {
         console.error("Error: Invalid year");
-        process.exit(1);
+        await heartbeat.stop();
+        process.exitCode = 1;
+        return;
       }
 
       console.log(`--- Stage 1: Index Discovery (${year}) ---`);
@@ -206,10 +282,13 @@ async function main() {
     }
 
     console.log("\n=== Backfill Complete ===\n");
-    process.exit(0);
+    await heartbeat.stop();
+    return;
   } catch (error) {
     console.error("Backfill failed:", error);
-    process.exit(1);
+    await heartbeat.stop();
+    process.exitCode = 1;
+    return;
   }
 }
 

@@ -1,7 +1,7 @@
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/index.js";
-import { dailyIndexFiles, filingQueue } from "../../db/schema.js";
+import { dailyIndexFiles, filingQueue, pipelineWorkers } from "../../db/schema.js";
 import {
   cleanupStaleLocks,
   discoverDailyIndexFiles,
@@ -19,6 +19,9 @@ export const pipelineRouter = router({
    */
   getStats: publicProcedure.query(async () => {
     const queueStats = await getQueueStats();
+    const now = new Date();
+    const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
+    const workerActiveThreshold = new Date(now.getTime() - 2 * 60 * 1000);
 
     const indexStats = await db
       .select({
@@ -40,9 +43,81 @@ export const pipelineRouter = router({
         row.count;
     }
 
+    const [staleLocksRow] = await db
+      .select({
+        count: sql<number>`count(*)::int`,
+      })
+      .from(filingQueue)
+      .where(
+        and(
+          eq(filingQueue.status, "processing"),
+          lt(filingQueue.lockedUntil, now),
+        ),
+      );
+
+    const [lastProcessedRow] = await db
+      .select({
+        lastProcessedAt: sql<Date | null>`max(${filingQueue.processedAt})`,
+      })
+      .from(filingQueue);
+
+    const [processedRecentRow] = await db
+      .select({
+        count: sql<number>`count(*)::int`,
+      })
+      .from(filingQueue)
+      .where(
+        and(
+          gte(filingQueue.processedAt, fifteenMinutesAgo),
+          or(
+            eq(filingQueue.status, "completed"),
+            eq(filingQueue.status, "skipped"),
+          ),
+        ),
+      );
+
+    const [nextLockExpiryRow] = await db
+      .select({
+        nextLockExpiryAt: sql<Date | null>`min(${filingQueue.lockedUntil})`,
+      })
+      .from(filingQueue)
+      .where(eq(filingQueue.status, "processing"));
+
+    const workers = await db
+      .select({
+        workerKey: pipelineWorkers.workerKey,
+        workerType: pipelineWorkers.workerType,
+        stage: pipelineWorkers.stage,
+        host: pipelineWorkers.host,
+        pid: pipelineWorkers.pid,
+        status: pipelineWorkers.status,
+        startedAt: pipelineWorkers.startedAt,
+        lastHeartbeatAt: pipelineWorkers.lastHeartbeatAt,
+        endedAt: pipelineWorkers.endedAt,
+        details: pipelineWorkers.details,
+      })
+      .from(pipelineWorkers)
+      .orderBy(desc(pipelineWorkers.lastHeartbeatAt))
+      .limit(6);
+
+    const workersWithStatus = workers.map((worker) => ({
+      ...worker,
+      isActive:
+        worker.status === "running" &&
+        worker.lastHeartbeatAt &&
+        worker.lastHeartbeatAt > workerActiveThreshold,
+    }));
+
     return {
       queue: queueStats,
       index: indexStatsByStatus,
+      queueHealth: {
+        processedLast15m: processedRecentRow?.count ?? 0,
+        lastProcessedAt: lastProcessedRow?.lastProcessedAt ?? null,
+        staleLocks: staleLocksRow?.count ?? 0,
+        nextLockExpiryAt: nextLockExpiryRow?.nextLockExpiryAt ?? null,
+      },
+      workers: workersWithStatus,
     };
   }),
 

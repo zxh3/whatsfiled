@@ -46,6 +46,11 @@ export const filingQueueStatusEnum = pgEnum("filing_queue_status", [
   "skipped",
 ]);
 
+export const pipelineWorkerStatusEnum = pgEnum("pipeline_worker_status", [
+  "running",
+  "stopped",
+]);
+
 // NOTE: Source enum supports future RSS feed ingestion
 // When adding RSS, entries go to same queue - fileName uniqueness prevents duplicates
 export const filingSourceEnum = pgEnum("filing_source", [
@@ -570,3 +575,29 @@ export const filingQueueRelations = relations(filingQueue, ({ one }) => ({
     references: [dailyIndexFiles.id],
   }),
 }));
+
+// ============================================================================
+// Pipeline Workers (backfill/cron heartbeats)
+// ============================================================================
+
+export const pipelineWorkers = pgTable(
+  "pipeline_workers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workerKey: varchar("worker_key", { length: 120 }).notNull(),
+    workerType: varchar("worker_type", { length: 30 }).notNull(), // e.g., backfill, cron
+    stage: varchar("stage", { length: 30 }),
+    host: varchar("host", { length: 255 }),
+    pid: integer("pid"),
+    status: pipelineWorkerStatusEnum("status").default("running").notNull(),
+    startedAt: timestamp("started_at").defaultNow().notNull(),
+    lastHeartbeatAt: timestamp("last_heartbeat_at").defaultNow().notNull(),
+    endedAt: timestamp("ended_at"),
+    details: text("details"),
+  },
+  (table) => [
+    uniqueIndex("pipeline_workers_key_idx").on(table.workerKey),
+    index("pipeline_workers_status_idx").on(table.status),
+    index("pipeline_workers_heartbeat_idx").on(table.lastHeartbeatAt),
+  ],
+);
