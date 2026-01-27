@@ -19,20 +19,14 @@ import * as fs from "fs";
 import * as path from "path";
 
 import {
-  type EdgarDailyIndexFormRow,
-  fetchEdgarArchiveFileContent,
-  fetchEdgarDailyIndexFormFileNamesByYear,
-  fetchRawEdgarDailyIndexFormContent,
-  parseRawEdgarDailyIndexFormContent,
-} from "../apps/backend/convex/edgarParser/edgarDailyIndexForms";
-import {
-  buildForm4SourceInfo,
+  type DailyIndexRow,
+  EdgarClient,
   Form4ParseError,
-  getSchemaVersion,
-  parseForm4,
   UnsupportedSchemaVersionError,
   ValidationError,
-} from "../apps/backend/convex/edgarParser/form4";
+} from "@whatsfiled/edgar-client";
+
+const edgarClient = new EdgarClient();
 
 // ============================================================
 // TYPES
@@ -250,7 +244,7 @@ async function testFilingsForYear(
 
   // 1. Get all index file names for the year
   console.log(`  Fetching index file list...`);
-  const allIndexFiles = await fetchEdgarDailyIndexFormFileNamesByYear(year);
+  const allIndexFiles = await edgarClient.getDailyIndexFileNames(year);
 
   if (allIndexFiles.length === 0) {
     console.log(`  ⚠️  No index files found for ${year}`);
@@ -267,17 +261,16 @@ async function testFilingsForYear(
   console.log(`  Sampling ${sampledIndexFiles.length} index files`);
 
   // 3. Collect all Form 4 and Form 4/A filings from sampled indices
-  const form4Filings: EdgarDailyIndexFormRow[] = [];
-  const form4AFilings: EdgarDailyIndexFormRow[] = [];
+  const form4Filings: DailyIndexRow[] = [];
+  const form4AFilings: DailyIndexRow[] = [];
 
   for (const indexFileName of sampledIndexFiles) {
     await delay(config.delayBetweenRequests);
 
     try {
-      const { content } =
-        await fetchRawEdgarDailyIndexFormContent(indexFileName);
-      const rows = parseRawEdgarDailyIndexFormContent(content, {
-        knownFormTypes: ["4", "4/A"],
+      const { content } = await edgarClient.fetchDailyIndex(indexFileName);
+      const rows = edgarClient.parseDailyIndex(content, {
+        formTypes: ["4", "4/A"],
       });
 
       for (const row of rows) {
@@ -333,18 +326,18 @@ async function testFilingsForYear(
     };
 
     try {
-      const content = await fetchEdgarArchiveFileContent(filing.fileName);
+      const content = await edgarClient.fetchFiling(filing.fileName);
 
       // Quick schema version extraction
-      result.schemaVersion = getSchemaVersion(content);
+      result.schemaVersion = edgarClient.getForm4SchemaVersion(content);
 
       // Parse the form
-      const parsedData = parseForm4(content);
+      const parsedData = edgarClient.parseForm4(content);
       result.success = true;
 
       // Attach source info to the parsed document
       parsedData._source =
-        buildForm4SourceInfo(filing.fileName, content) ?? undefined;
+        edgarClient.getForm4SourceInfo(filing.fileName, content) ?? undefined;
 
       // Save parsed data if output option is enabled
       if (config.outputSamples) {

@@ -1,4 +1,63 @@
 // ============================================================
+// RETRY OPTIONS
+// ============================================================
+
+export interface RetryOptions {
+  maxRetries?: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+}
+
+// ============================================================
+// DAILY INDEX TYPES
+// ============================================================
+
+export const KNOWN_FORMS = [
+  // Insider ownership
+  "3",
+  "3/A",
+  "4",
+  "4/A",
+  "5",
+  "5/A",
+
+  // Schedules
+  "SCHEDULE 13D",
+  "SCHEDULE 13D/A",
+  "SCHEDULE 13G",
+  "SCHEDULE 13G/A",
+  "SC 13D",
+  "SC 13D/A",
+  "SC 13G",
+  "SC 13G/A",
+
+  // Common filings (optional)
+  "10-K",
+  "10-Q",
+  "8-K",
+  "13F-HR",
+  "13F-HR/A",
+  "DEF 14A",
+  "DEFA14A",
+] as const;
+
+export type FormType = (typeof KNOWN_FORMS)[number];
+
+export type DailyIndexRow = {
+  formType: string;
+  companyName: string;
+  cik: string;
+  dateFiled: string; // YYYYMMDD
+  fileName: string; // edgar/data/.../*.txt
+};
+
+export interface DailyIndexResult {
+  url: string;
+  content: string;
+  dateTimestamp: number;
+}
+
+// ============================================================
 // SCHEMA VERSION TYPES
 // ============================================================
 
@@ -8,209 +67,7 @@ export type SchemaVersion = (typeof SUPPORTED_SCHEMA_VERSIONS)[number];
 export type DocumentType = "4" | "4/A";
 
 // ============================================================
-// ERROR TYPES
-// ============================================================
-
-export class Form4ParseError extends Error {
-  constructor(
-    message: string,
-    public readonly cause?: unknown,
-    public readonly context?: Record<string, unknown>,
-  ) {
-    super(message);
-    this.name = "Form4ParseError";
-  }
-}
-
-export class UnsupportedSchemaVersionError extends Form4ParseError {
-  constructor(public readonly version: string) {
-    super(
-      `Unsupported schema version: ${version}. Supported versions: ${SUPPORTED_SCHEMA_VERSIONS.join(", ")}`,
-    );
-    this.name = "UnsupportedSchemaVersionError";
-  }
-}
-
-export class ValidationError extends Form4ParseError {
-  constructor(
-    message: string,
-    public readonly field?: string,
-  ) {
-    super(message);
-    this.name = "ValidationError";
-  }
-}
-
-// ============================================================
-// RAW XML TYPES (what fast-xml-parser produces)
-// ============================================================
-
-export interface RawValueWithFootnote {
-  value?: string | number;
-  footnoteId?: { "@_id": string } | { "@_id": string }[];
-}
-
-export interface RawIssuer {
-  issuerCik?: string;
-  issuerName?: string;
-  issuerTradingSymbol?: string;
-}
-
-export interface RawReportingOwnerId {
-  rptOwnerCik?: string;
-  rptOwnerName?: string;
-}
-
-export interface RawReportingOwnerAddress {
-  rptOwnerStreet1?: string;
-  rptOwnerStreet2?: string;
-  rptOwnerCity?: string;
-  rptOwnerState?: string;
-  rptOwnerZipCode?: string;
-  rptOwnerStateDescription?: string;
-}
-
-export interface RawReportingOwnerRelationship {
-  isDirector?: string | number;
-  isOfficer?: string | number;
-  isTenPercentOwner?: string | number;
-  isOther?: string | number;
-  officerTitle?: string;
-  otherText?: string;
-}
-
-export interface RawReportingOwner {
-  reportingOwnerId?: RawReportingOwnerId;
-  reportingOwnerAddress?: RawReportingOwnerAddress;
-  reportingOwnerRelationship?: RawReportingOwnerRelationship;
-}
-
-export interface RawTransactionCoding {
-  transactionFormType?: string;
-  transactionCode?: string;
-  equitySwapInvolved?: string | number;
-  footnoteId?: { "@_id": string } | { "@_id": string }[];
-}
-
-export interface RawTransactionTimeliness {
-  value?: string;
-  footnoteId?: { "@_id": string } | { "@_id": string }[];
-}
-
-export interface RawTransactionAmounts {
-  transactionShares?: RawValueWithFootnote;
-  transactionTotalValue?: RawValueWithFootnote;
-  transactionPricePerShare?: RawValueWithFootnote;
-  transactionAcquiredDisposedCode?: RawValueWithFootnote;
-}
-
-export interface RawPostTransactionAmounts {
-  sharesOwnedFollowingTransaction?: RawValueWithFootnote;
-  valueOwnedFollowingTransaction?: RawValueWithFootnote;
-}
-
-export interface RawOwnershipNature {
-  directOrIndirectOwnership?: RawValueWithFootnote;
-  natureOfOwnership?: RawValueWithFootnote;
-}
-
-export interface RawUnderlyingSecurity {
-  underlyingSecurityTitle?: RawValueWithFootnote;
-  underlyingSecurityShares?: RawValueWithFootnote;
-  underlyingSecurityValue?: RawValueWithFootnote;
-}
-
-export interface RawNonDerivativeTransaction {
-  securityTitle?: RawValueWithFootnote;
-  transactionDate?: RawValueWithFootnote;
-  deemedExecutionDate?: RawValueWithFootnote;
-  transactionCoding?: RawTransactionCoding;
-  transactionTimeliness?: RawTransactionTimeliness;
-  transactionAmounts?: RawTransactionAmounts;
-  postTransactionAmounts?: RawPostTransactionAmounts;
-  ownershipNature?: RawOwnershipNature;
-}
-
-export interface RawNonDerivativeHolding {
-  securityTitle?: RawValueWithFootnote;
-  postTransactionAmounts?: RawPostTransactionAmounts;
-  ownershipNature?: RawOwnershipNature;
-}
-
-export interface RawNonDerivativeTable {
-  nonDerivativeTransaction?:
-    | RawNonDerivativeTransaction
-    | RawNonDerivativeTransaction[];
-  nonDerivativeHolding?: RawNonDerivativeHolding | RawNonDerivativeHolding[];
-}
-
-export interface RawDerivativeTransaction {
-  securityTitle?: RawValueWithFootnote;
-  conversionOrExercisePrice?: RawValueWithFootnote;
-  transactionDate?: RawValueWithFootnote;
-  deemedExecutionDate?: RawValueWithFootnote;
-  transactionCoding?: RawTransactionCoding;
-  transactionTimeliness?: RawTransactionTimeliness;
-  transactionAmounts?: RawTransactionAmounts;
-  exerciseDate?: RawValueWithFootnote;
-  expirationDate?: RawValueWithFootnote;
-  underlyingSecurity?: RawUnderlyingSecurity;
-  postTransactionAmounts?: RawPostTransactionAmounts;
-  ownershipNature?: RawOwnershipNature;
-}
-
-export interface RawDerivativeHolding {
-  securityTitle?: RawValueWithFootnote;
-  conversionOrExercisePrice?: RawValueWithFootnote;
-  exerciseDate?: RawValueWithFootnote;
-  expirationDate?: RawValueWithFootnote;
-  underlyingSecurity?: RawUnderlyingSecurity;
-  postTransactionAmounts?: RawPostTransactionAmounts;
-  ownershipNature?: RawOwnershipNature;
-}
-
-export interface RawDerivativeTable {
-  derivativeTransaction?: RawDerivativeTransaction | RawDerivativeTransaction[];
-  derivativeHolding?: RawDerivativeHolding | RawDerivativeHolding[];
-}
-
-export interface RawFootnote {
-  "@_id": string;
-  "#text"?: string;
-}
-
-export interface RawFootnotes {
-  footnote?: RawFootnote | RawFootnote[];
-}
-
-export interface RawOwnerSignature {
-  signatureName?: string;
-  signatureDate?: string;
-}
-
-export interface RawOwnershipDocumentContent {
-  schemaVersion?: string;
-  documentType?: string;
-  periodOfReport?: string;
-  dateOfOriginalSubmission?: string;
-  notSubjectToSection16?: string | number;
-  noSecuritiesOwned?: string | number;
-  aff10b5One?: string | number;
-  issuer?: RawIssuer;
-  reportingOwner?: RawReportingOwner | RawReportingOwner[];
-  nonDerivativeTable?: RawNonDerivativeTable;
-  derivativeTable?: RawDerivativeTable;
-  footnotes?: RawFootnotes;
-  ownerSignature?: RawOwnerSignature | RawOwnerSignature[];
-  remarks?: string;
-}
-
-export interface RawOwnershipDocument {
-  ownershipDocument: RawOwnershipDocumentContent;
-}
-
-// ============================================================
-// NORMALIZED OUTPUT TYPES
+// FORM 4 VALUE TYPES
 // ============================================================
 
 /**
@@ -413,10 +270,6 @@ export interface Form4Document {
   _source?: Form4SourceInfo;
 }
 
-// ============================================================
-// PARSE OPTIONS
-// ============================================================
-
 export interface Form4ParseOptions {
   /**
    * Whether to validate the parsed document
@@ -430,4 +283,9 @@ export interface Form4ParseOptions {
    * @default true
    */
   strictSchemaVersion?: boolean;
+}
+
+export interface Form4XmlUrls {
+  rawXmlUrl: string;
+  formattedXmlUrl: string;
 }

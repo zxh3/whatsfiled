@@ -1,9 +1,4 @@
-import type { Form4SourceInfo } from "./form4Types";
-
-export interface Form4XmlUrls {
-  rawXmlUrl: string;
-  formattedXmlUrl: string;
-}
+import type { Form4SourceInfo, Form4XmlUrls } from "../../types";
 
 /**
  * Parse filing base URL from an EDGAR fileName
@@ -46,14 +41,6 @@ export function extractXmlFilenameFromContent(content: string): string | null {
  * @param fileName - EDGAR fileName, e.g. "edgar/data/1234567/0001234567-24-000001.txt"
  * @param content - The full SEC submission text content (already fetched)
  * @returns Object with rawXmlUrl and formattedXmlUrl, or null if not found
- *
- * @example
- * ```typescript
- * const content = await fetchEdgarArchiveFileContent(fileName);
- * const urls = getForm4XmlUrls(fileName, content);
- * // urls.rawXmlUrl = "https://www.sec.gov/Archives/edgar/data/2070546/000162828026003318/wk-form4_1769205440.xml"
- * // urls.formattedXmlUrl = "https://www.sec.gov/Archives/edgar/data/2070546/000162828026003318/xslF345X03/wk-form4_1769205440.xml"
- * ```
  */
 export function getForm4XmlUrls(
   fileName: string,
@@ -78,13 +65,6 @@ export function getForm4XmlUrls(
  * @param fileName - EDGAR fileName, e.g. "edgar/data/1234567/0001234567-24-000001.txt"
  * @param content - The full SEC submission text content (already fetched)
  * @returns Form4SourceInfo object, or null if cannot be built
- *
- * @example
- * ```typescript
- * const content = await fetchEdgarArchiveFileContent(fileName);
- * const doc = parseForm4(content);
- * doc._source = buildForm4SourceInfo(fileName, content) ?? undefined;
- * ```
  */
 export function buildForm4SourceInfo(
   fileName: string,

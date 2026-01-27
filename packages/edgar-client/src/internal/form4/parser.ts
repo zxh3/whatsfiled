@@ -1,62 +1,18 @@
 import { XMLParser } from "fast-xml-parser";
-import { normalizeForm4Document } from "./form4Normalizers";
-import type {
-  Form4Document,
-  Form4ParseOptions,
-  RawOwnershipDocument,
-  SchemaVersion,
-} from "./form4Types";
 import {
   Form4ParseError,
-  SUPPORTED_SCHEMA_VERSIONS,
   UnsupportedSchemaVersionError,
   ValidationError,
-} from "./form4Types";
-import { FORM4_PARSER_OPTIONS } from "./form4XmlConfig";
-
-// Re-export types for consumers
-export type {
-  DocumentType,
-  Form4DerivativeEntry,
-  Form4DerivativeHolding,
-  Form4DerivativeTable,
-  Form4DerivativeTransaction,
-  Form4Document,
-  Form4Issuer,
-  Form4NonDerivativeEntry,
-  Form4NonDerivativeHolding,
-  Form4NonDerivativeTable,
-  Form4NonDerivativeTransaction,
-  Form4OwnershipNature,
-  Form4ParseOptions,
-  Form4PostTransactionAmounts,
-  Form4ReportingOwner,
-  Form4ReportingOwnerAddress,
-  Form4ReportingOwnerId,
-  Form4ReportingOwnerRelationship,
-  Form4Signature,
-  Form4TransactionAmounts,
-  Form4TransactionCoding,
-  Form4UnderlyingSecurity,
-  SchemaVersion,
-  ValueWithFootnotes,
-} from "./form4Types";
-
-export {
-  Form4ParseError,
+} from "../../errors";
+import {
+  type Form4Document,
+  type Form4ParseOptions,
+  type SchemaVersion,
   SUPPORTED_SCHEMA_VERSIONS,
-  UnsupportedSchemaVersionError,
-  ValidationError,
-} from "./form4Types";
-
-export type { Form4SourceInfo } from "./form4Types";
-export type { Form4XmlUrls } from "./form4Urls";
-export {
-  buildForm4SourceInfo,
-  extractXmlFilenameFromContent,
-  getFilingBaseUrl,
-  getForm4XmlUrls,
-} from "./form4Urls";
+} from "../../types";
+import { normalizeForm4Document } from "./normalizers";
+import type { RawOwnershipDocument } from "./raw-types";
+import { FORM4_PARSER_OPTIONS } from "./xml-config";
 
 const DEFAULT_OPTIONS: Required<Form4ParseOptions> = {
   validate: true,
@@ -66,10 +22,6 @@ const DEFAULT_OPTIONS: Required<Form4ParseOptions> = {
 /**
  * Extract XML content from SEC document wrapper.
  * SEC documents have headers and the XML is wrapped in <XML>...</XML> tags.
- *
- * @param content - Full SEC document content
- * @returns Extracted XML string
- * @throws {Form4ParseError} If XML cannot be extracted
  */
 export function extractXmlFromSecDocument(content: string): string {
   // Look for XML content between <XML> tags
@@ -166,26 +118,6 @@ function validateForm4Document(doc: Form4Document): void {
 
 /**
  * Parse SEC Form 4 or Form 4/A XML into a normalized TypeScript object
- *
- * @param content - Raw content from SEC EDGAR (can be full SEC document or just XML)
- * @param options - Parse options
- * @returns Normalized Form4Document
- * @throws {Form4ParseError} If XML is malformed
- * @throws {UnsupportedSchemaVersionError} If schema version is not supported
- * @throws {ValidationError} If validation fails
- *
- * @example
- * ```typescript
- * const content = await fetch(form4Url).then(r => r.text());
- * const form4 = parseForm4(content);
- *
- * console.log(form4.issuer.name);
- * console.log(form4.reportingOwners[0].id.name);
- *
- * for (const tx of form4.nonDerivativeTable.transactions) {
- *   console.log(tx.securityTitle.value, tx.amounts.shares.value);
- * }
- * ```
  */
 export function parseForm4(
   content: string,
@@ -247,10 +179,8 @@ export function isSchemaVersionSupported(
 
 /**
  * Get document type from content without full parsing
- * Useful for filtering/routing
  */
 export function getDocumentType(content: string): "4" | "4/A" | null {
-  // Quick regex extraction without full parsing
   const match = content.match(/<documentType>([^<]+)<\/documentType>/);
   if (!match) return null;
 

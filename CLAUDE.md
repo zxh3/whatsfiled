@@ -15,6 +15,7 @@ whatsfiled/
 │   └── backend/                  # Convex backend
 │       └── convex/               # All Convex functions
 ├── packages/
+│   ├── edgar-client/             # SEC EDGAR API client library
 │   ├── ui/                       # Shared Shadcn UI components
 │   └── typescript-config/        # Shared TypeScript configs
 ├── scripts/                      # Development scripts
@@ -55,8 +56,12 @@ For Convex development, run `cd apps/backend && pnpm convex dev` to sync schema 
   - `convex/schema.ts` - Database tables
   - `convex/secFilings.ts` - Core business logic
   - `convex/crons.ts` - Scheduled jobs
-  - `convex/edgarParser/` - SEC EDGAR parsing logic
   - `convex/_generated/` - Auto-generated types (do not edit)
+
+- **packages/edgar-client/**: SEC EDGAR API client library
+  - Standalone package for fetching and parsing SEC EDGAR filings
+  - Class-based API via `EdgarClient` for easy usage
+  - Supports daily index fetching, Form 4 parsing, and more
 
 - **packages/ui/**: Shared Shadcn UI components
   - `src/components/` - 14 Shadcn components (button, card, input, etc.)
@@ -85,11 +90,20 @@ The system uses a three-stage pipeline processed by cron jobs:
 
 ### Form 4 Parsing
 
-Located in `apps/backend/convex/edgarParser/form4/`:
+Located in `packages/edgar-client/`:
+- Class-based API via `EdgarClient` class
 - Extracts XML from SEC document wrappers (between `<XML>` tags)
 - Uses fast-xml-parser for parsing
-- Normalizes across multiple schema versions
+- Normalizes across multiple schema versions (X0306, X0407, X0508)
 - Validates required fields (CIK, owners, period, signatures)
+
+```typescript
+import { EdgarClient } from "@whatsfiled/edgar-client";
+
+const client = new EdgarClient();
+const content = await client.fetchFiling("edgar/data/123/000123-24-001.txt");
+const doc = client.parseForm4(content);
+```
 
 ## TypeScript Configuration
 

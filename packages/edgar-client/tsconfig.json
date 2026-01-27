@@ -1,0 +1,11 @@
+{
+  "extends": "@whatsfiled/typescript-config/base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"]
+}

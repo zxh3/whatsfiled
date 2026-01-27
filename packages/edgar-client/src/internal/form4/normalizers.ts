@@ -1,3 +1,4 @@
+import { Form4ParseError } from "../../errors";
 import {
   type DocumentType,
   type Form4DerivativeHolding,
@@ -6,37 +7,33 @@ import {
   type Form4NonDerivativeHolding,
   type Form4NonDerivativeTransaction,
   type Form4OwnershipNature,
-  Form4ParseError,
   type Form4PostTransactionAmounts,
   type Form4ReportingOwner,
   type Form4Signature,
   type Form4TransactionAmounts,
   type Form4TransactionCoding,
   type Form4UnderlyingSecurity,
-  type RawDerivativeHolding,
-  type RawDerivativeTransaction,
-  type RawFootnotes,
-  type RawNonDerivativeHolding,
-  type RawNonDerivativeTransaction,
-  type RawOwnerSignature,
-  type RawOwnershipDocument,
-  type RawReportingOwner,
-  type RawTransactionCoding,
-  type RawTransactionTimeliness,
-  type RawValueWithFootnote,
   type SchemaVersion,
   type ValueWithFootnotes,
-} from "./form4Types";
+} from "../../types";
+import type {
+  RawDerivativeHolding,
+  RawDerivativeTransaction,
+  RawFootnotes,
+  RawNonDerivativeHolding,
+  RawNonDerivativeTransaction,
+  RawOwnerSignature,
+  RawOwnershipDocument,
+  RawReportingOwner,
+  RawTransactionCoding,
+  RawTransactionTimeliness,
+  RawValueWithFootnote,
+} from "./raw-types";
 
 // ============================================================
 // BOOLEAN NORMALIZATION
 // ============================================================
 
-/**
- * Normalize boolean values across schema versions
- * X0306: uses 1/0 or "1"/"0"
- * X0508: uses "true"/"false"
- */
 export function normalizeBoolean(
   value: string | number | boolean | undefined | null,
   defaultValue = false,
@@ -71,10 +68,6 @@ export function normalizeBoolean(
 // VALUE EXTRACTION WITH FOOTNOTES
 // ============================================================
 
-/**
- * Extract footnote IDs from an element
- * Handles both single footnoteId and array of footnoteIds
- */
 function extractFootnoteIds(
   element:
     | { footnoteId?: { "@_id": string } | { "@_id": string }[] }
@@ -92,9 +85,6 @@ function extractFootnoteIds(
   return footnoteId["@_id"] ? [footnoteId["@_id"]] : [];
 }
 
-/**
- * Extract value and footnotes from a raw XML element
- */
 export function normalizeValueWithFootnotes<T>(
   raw: RawValueWithFootnote | undefined,
   transform: (v: string | number | undefined) => T,
@@ -112,9 +102,6 @@ export function normalizeValueWithFootnotes<T>(
   };
 }
 
-/**
- * String value extractor
- */
 export function normalizeStringValue(
   value: string | number | undefined,
 ): string | null {
@@ -124,9 +111,6 @@ export function normalizeStringValue(
   return String(value).trim();
 }
 
-/**
- * Required string value extractor (returns empty string if missing)
- */
 export function normalizeRequiredStringValue(
   value: string | number | undefined,
 ): string {
@@ -137,9 +121,6 @@ export function normalizeRequiredStringValue(
   return result;
 }
 
-/**
- * Number value extractor
- */
 export function normalizeNumberValue(
   value: string | number | undefined,
 ): number | null {
@@ -150,13 +131,10 @@ export function normalizeNumberValue(
   const num =
     typeof value === "number"
       ? value
-      : parseFloat(String(value).replace(/,/g, ""));
+      : Number.parseFloat(String(value).replace(/,/g, ""));
   return Number.isNaN(num) ? null : num;
 }
 
-/**
- * Date value extractor (YYYY-MM-DD format)
- */
 export function normalizeDateValue(
   value: string | number | undefined,
 ): string | null {
@@ -165,9 +143,6 @@ export function normalizeDateValue(
   return str;
 }
 
-/**
- * Acquired/Disposed code extractor
- */
 export function normalizeAcquiredDisposedCode(
   value: string | number | undefined,
 ): "A" | "D" | null {
@@ -178,9 +153,6 @@ export function normalizeAcquiredDisposedCode(
   return null;
 }
 
-/**
- * Direct/Indirect ownership code extractor
- */
 export function normalizeDirectIndirectCode(
   value: string | number | undefined,
 ): "D" | "I" | null {
@@ -195,9 +167,6 @@ export function normalizeDirectIndirectCode(
 // COMPLEX ELEMENT NORMALIZERS
 // ============================================================
 
-/**
- * Normalize transaction coding
- */
 export function normalizeTransactionCoding(
   raw: RawTransactionCoding | undefined,
 ): Form4TransactionCoding {
@@ -214,14 +183,10 @@ export function normalizeTransactionCoding(
     formType: normalizeStringValue(raw.transactionFormType),
     code: normalizeStringValue(raw.transactionCode),
     equitySwapInvolved: normalizeBoolean(raw.equitySwapInvolved),
-    // X0508 can have footnoteId at transactionCoding level
     footnoteIds: extractFootnoteIds(raw),
   };
 }
 
-/**
- * Normalize transaction amounts
- */
 export function normalizeTransactionAmounts(
   raw: RawNonDerivativeTransaction["transactionAmounts"] | undefined,
 ): Form4TransactionAmounts {
@@ -245,9 +210,6 @@ export function normalizeTransactionAmounts(
   };
 }
 
-/**
- * Normalize post-transaction amounts
- */
 export function normalizePostTransactionAmounts(
   raw: RawNonDerivativeTransaction["postTransactionAmounts"] | undefined,
 ): Form4PostTransactionAmounts {
@@ -263,9 +225,6 @@ export function normalizePostTransactionAmounts(
   };
 }
 
-/**
- * Normalize ownership nature
- */
 export function normalizeOwnershipNature(
   raw: RawNonDerivativeTransaction["ownershipNature"] | undefined,
 ): Form4OwnershipNature {
@@ -281,9 +240,6 @@ export function normalizeOwnershipNature(
   };
 }
 
-/**
- * Normalize underlying security
- */
 export function normalizeUnderlyingSecurity(
   raw: RawDerivativeTransaction["underlyingSecurity"] | undefined,
 ): Form4UnderlyingSecurity {
@@ -545,9 +501,6 @@ function ensureArray<T>(value: T | T[] | undefined): T[] {
 // MAIN DOCUMENT NORMALIZER
 // ============================================================
 
-/**
- * Normalize a raw parsed XML document to the unified Form4Document type
- */
 export function normalizeForm4Document(
   raw: RawOwnershipDocument,
   schemaVersion: SchemaVersion,

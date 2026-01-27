@@ -1,3 +1,4 @@
+import { EdgarClient, type FormType } from "@whatsfiled/edgar-client";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import {
@@ -5,15 +6,10 @@ import {
   internalMutation,
   internalQuery,
 } from "./_generated/server";
-import {
-  type FormType,
-  fetchEdgarArchiveFileContent,
-  fetchEdgarDailyIndexFormFileNamesByYear,
-  fetchRawEdgarDailyIndexFormContent,
-  parseRawEdgarDailyIndexFormContent,
-} from "./edgarParser/edgarDailyIndexForms";
-import { buildForm4SourceInfo, parseForm4 } from "./edgarParser/form4";
 import { chunk, sleep } from "./utils";
+
+// Create a shared EdgarClient instance
+const edgarClient = new EdgarClient();
 
 export const _insertRawEdgarDailyIndexForm = internalMutation({
   args: {
@@ -178,8 +174,7 @@ export const fetchRawEdgarDailyIndexForms = internalAction({
     const now = new Date();
     const currentYear = args.year ?? now.getFullYear();
 
-    const fileNames =
-      await fetchEdgarDailyIndexFormFileNamesByYear(currentYear);
+    const fileNames = await edgarClient.getDailyIndexFileNames(currentYear);
 
     const existingRawEdgarDailyIndexForms = await ctx.runQuery(
       internal.secFilings._getExistingRawEdgarDailyIndexFormsByDate,
@@ -196,7 +191,7 @@ export const fetchRawEdgarDailyIndexForms = internalAction({
 
     for (const fileName of filteredFileNames) {
       const { url, content, dateTimestamp } =
-        await fetchRawEdgarDailyIndexFormContent(fileName);
+        await edgarClient.fetchDailyIndex(fileName);
       const blob = new Blob([content]);
       const storageId = await ctx.storage.store(blob);
       ctx.runMutation(internal.secFilings._insertRawEdgarDailyIndexForm, {
@@ -229,7 +224,7 @@ export const fetchRawEdgarDailyIndexFormRows = internalAction({
       );
       if (!contentBlob) throw new Error("Content not found");
       const content = await contentBlob.text();
-      const rows = parseRawEdgarDailyIndexFormContent(content);
+      const rows = edgarClient.parseDailyIndex(content);
 
       const chunks = chunk(rows, 100);
       for (const rows of chunks) {
@@ -265,9 +260,9 @@ export const parseForm4Docs = internalAction({
 
     for (const row of pendingRows) {
       const fileName = row.fileName;
-      const content = await fetchEdgarArchiveFileContent(fileName);
-      const parsed = parseForm4(content);
-      const sourceInfo = buildForm4SourceInfo(fileName, content);
+      const content = await edgarClient.fetchFiling(fileName);
+      const parsed = edgarClient.parseForm4(content);
+      const sourceInfo = edgarClient.getForm4SourceInfo(fileName, content);
       if (!sourceInfo) {
         await ctx.runMutation(
           internal.secFilings._updateEdgarDailyIndexFormRows,
