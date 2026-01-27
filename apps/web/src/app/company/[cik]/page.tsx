@@ -106,6 +106,16 @@ export default function CompanyPage() {
           )}
         </aside>
       </section>
+
+      <section className="rounded-lg border border-border p-4">
+        <h2 className="text-lg font-semibold">Activity over time</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Form 4 filings per month
+        </p>
+        <div className="mt-4">
+          <MonthlyChart filings={data.filings} />
+        </div>
+      </section>
       </div>
     </main>
   );
@@ -123,4 +133,40 @@ function getRoleTags(insider: {
   if (insider.isTenPercentOwner) tags.push("10% Owner");
   const title = insider.title?.toLowerCase() ?? "";
   return tags.filter((tag) => !title.includes(tag.toLowerCase()));
+}
+
+function MonthlyChart({ filings }: { filings: Array<{ filedAt: Date }> }) {
+  const buckets = new Map<string, number>();
+  for (const filing of filings) {
+    const date = new Date(filing.filedAt);
+    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    buckets.set(key, (buckets.get(key) ?? 0) + 1);
+  }
+
+  const entries = Array.from(buckets.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-6);
+  const max = Math.max(...entries.map(([, count]) => count), 1);
+
+  if (entries.length === 0) {
+    return <p className="text-sm text-muted-foreground">No data yet.</p>;
+  }
+
+  return (
+    <div className="flex items-end gap-3">
+      {entries.map(([label, count]) => (
+        <div key={label} className="flex flex-col items-center gap-2">
+          <div className="h-24 w-6 rounded-full bg-muted relative overflow-hidden">
+            <div
+              className="absolute bottom-0 w-full rounded-full bg-foreground/70"
+              style={{ height: `${Math.max(10, (count / max) * 100)}%` }}
+            />
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {label.slice(5)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }

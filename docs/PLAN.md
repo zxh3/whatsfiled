@@ -134,8 +134,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 - [x] Company name, ticker, basic info
 - [x] Recent insider transactions list
 - [x] Insider roster with titles
-- [ ] Transaction history chart (future)
-  - _Note_: Chart still needed.
+- [x] Transaction history chart
 
 ### 3.4 Insider View
 - [x] Insider profile page (`/insider/[cik]`)
@@ -246,7 +245,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 4. Backfill 2026 data
 5. ~~Activity Feed homepage (Phase 3.1)~~ ✅
 6. ~~Filing detail view (Phase 3.2)~~ ✅
-7. Polished charting for company/insider views
+7. Insider/company detail refinements
 
 ### Mid-term
 1. Company view (Phase 3.3)
@@ -290,7 +289,7 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 4. **Backfill 2026 data** ← Current
 5. ~~Build Activity Feed homepage (Phase 3.1)~~ ✅
 6. ~~Build Filing detail view (Phase 3.2)~~ ✅
-7. Add company/insider charts (Phase 3.3/3.4)
+7. Add insider/company refinements (Phase 3.3/3.4)
 
 ---
 
