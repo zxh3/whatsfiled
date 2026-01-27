@@ -3,7 +3,7 @@
  * Re-exports shared primitives and adds Form 4-specific functions.
  */
 
-import { normalizeStringValue as normalizeString } from "../../shared/primitives";
+import { normalizeStringValue as normalizeString } from "../../shared/primitives.js";
 
 // Re-export shared primitives
 export {
@@ -12,7 +12,7 @@ export {
   normalizeNumberValue,
   normalizeRequiredStringValue,
   normalizeStringValue,
-} from "../../shared/primitives";
+} from "../../shared/primitives.js";
 
 /**
  * Normalize acquired/disposed code to "A" | "D" | null.

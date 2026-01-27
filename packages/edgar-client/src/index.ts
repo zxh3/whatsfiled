@@ -1,9 +1,9 @@
 // Main export - the EdgarClient class
 
 // Constants
-export { FORM_TYPES, FORM4_SCHEMA_VERSIONS } from "./constants";
-export type { EdgarClientOptions } from "./edgar-client";
-export { EdgarClient } from "./edgar-client";
+export { FORM_TYPES, FORM4_SCHEMA_VERSIONS } from "./constants.js";
+export type { EdgarClientOptions } from "./edgar-client.js";
+export { EdgarClient } from "./edgar-client.js";
 // Error classes
 export {
   EdgarFetchError,
@@ -11,7 +11,7 @@ export {
   FormParseError,
   UnsupportedSchemaVersionError,
   ValidationError,
-} from "./errors";
+} from "./errors.js";
 
 // Types
 export type {
@@ -47,4 +47,4 @@ export type {
   RetryOptions,
   SchemaVersion,
   ValueWithFootnotes,
-} from "./types";
+} from "./types.js";

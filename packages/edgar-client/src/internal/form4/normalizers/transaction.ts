@@ -2,31 +2,31 @@
  * Transaction-related normalization functions.
  */
 
-import type { ValueWithFootnotes } from "../../../types/common";
+import type { ValueWithFootnotes } from "../../../types/common.js";
 import type {
   Form4OwnershipNature,
   Form4PostTransactionAmounts,
   Form4TransactionAmounts,
   Form4TransactionCoding,
   Form4UnderlyingSecurity,
-} from "../../../types/form4";
+} from "../../../types/form4.js";
 import type {
   RawDerivativeTransaction,
   RawNonDerivativeTransaction,
   RawTransactionCoding,
   RawTransactionTimeliness,
-} from "../raw-types";
+} from "../raw-types.js";
 import {
   normalizeAcquiredDisposedCode,
   normalizeBoolean,
   normalizeIsDirect,
   normalizeNumberValue,
   normalizeStringValue,
-} from "./primitives";
+} from "./primitives.js";
 import {
   extractFootnoteIds,
   normalizeValueWithFootnotes,
-} from "./value-with-footnotes";
+} from "./value-with-footnotes.js";
 
 /**
  * Normalize transaction coding (type and code).

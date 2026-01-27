@@ -2,13 +2,13 @@
  * Reporting owner normalization functions.
  */
 
-import type { Form4ReportingOwner } from "../../../types/form4";
-import type { RawReportingOwner } from "../raw-types";
+import type { Form4ReportingOwner } from "../../../types/form4.js";
+import type { RawReportingOwner } from "../raw-types.js";
 import {
   normalizeBoolean,
   normalizeRequiredStringValue,
   normalizeStringValue,
-} from "./primitives";
+} from "./primitives.js";
 
 /**
  * Normalize a reporting owner from raw XML.

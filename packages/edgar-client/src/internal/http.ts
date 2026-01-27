@@ -1,4 +1,4 @@
-import type { RetryOptions } from "../types/common";
+import type { RetryOptions } from "../types/common.js";
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

@@ -2,7 +2,7 @@ import type { X2jOptions } from "fast-xml-parser";
 import {
   BASE_PARSER_OPTIONS,
   createIsArrayFunction,
-} from "../shared/xml-config";
+} from "../shared/xml-config.js";
 
 /**
  * Tags in Form 4 XML that can appear multiple times and should always be arrays.

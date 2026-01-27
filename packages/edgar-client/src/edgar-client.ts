@@ -1,5 +1,5 @@
-import { FORM_TYPES } from "./constants";
-import { EdgarFetchError } from "./errors";
+import { FORM_TYPES } from "./constants.js";
+import { EdgarFetchError } from "./errors.js";
 import {
   buildArchiveFileUrl,
   buildDailyIndexUrl,
@@ -7,19 +7,19 @@ import {
   extractDailyIndexFileNames,
   parseDailyIndex,
   parseDailyIndexFileName,
-} from "./internal/daily-index";
+} from "./internal/daily-index.js";
 import {
   getDocumentType as getDocumentTypeInternal,
   getSchemaVersion as getSchemaVersionInternal,
   isSchemaVersionSupported,
   parseForm4 as parseForm4Internal,
-} from "./internal/form4/parser";
+} from "./internal/form4/parser.js";
 import {
   buildForm4SourceInfo,
   extractXmlFilenameFromContent,
   getFilingBaseUrl,
-} from "./internal/form4/urls";
-import { fetchWithBackoff, sleep } from "./internal/http";
+} from "./internal/form4/urls.js";
+import { fetchWithBackoff, sleep } from "./internal/http.js";
 import type {
   DailyIndexResult,
   DailyIndexRow,
@@ -32,7 +32,7 @@ import type {
   Result,
   RetryOptions,
   SchemaVersion,
-} from "./types";
+} from "./types.js";
 
 export interface EdgarClientOptions {
   /** User-Agent header for SEC requests (required by SEC) */

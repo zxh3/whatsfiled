@@ -1,4 +1,4 @@
-import { FORM4_SCHEMA_VERSIONS } from "./constants";
+import { FORM4_SCHEMA_VERSIONS } from "./constants.js";
 
 /**
  * Base error class for SEC form parsing errors.

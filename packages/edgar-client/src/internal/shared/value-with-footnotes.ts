@@ -3,7 +3,7 @@
  * Used across multiple SEC form types that support footnote references.
  */
 
-import type { ValueWithFootnotes } from "../../types/common";
+import type { ValueWithFootnotes } from "../../types/common.js";
 
 /**
  * Raw footnote reference structure from SEC XML.

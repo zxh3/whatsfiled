@@ -4,4 +4,4 @@
  *
  * @see types/index.ts for the organized type structure
  */
-export * from "./types/index";
+export * from "./types/index.js";

@@ -7,9 +7,9 @@
 export type {
   RawFootnoteRef,
   RawValueWithFootnote,
-} from "../../shared/value-with-footnotes";
+} from "../../shared/value-with-footnotes.js";
 // Re-export from shared module
 export {
   extractFootnoteIds,
   normalizeValueWithFootnotes,
-} from "../../shared/value-with-footnotes";
+} from "../../shared/value-with-footnotes.js";

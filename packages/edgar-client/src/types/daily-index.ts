@@ -2,7 +2,7 @@
  * Types for SEC EDGAR daily index files.
  */
 
-import type { FORM_TYPES } from "../constants";
+import type { FORM_TYPES } from "../constants.js";
 
 /**
  * Union type of known SEC form types.

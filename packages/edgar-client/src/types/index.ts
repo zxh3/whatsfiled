@@ -12,16 +12,20 @@
  */
 
 // Re-export constants for convenience (actual definitions in ../constants.ts)
-export { FORM_TYPES, FORM4_SCHEMA_VERSIONS } from "../constants";
+export { FORM_TYPES, FORM4_SCHEMA_VERSIONS } from "../constants.js";
 // Common utility types
 export type {
   Logger,
   Result,
   RetryOptions,
   ValueWithFootnotes,
-} from "./common";
+} from "./common.js";
 // Daily index types
-export type { DailyIndexResult, DailyIndexRow, FormType } from "./daily-index";
+export type {
+  DailyIndexResult,
+  DailyIndexRow,
+  FormType,
+} from "./daily-index.js";
 // Form 4 types
 export type {
   DocumentType,
@@ -46,4 +50,4 @@ export type {
   Form4TransactionCoding,
   Form4UnderlyingSecurity,
   SchemaVersion,
-} from "./form4";
+} from "./form4.js";

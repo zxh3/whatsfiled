@@ -8,18 +8,18 @@ import type {
   Form4NonDerivativeHolding,
   Form4NonDerivativeTransaction,
   SchemaVersion,
-} from "../../../types/form4";
+} from "../../../types/form4.js";
 import type {
   RawDerivativeHolding,
   RawDerivativeTransaction,
   RawNonDerivativeHolding,
   RawNonDerivativeTransaction,
-} from "../raw-types";
+} from "../raw-types.js";
 import {
   normalizeDateValue,
   normalizeNumberValue,
   normalizeRequiredStringValue,
-} from "./primitives";
+} from "./primitives.js";
 import {
   normalizeOwnershipNature,
   normalizePostTransactionAmounts,
@@ -27,8 +27,8 @@ import {
   normalizeTransactionCoding,
   normalizeTransactionTimeliness,
   normalizeUnderlyingSecurity,
-} from "./transaction";
-import { normalizeValueWithFootnotes } from "./value-with-footnotes";
+} from "./transaction.js";
+import { normalizeValueWithFootnotes } from "./value-with-footnotes.js";
 
 /**
  * Normalize a non-derivative transaction.

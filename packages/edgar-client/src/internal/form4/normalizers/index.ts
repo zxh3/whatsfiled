@@ -5,35 +5,35 @@
  * The main entry point is normalizeForm4Document().
  */
 
-import { Form4ParseError } from "../../../errors";
+import { Form4ParseError } from "../../../errors.js";
 import type {
   DocumentType,
   Form4Document,
   SchemaVersion,
-} from "../../../types/form4";
-import type { RawOwnershipDocument } from "../raw-types";
-import { normalizeFootnotes, normalizeSignatures } from "./footnotes";
-import { normalizeReportingOwner } from "./owner";
+} from "../../../types/form4.js";
+import type { RawOwnershipDocument } from "../raw-types.js";
+import { normalizeFootnotes, normalizeSignatures } from "./footnotes.js";
+import { normalizeReportingOwner } from "./owner.js";
 import {
   normalizeBoolean,
   normalizeDateValue,
   normalizeRequiredStringValue,
   normalizeStringValue,
-} from "./primitives";
+} from "./primitives.js";
 import {
   normalizeDerivativeHolding,
   normalizeDerivativeTransaction,
   normalizeNonDerivativeHolding,
   normalizeNonDerivativeTransaction,
-} from "./tables";
+} from "./tables.js";
 
-export * from "./footnotes";
-export * from "./owner";
+export * from "./footnotes.js";
+export * from "./owner.js";
 // Re-export all normalizers for external use
-export * from "./primitives";
-export * from "./tables";
-export * from "./transaction";
-export * from "./value-with-footnotes";
+export * from "./primitives.js";
+export * from "./tables.js";
+export * from "./transaction.js";
+export * from "./value-with-footnotes.js";
 
 /**
  * Ensure a value is an array.

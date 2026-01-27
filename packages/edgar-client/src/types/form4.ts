@@ -2,8 +2,8 @@
  * Types for SEC Form 4 (Statement of Changes in Beneficial Ownership).
  */
 
-import type { FORM4_SCHEMA_VERSIONS } from "../constants";
-import type { Logger, ValueWithFootnotes } from "./common";
+import type { FORM4_SCHEMA_VERSIONS } from "../constants.js";
+import type { Logger, ValueWithFootnotes } from "./common.js";
 
 // ============================================================
 // SCHEMA VERSION

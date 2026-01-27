@@ -1,19 +1,19 @@
-import { FORM4_SCHEMA_VERSIONS } from "../../constants";
+import { FORM4_SCHEMA_VERSIONS } from "../../constants.js";
 import {
   Form4ParseError,
   UnsupportedSchemaVersionError,
   ValidationError,
-} from "../../errors";
-import type { Logger } from "../../types/common";
+} from "../../errors.js";
+import type { Logger } from "../../types/common.js";
 import type {
   Form4Document,
   Form4ParseOptions,
   SchemaVersion,
-} from "../../types/form4";
-import { createXmlParser, extractXmlFromSecDocument } from "../shared/xml";
-import { normalizeForm4Document } from "./normalizers/index";
-import type { RawOwnershipDocument } from "./raw-types";
-import { FORM4_PARSER_OPTIONS } from "./xml-config";
+} from "../../types/form4.js";
+import { createXmlParser, extractXmlFromSecDocument } from "../shared/xml.js";
+import { normalizeForm4Document } from "./normalizers/index.js";
+import type { RawOwnershipDocument } from "./raw-types.js";
+import { FORM4_PARSER_OPTIONS } from "./xml-config.js";
 
 const DEFAULT_LOGGER: Logger = {
   debug: console.debug,
