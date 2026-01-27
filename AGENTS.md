@@ -65,6 +65,16 @@ pnpm --filter @whatsfiled/backend tsx src/scripts/check-data.ts          # Datab
 pnpm --filter @whatsfiled/backend tsx src/scripts/cleanup-stuck.ts       # Reset stuck jobs
 ```
 
+## Git Conventions
+
+Use Conventional Commits for all commit messages:
+
+```
+<type>(optional scope): <description>
+
+Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+```
+
 ## Key Patterns
 
 ### Environment Variables
