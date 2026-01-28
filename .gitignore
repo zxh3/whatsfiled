@@ -24,6 +24,9 @@ dist
 # turbo
 .turbo
 
+# trigger.dev
+.trigger
+
 # misc
 .DS_Store
 *.pem
