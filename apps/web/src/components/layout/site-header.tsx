@@ -167,7 +167,7 @@ export function SiteHeader() {
               onBlur={() => setTimeout(() => setIsFocused(false), 150)}
               onKeyDown={handleKeyDown}
               placeholder="Search..."
-              className="h-9 w-full rounded-md border border-border bg-muted/40 py-2 pl-9 pr-10 text-sm transition-colors placeholder:text-muted-foreground/70 focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring/20 sm:pr-20"
+              className="h-9 w-full rounded-md border border-border bg-muted/40 py-2 pl-9 pr-10 text-base text-foreground transition-colors placeholder:text-muted-foreground/70 focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring/20 sm:pr-20 sm:text-sm"
             />
             {query ? (
               <button
