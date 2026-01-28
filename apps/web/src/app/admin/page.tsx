@@ -134,6 +134,7 @@ export default function AdminPipelinePage() {
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     text: string;
+    runId?: string | null;
   } | null>(null);
 
   const runsQuery = trpc.pipeline.getTriggerRunsByTask.useQuery(
@@ -152,7 +153,8 @@ export default function AdminPipelinePage() {
       if (data.success) {
         setStatusMessage({
           type: "success",
-          text: `Backfill started! Run ID: ${data.runId?.slice(0, 20)}...`,
+          text: "Backfill started!",
+          runId: data.runId,
         });
         runsQuery.refetch();
       } else {
@@ -173,7 +175,8 @@ export default function AdminPipelinePage() {
         if (data.success) {
           setStatusMessage({
             type: "success",
-            text: `Index processing started! Run ID: ${data.runId?.slice(0, 20)}...`,
+            text: "Index processing started!",
+            runId: data.runId,
           });
           runsQuery.refetch();
         } else {
@@ -194,7 +197,8 @@ export default function AdminPipelinePage() {
         if (data.success) {
           setStatusMessage({
             type: "success",
-            text: `Filing processing started! Run ID: ${data.runId?.slice(0, 20)}...`,
+            text: "Filing processing started!",
+            runId: data.runId,
           });
           runsQuery.refetch();
         } else {
@@ -315,6 +319,19 @@ export default function AdminPipelinePage() {
               }`}
             >
               {statusMessage.text}
+              {statusMessage.runId && (
+                <>
+                  {" "}
+                  <a
+                    href={`https://cloud.trigger.dev/projects/v3/${TRIGGER_PROJECT_ID}/runs/${statusMessage.runId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:no-underline"
+                  >
+                    View run in Trigger.dev
+                  </a>
+                </>
+              )}
             </div>
           )}
 
