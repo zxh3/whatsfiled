@@ -293,12 +293,19 @@ export const companiesRouter = router({
       let txnRows: TxnRow[] = [];
 
       if (input.filter === "common") {
-        // Query non-derivative transactions only
+        // Query only open-market purchases (P) and sales (S) of common stock
+        // Excludes exercise (M), award (A), tax (F), gift (G) which are option-related
+        const openMarketCodes = ["P", "S"];
         const countResult = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(transactions)
           .innerJoin(filings, eq(transactions.filingId, filings.id))
-          .where(eq(filings.companyId, companyId));
+          .where(
+            and(
+              eq(filings.companyId, companyId),
+              inArray(transactions.transactionCode, openMarketCodes),
+            ),
+          );
         totalCount = countResult[0]?.count ?? 0;
 
         const rows = await db
@@ -317,7 +324,12 @@ export const companiesRouter = router({
           })
           .from(transactions)
           .innerJoin(filings, eq(transactions.filingId, filings.id))
-          .where(eq(filings.companyId, companyId))
+          .where(
+            and(
+              eq(filings.companyId, companyId),
+              inArray(transactions.transactionCode, openMarketCodes),
+            ),
+          )
           .orderBy(desc(transactions.transactionDate), desc(filings.filedAt))
           .limit(input.pageSize)
           .offset(offset);
