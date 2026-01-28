@@ -1,6 +1,6 @@
+import { companies, companyTickers, insiders } from "@whatsfiled/db/schema";
 import { eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { companies, companyTickers, insiders } from "@whatsfiled/db/schema";
 import { publicProcedure, router } from "../init.js";
 
 export const searchRouter = router({

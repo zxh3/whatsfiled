@@ -1,10 +1,11 @@
 // tRPC exports
-export { appRouter, type AppRouter } from "./routers/index.js";
-export { createContext, type Context, type Session } from "./context.js";
+
+export { type Context, createContext, type Session } from "./context.js";
 export {
-  router,
-  publicProcedure,
-  protectedProcedure,
   adminProcedure,
   createCallerFactory,
+  protectedProcedure,
+  publicProcedure,
+  router,
 } from "./init.js";
+export { type AppRouter, appRouter } from "./routers/index.js";

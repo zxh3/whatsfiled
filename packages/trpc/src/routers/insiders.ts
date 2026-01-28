@@ -1,5 +1,3 @@
-import { desc, eq, inArray, or, sql } from "drizzle-orm";
-import { z } from "zod";
 import {
   companies,
   companyTickers,
@@ -9,6 +7,8 @@ import {
   insiders,
   transactions,
 } from "@whatsfiled/db/schema";
+import { desc, eq, inArray, or, sql } from "drizzle-orm";
+import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
 
 export const insidersRouter = router({

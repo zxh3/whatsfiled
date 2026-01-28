@@ -1,7 +1,7 @@
 import { logger, task } from "@trigger.dev/sdk/v3";
 import { filingQueue, getDb } from "@whatsfiled/db";
 import { EdgarClient } from "@whatsfiled/edgar-client";
-import { and, eq, or, isNull, lt } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 import { getProcessor, hasProcessor } from "../processors/index.js";
 import { secRateLimitedQueue } from "../queues/sec-rate-limited.js";
 

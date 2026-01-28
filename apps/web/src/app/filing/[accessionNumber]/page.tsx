@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
 import { companies, companyTickers, eq, filings, getDb } from "@whatsfiled/db";
+import type { Metadata } from "next";
 import { FilingPageClient } from "./filing-page-client";
 
 type Props = {

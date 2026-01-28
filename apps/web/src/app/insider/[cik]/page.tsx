@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
 import { eq, getDb, insiders, or, sql } from "@whatsfiled/db";
+import type { Metadata } from "next";
 import { InsiderPageClient } from "./insider-page-client";
 
 type Props = {

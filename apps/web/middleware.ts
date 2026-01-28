@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 // Admin routes are handled by the AdminGuard component client-side
 // This middleware can be extended for other protected routes if needed
