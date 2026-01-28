@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { trpc } from "@/lib/trpc";
-import Link from "next/link";
 
 export function SiteHeader() {
   const router = useRouter();
@@ -216,7 +216,10 @@ export function SiteHeader() {
             </AnimatePresence>
           </form>
           <div className="text-xs text-muted-foreground flex items-center gap-3">
-            <Link href="/resources/sec-filings" className="hover:text-foreground">
+            <Link
+              href="/resources/sec-filings"
+              className="hover:text-foreground"
+            >
               SEC Filings Reference
             </Link>
             <span className="text-border">·</span>

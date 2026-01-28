@@ -1,8 +1,8 @@
 "use client";
 
-import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { PaginationNav } from "@whatsfiled/ui/components/pagination";
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TransactionTable } from "@/components/transactions/transaction-table";
 import { trpc } from "@/lib/trpc";
@@ -15,7 +15,8 @@ export default function CompanyPage() {
   const searchParams = useSearchParams();
 
   const cik = params.cik as string;
-  const filter = (searchParams.get("filter") as "common" | "options") || "common";
+  const filter =
+    (searchParams.get("filter") as "common" | "options") || "common";
   const page = Number(searchParams.get("page")) || 1;
 
   const { data, isLoading, isError } = trpc.companies.getTransactions.useQuery(

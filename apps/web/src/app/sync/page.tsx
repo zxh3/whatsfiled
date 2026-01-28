@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Progress } from "@whatsfiled/ui/components/progress";
 import {
   Tabs,
@@ -16,6 +14,8 @@ import {
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
 import { CircleHelp } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
@@ -378,9 +378,9 @@ export default function SyncPage() {
                         tooltip="Shows each business day and the actual filing processing progress. A day is 'fully processed' when all filings for that date have been fetched, parsed, and stored."
                       />
                       <div className="mb-4 flex items-center gap-3 text-sm">
-                        <label className="text-xs uppercase tracking-wide text-muted-foreground">
+                        <span className="text-xs uppercase tracking-wide text-muted-foreground">
                           Year
-                        </label>
+                        </span>
                         <div className="flex gap-2">
                           {[2026, 2025, 2024, 2023].map((y) => (
                             <Link

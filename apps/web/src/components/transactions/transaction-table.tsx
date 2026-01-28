@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { cn } from "@whatsfiled/ui/lib/utils";
+import Link from "next/link";
 import { TransactionBadge } from "./transaction-badge";
 
 interface Transaction {
@@ -120,6 +120,7 @@ function TransactionTable({
           </thead>
           <tbody>
             {Array.from({ length: 10 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton rows
               <tr key={i} className="border-b border-border/50">
                 <td className="px-2 py-1.5">
                   <div className="h-4 w-12 animate-pulse rounded bg-muted" />

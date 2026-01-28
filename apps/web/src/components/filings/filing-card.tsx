@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { format } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
+import Link from "next/link";
 
 export interface FilingCardProps {
   filing: {
@@ -205,10 +205,8 @@ export function FilingCard({ filing }: FilingCardProps) {
                             ? `· ${txn.transactionCode}`
                             : "";
                           return (
-                            <span
-                              key={`${date}-${side}-${idx}`}
-                              className="block"
-                            >
+                            // biome-ignore lint/suspicious/noArrayIndexKey: transactions lack unique IDs
+                            <span key={idx} className="block">
                               {date} · {side}
                               {codeText} · {sharesText} @ {priceText}
                             </span>

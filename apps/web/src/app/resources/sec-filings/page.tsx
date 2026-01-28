@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Badge } from "@whatsfiled/ui/components/badge";
 import {
   AlertCircle,
@@ -12,6 +11,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import { SiteHeader } from "@/components/layout/site-header";
 
 function SectionHeader({

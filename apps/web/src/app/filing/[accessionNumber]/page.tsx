@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
 import {
   Tooltip,
   TooltipContent,
@@ -9,6 +7,8 @@ import {
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
 import { formatInTimeZone } from "date-fns-tz";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
 
@@ -174,7 +174,10 @@ export default function FilingPage() {
               Form {filing.formType}
             </div>
             <h1 className="text-2xl font-semibold">
-              <Link href={`/company/${company.cik}`} className="hover:underline">
+              <Link
+                href={`/company/${company.cik}`}
+                className="hover:underline"
+              >
                 {company.name}
               </Link>
             </h1>
