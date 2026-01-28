@@ -1,0 +1,28 @@
+{
+  "name": "@whatsfiled/trigger",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "npx trigger.dev@latest dev",
+    "deploy": "npx trigger.dev@latest deploy",
+    "cli": "tsx --env-file=.env.local scripts/cli.ts"
+  },
+  "dependencies": {
+    "@trigger.dev/core": "4.3.3",
+    "@trigger.dev/sdk": "4.3.3",
+    "@whatsfiled/db": "workspace:*",
+    "@whatsfiled/edgar-client": "workspace:*",
+    "drizzle-orm": "^0.38.0"
+  },
+  "devDependencies": {
+    "@trigger.dev/build": "4.3.3",
+    "@whatsfiled/typescript-config": "workspace:*",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  }
+}

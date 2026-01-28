@@ -69,12 +69,6 @@ function formatDate(date: string | Date | null): string {
   return d.toISOString().split("T")[0];
 }
 
-function truncate(text: string, maxLen: number): string {
-  if (!text) return "-";
-  if (text.length <= maxLen) return text;
-  return `${text.slice(0, maxLen - 1)}…`;
-}
-
 function TransactionTable({
   transactions,
   isLoading,
@@ -84,36 +78,46 @@ function TransactionTable({
   if (isLoading) {
     return (
       <div className={cn("overflow-x-auto", className)}>
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium">
                 Date
               </th>
               {showCompany && (
-                <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+                <th className="w-[7%] whitespace-nowrap px-2 py-1.5 font-medium">
                   Company
                 </th>
               )}
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+              <th
+                className={cn(
+                  "whitespace-nowrap px-2 py-1.5 font-medium",
+                  showCompany ? "w-[17%]" : "w-[20%]",
+                )}
+              >
                 Insider
               </th>
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+              <th
+                className={cn(
+                  "whitespace-nowrap px-2 py-1.5 font-medium",
+                  showCompany ? "w-[14%]" : "w-[17%]",
+                )}
+              >
                 Role
               </th>
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+              <th className="w-[8%] whitespace-nowrap px-2 py-1.5 font-medium">
                 Type
               </th>
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Price
               </th>
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[12%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Shares
               </th>
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Value
               </th>
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[12%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Owned
               </th>
             </tr>
@@ -123,33 +127,33 @@ function TransactionTable({
               // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton rows
               <tr key={i} className="border-b border-border/50">
                 <td className="px-2 py-1.5">
-                  <div className="h-4 w-12 animate-pulse rounded bg-muted" />
+                  <div className="h-4 w-full max-w-16 animate-pulse rounded bg-muted" />
                 </td>
                 {showCompany && (
                   <td className="px-2 py-1.5">
-                    <div className="h-4 w-10 animate-pulse rounded bg-muted" />
+                    <div className="h-4 w-full max-w-12 animate-pulse rounded bg-muted" />
                   </td>
                 )}
                 <td className="px-2 py-1.5">
-                  <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                  <div className="h-4 w-full max-w-32 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5">
-                  <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                  <div className="h-4 w-full max-w-24 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5">
-                  <div className="h-5 w-12 animate-pulse rounded-full bg-muted" />
+                  <div className="h-5 w-full max-w-14 animate-pulse rounded-full bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
-                  <div className="ml-auto h-4 w-12 animate-pulse rounded bg-muted" />
+                  <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
-                  <div className="ml-auto h-4 w-14 animate-pulse rounded bg-muted" />
+                  <div className="ml-auto h-4 w-full max-w-16 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
-                  <div className="ml-auto h-4 w-16 animate-pulse rounded bg-muted" />
+                  <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
-                  <div className="ml-auto h-4 w-14 animate-pulse rounded bg-muted" />
+                  <div className="ml-auto h-4 w-full max-w-16 animate-pulse rounded bg-muted" />
                 </td>
               </tr>
             ))}
@@ -169,30 +173,46 @@ function TransactionTable({
 
   return (
     <div className={cn("overflow-x-auto", className)}>
-      <table className="w-full text-sm">
+      <table className="w-full table-fixed text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th className="whitespace-nowrap px-2 py-1.5 font-medium">Date</th>
+            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium">
+              Date
+            </th>
             {showCompany && (
-              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+              <th className="w-[7%] whitespace-nowrap px-2 py-1.5 font-medium">
                 Company
               </th>
             )}
-            <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+            <th
+              className={cn(
+                "whitespace-nowrap px-2 py-1.5 font-medium",
+                showCompany ? "w-[17%]" : "w-[20%]",
+              )}
+            >
               Insider
             </th>
-            <th className="whitespace-nowrap px-2 py-1.5 font-medium">Role</th>
-            <th className="whitespace-nowrap px-2 py-1.5 font-medium">Type</th>
-            <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th
+              className={cn(
+                "whitespace-nowrap px-2 py-1.5 font-medium",
+                showCompany ? "w-[14%]" : "w-[17%]",
+              )}
+            >
+              Role
+            </th>
+            <th className="w-[8%] whitespace-nowrap px-2 py-1.5 font-medium">
+              Type
+            </th>
+            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Price
             </th>
-            <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[12%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Shares
             </th>
-            <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Value
             </th>
-            <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[12%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Owned
             </th>
           </tr>
@@ -228,27 +248,27 @@ function TransactionTable({
                   </td>
                 )}
                 <td
-                  className="whitespace-nowrap px-2 py-1.5"
+                  className="overflow-hidden px-2 py-1.5"
                   title={txn.insider.name}
                 >
                   {txn.insider.cik ? (
                     <Link
                       href={`/insider/${txn.insider.cik}`}
-                      className="font-medium text-foreground hover:underline"
+                      className="block truncate font-medium text-foreground hover:underline"
                     >
-                      {truncate(txn.insider.name, 18)}
+                      {txn.insider.name}
                     </Link>
                   ) : (
-                    <span className="font-medium text-foreground">
-                      {truncate(txn.insider.name, 18)}
+                    <span className="block truncate font-medium text-foreground">
+                      {txn.insider.name}
                     </span>
                   )}
                 </td>
                 <td
-                  className="whitespace-nowrap px-2 py-1.5 text-muted-foreground"
+                  className="overflow-hidden px-2 py-1.5 text-muted-foreground"
                   title={txn.insider.title}
                 >
-                  {truncate(txn.insider.title, 16)}
+                  <span className="block truncate">{txn.insider.title}</span>
                 </td>
                 <td className="px-2 py-1.5">
                   <TransactionBadge code={txn.transactionCode} />
