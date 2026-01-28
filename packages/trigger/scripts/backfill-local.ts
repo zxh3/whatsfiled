@@ -57,9 +57,9 @@
  * RATE LIMITING
  * ============================================================================
  *
- * SEC EDGAR allows 10 requests/second. This script uses a token bucket rate
- * limiter capped at 5 req/s to stay safely within limits. The --concurrency
- * flag controls parallel DB operations, but SEC requests are always rate limited.
+ * SEC EDGAR allows 10 requests/second. This script enforces a strict 5 req/s
+ * limit (200ms minimum delay between requests). All SEC requests are queued
+ * and processed sequentially to guarantee we never exceed the limit.
  *
  */
 
@@ -81,54 +81,50 @@ import {
 const SEC_USER_AGENT =
   process.env.SEC_USER_AGENT ?? "WhatsFiled contact@whatsfiled.com";
 
-// SEC rate limit: 10 requests per second, we'll use 5 to be safe
-const SEC_RATE_LIMIT = 5;
+// Minimum delay between SEC requests: 200ms = 5 req/s max (SEC allows 10)
+const MIN_REQUEST_DELAY_MS = 200;
 
 /**
- * Token bucket rate limiter for SEC requests.
- * Ensures we don't exceed SEC's 10 req/s limit.
+ * Sequential rate limiter for SEC requests.
+ * Queues all requests and processes them one at a time with minimum delay.
+ * This guarantees we never exceed the rate limit, even with concurrent callers.
  */
 class RateLimiter {
-  private tokens: number;
-  private lastRefill: number;
-  private readonly maxTokens: number;
-  private readonly refillRate: number; // tokens per ms
-
-  constructor(requestsPerSecond: number) {
-    this.maxTokens = requestsPerSecond;
-    this.tokens = requestsPerSecond;
-    this.refillRate = requestsPerSecond / 1000;
-    this.lastRefill = Date.now();
-  }
-
-  private refill() {
-    const now = Date.now();
-    const elapsed = now - this.lastRefill;
-    this.tokens = Math.min(
-      this.maxTokens,
-      this.tokens + elapsed * this.refillRate,
-    );
-    this.lastRefill = now;
-  }
+  private lastRequestTime = 0;
+  private queue: Array<() => void> = [];
+  private processing = false;
 
   async acquire(): Promise<void> {
-    this.refill();
+    return new Promise((resolve) => {
+      this.queue.push(resolve);
+      this.processQueue();
+    });
+  }
 
-    if (this.tokens >= 1) {
-      this.tokens -= 1;
-      return;
+  private async processQueue(): Promise<void> {
+    if (this.processing) return;
+    this.processing = true;
+
+    while (this.queue.length > 0) {
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastRequestTime;
+      const waitTime = MIN_REQUEST_DELAY_MS - timeSinceLastRequest;
+
+      if (waitTime > 0) {
+        await new Promise((r) => setTimeout(r, waitTime));
+      }
+
+      this.lastRequestTime = Date.now();
+      const resolve = this.queue.shift();
+      if (resolve) resolve();
     }
 
-    // Calculate wait time for next token
-    const waitTime = Math.ceil((1 - this.tokens) / this.refillRate);
-    await new Promise((r) => setTimeout(r, waitTime));
-    this.refill();
-    this.tokens -= 1;
+    this.processing = false;
   }
 }
 
 // Global rate limiter instance
-const rateLimiter = new RateLimiter(SEC_RATE_LIMIT);
+const rateLimiter = new RateLimiter();
 
 // Parse CLI arguments
 const { values } = parseArgs({

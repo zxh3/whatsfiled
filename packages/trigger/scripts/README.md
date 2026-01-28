@@ -61,9 +61,9 @@ The script runs three steps:
 
 ### Rate Limiting
 
-SEC EDGAR allows 10 requests/second. This script uses a token bucket rate limiter capped at **8 req/s** to stay safely within limits.
+SEC EDGAR allows 10 requests/second. This script enforces a strict **5 req/s** limit (200ms minimum delay between requests).
 
-The `--concurrency` flag controls parallel database operations, but SEC HTTP requests are always rate limited regardless of concurrency setting.
+All SEC HTTP requests are queued and processed sequentially to guarantee we never exceed the limit. The `--concurrency` flag only affects parallel database operations, not SEC requests.
 
 ### Examples
 
