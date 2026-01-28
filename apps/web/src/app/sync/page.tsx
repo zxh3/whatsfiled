@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -178,6 +178,16 @@ export default function SyncPage() {
                   Updated {lastUpdated.toLocaleTimeString()}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => statsQuery.refetch()}
+                className="p-1.5 rounded hover:bg-muted"
+                title="Refresh"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${statsQuery.isFetching ? "animate-spin" : ""}`}
+                />
+              </button>
             </div>
           </div>
           {/* Loading state */}

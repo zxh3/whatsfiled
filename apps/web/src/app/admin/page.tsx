@@ -8,7 +8,7 @@ import {
 } from "@whatsfiled/ui/components/tooltip";
 import { CircleHelp, ExternalLink, Play, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
 
@@ -117,6 +117,7 @@ function InfoTooltip({ content }: { content: string }) {
 
 export default function AdminPipelinePage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Form state for backfill
   const [backfillYear, setBackfillYear] = useState(CURRENT_YEAR);
@@ -139,6 +140,12 @@ export default function AdminPipelinePage() {
     { runsPerTask: 10 },
     { refetchInterval: autoRefresh ? 5000 : false },
   );
+
+  useEffect(() => {
+    if (runsQuery.dataUpdatedAt) {
+      setLastUpdated(new Date(runsQuery.dataUpdatedAt));
+    }
+  }, [runsQuery.dataUpdatedAt]);
 
   const backfillMutation = trpc.pipeline.triggerBackfill.useMutation({
     onSuccess: (data) => {
@@ -266,6 +273,11 @@ export default function AdminPipelinePage() {
                 />
                 Auto-refresh
               </label>
+              {lastUpdated && (
+                <span className="text-xs text-muted-foreground">
+                  Updated {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => runsQuery.refetch()}
