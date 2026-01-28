@@ -6,11 +6,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
-import { CircleHelp, ExternalLink, RefreshCw } from "lucide-react";
+import { CircleHelp, ExternalLink, Play, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 const TRIGGER_PROJECT_ID = "proj_tqvevnijvybdwlvcqfee";
 
@@ -116,12 +118,121 @@ function InfoTooltip({ content }: { content: string }) {
 export default function AdminPipelinePage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
 
+  // Form state for backfill
+  const [backfillYear, setBackfillYear] = useState(CURRENT_YEAR);
+  const [backfillLimit, setBackfillLimit] = useState<string>("");
+
+  // Form state for process indexes
+  const [indexLimit, setIndexLimit] = useState<string>("");
+  const [triggerFilings, setTriggerFilings] = useState(true);
+
+  // Form state for process filings
+  const [filingLimit, setFilingLimit] = useState<string>("");
+
+  // Status message
+  const [statusMessage, setStatusMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
   const runsQuery = trpc.pipeline.getTriggerRunsByTask.useQuery(
     { runsPerTask: 10 },
     { refetchInterval: autoRefresh ? 5000 : false },
   );
 
+  const backfillMutation = trpc.pipeline.triggerBackfill.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        setStatusMessage({
+          type: "success",
+          text: `Backfill started! Run ID: ${data.runId?.slice(0, 20)}...`,
+        });
+        runsQuery.refetch();
+      } else {
+        setStatusMessage({
+          type: "error",
+          text: data.error || "Unknown error",
+        });
+      }
+    },
+    onError: (error) => {
+      setStatusMessage({ type: "error", text: error.message });
+    },
+  });
+
+  const processIndexesMutation =
+    trpc.pipeline.triggerProcessIndexes.useMutation({
+      onSuccess: (data) => {
+        if (data.success) {
+          setStatusMessage({
+            type: "success",
+            text: `Index processing started! Run ID: ${data.runId?.slice(0, 20)}...`,
+          });
+          runsQuery.refetch();
+        } else {
+          setStatusMessage({
+            type: "error",
+            text: data.error || "Unknown error",
+          });
+        }
+      },
+      onError: (error) => {
+        setStatusMessage({ type: "error", text: error.message });
+      },
+    });
+
+  const processFilingsMutation =
+    trpc.pipeline.triggerProcessFilings.useMutation({
+      onSuccess: (data) => {
+        if (data.success) {
+          setStatusMessage({
+            type: "success",
+            text: `Filing processing started! Run ID: ${data.runId?.slice(0, 20)}...`,
+          });
+          runsQuery.refetch();
+        } else {
+          setStatusMessage({
+            type: "error",
+            text: data.error || "Unknown error",
+          });
+        }
+      },
+      onError: (error) => {
+        setStatusMessage({ type: "error", text: error.message });
+      },
+    });
+
   const data = runsQuery.data;
+
+  const handleBackfill = () => {
+    setStatusMessage(null);
+    backfillMutation.mutate({
+      year: backfillYear,
+      limitIndexFiles: backfillLimit
+        ? Number.parseInt(backfillLimit, 10)
+        : undefined,
+    });
+  };
+
+  const handleProcessIndexes = () => {
+    setStatusMessage(null);
+    processIndexesMutation.mutate({
+      limit: indexLimit ? Number.parseInt(indexLimit, 10) : undefined,
+      triggerFilingProcessing: triggerFilings,
+    });
+  };
+
+  const handleProcessFilings = () => {
+    setStatusMessage(null);
+    processFilingsMutation.mutate({
+      limit: filingLimit ? Number.parseInt(filingLimit, 10) : undefined,
+    });
+  };
+
+  const isAnyMutationPending =
+    backfillMutation.isPending ||
+    processIndexesMutation.isPending ||
+    processFilingsMutation.isPending;
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -181,6 +292,155 @@ export default function AdminPipelinePage() {
               {data.error}
             </div>
           )}
+
+          {/* Status message */}
+          {statusMessage && (
+            <div
+              className={`rounded-lg p-3 text-sm ${
+                statusMessage.type === "success"
+                  ? "bg-green-500/10 border border-green-500/30 text-green-600"
+                  : "bg-red-500/10 border border-red-500/30 text-red-500"
+              }`}
+            >
+              {statusMessage.text}
+            </div>
+          )}
+
+          {/* Trigger Actions */}
+          <section className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="px-4 py-3 bg-muted/30 border-b border-border">
+              <h2 className="font-semibold flex items-center gap-2">
+                <Play className="w-4 h-4" />
+                Trigger Tasks
+              </h2>
+            </div>
+            <div className="p-4 space-y-6">
+              {/* Backfill */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium">Backfill Year</h3>
+                  <InfoTooltip content="Discover all index files for a year and process all filings. This is the full pipeline - discovery → index processing → filing processing." />
+                </div>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={backfillYear}
+                    onChange={(e) => setBackfillYear(Number(e.target.value))}
+                    className="rounded border border-border bg-background px-3 py-1.5 text-sm"
+                    disabled={isAnyMutationPending}
+                  >
+                    {[
+                      CURRENT_YEAR,
+                      CURRENT_YEAR - 1,
+                      CURRENT_YEAR - 2,
+                      CURRENT_YEAR - 3,
+                    ].map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    placeholder="Limit index files (optional)"
+                    value={backfillLimit}
+                    onChange={(e) => setBackfillLimit(e.target.value)}
+                    className="rounded border border-border bg-background px-3 py-1.5 text-sm w-48"
+                    min="1"
+                    max="500"
+                    disabled={isAnyMutationPending}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBackfill}
+                    disabled={isAnyMutationPending}
+                    className="rounded bg-foreground text-background px-4 py-1.5 text-sm font-medium hover:bg-foreground/90 disabled:opacity-50"
+                  >
+                    {backfillMutation.isPending
+                      ? "Starting..."
+                      : "Start Backfill"}
+                  </button>
+                </div>
+              </div>
+
+              <hr className="border-border" />
+
+              {/* Process Pending Indexes */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium">
+                    Process Pending Indexes
+                  </h3>
+                  <InfoTooltip content="Process index files that are in 'pending' status. This parses each index file and creates filing queue entries." />
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    placeholder="Limit (optional)"
+                    value={indexLimit}
+                    onChange={(e) => setIndexLimit(e.target.value)}
+                    className="rounded border border-border bg-background px-3 py-1.5 text-sm w-32"
+                    min="1"
+                    max="100"
+                    disabled={isAnyMutationPending}
+                  />
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={triggerFilings}
+                      onChange={(e) => setTriggerFilings(e.target.checked)}
+                      className="rounded"
+                      disabled={isAnyMutationPending}
+                    />
+                    Also process filings
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleProcessIndexes}
+                    disabled={isAnyMutationPending}
+                    className="rounded bg-muted px-4 py-1.5 text-sm font-medium hover:bg-muted/80 disabled:opacity-50"
+                  >
+                    {processIndexesMutation.isPending
+                      ? "Starting..."
+                      : "Process Indexes"}
+                  </button>
+                </div>
+              </div>
+
+              <hr className="border-border" />
+
+              {/* Process Pending Filings */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium">
+                    Process Pending Filings
+                  </h3>
+                  <InfoTooltip content="Process filings that are in 'pending' status. This fetches each filing from SEC, parses it, and stores the data." />
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    placeholder="Limit (optional)"
+                    value={filingLimit}
+                    onChange={(e) => setFilingLimit(e.target.value)}
+                    className="rounded border border-border bg-background px-3 py-1.5 text-sm w-32"
+                    min="1"
+                    max="1000"
+                    disabled={isAnyMutationPending}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleProcessFilings}
+                    disabled={isAnyMutationPending}
+                    className="rounded bg-muted px-4 py-1.5 text-sm font-medium hover:bg-muted/80 disabled:opacity-50"
+                  >
+                    {processFilingsMutation.isPending
+                      ? "Starting..."
+                      : "Process Filings"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
 
           {/* Tasks */}
           {data?.tasks && data.tasks.length > 0 && (

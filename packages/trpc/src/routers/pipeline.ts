@@ -1,4 +1,4 @@
-import { configure, runs } from "@trigger.dev/sdk/v3";
+import { configure, runs, tasks } from "@trigger.dev/sdk/v3";
 import {
   dailyIndexFiles,
   filingQueue,
@@ -512,6 +512,118 @@ export const pipelineRouter = router({
         console.error("Failed to fetch Trigger.dev runs:", error);
         return {
           tasks: [],
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    }),
+
+  /**
+   * Trigger a backfill task for a specific year.
+   */
+  triggerBackfill: publicProcedure
+    .input(
+      z.object({
+        year: z.number().min(2000).max(2100),
+        formTypes: z.array(z.string()).default(["4", "4/A"]),
+        limitIndexFiles: z.number().min(1).max(500).optional(),
+        limitFilingsPerIndex: z.number().min(1).max(10000).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      if (!process.env.TRIGGER_SECRET_KEY) {
+        return { success: false, error: "Trigger.dev not configured" };
+      }
+
+      try {
+        const handle = await tasks.trigger("backfill", {
+          year: input.year,
+          formTypes: input.formTypes,
+          limitIndexFiles: input.limitIndexFiles,
+          limitFilingsPerIndex: input.limitFilingsPerIndex,
+        });
+
+        return {
+          success: true,
+          runId: handle.id,
+          error: null,
+        };
+      } catch (error) {
+        console.error("Failed to trigger backfill:", error);
+        return {
+          success: false,
+          runId: null,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    }),
+
+  /**
+   * Trigger processing of pending index files.
+   */
+  triggerProcessIndexes: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).optional(),
+        triggerFilingProcessing: z.boolean().default(true),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      if (!process.env.TRIGGER_SECRET_KEY) {
+        return { success: false, error: "Trigger.dev not configured" };
+      }
+
+      try {
+        const handle = await tasks.trigger("process-pending-indexes", {
+          limit: input.limit,
+          triggerFilingProcessing: input.triggerFilingProcessing,
+        });
+
+        return {
+          success: true,
+          runId: handle.id,
+          error: null,
+        };
+      } catch (error) {
+        console.error("Failed to trigger index processing:", error);
+        return {
+          success: false,
+          runId: null,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    }),
+
+  /**
+   * Trigger processing of pending filings.
+   */
+  triggerProcessFilings: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(1000).optional(),
+        formType: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      if (!process.env.TRIGGER_SECRET_KEY) {
+        return { success: false, error: "Trigger.dev not configured" };
+      }
+
+      try {
+        const handle = await tasks.trigger("process-pending-filings", {
+          limit: input.limit,
+          formType: input.formType,
+        });
+
+        return {
+          success: true,
+          runId: handle.id,
+          error: null,
+        };
+      } catch (error) {
+        console.error("Failed to trigger filing processing:", error);
+        return {
+          success: false,
+          runId: null,
           error: error instanceof Error ? error.message : "Unknown error",
         };
       }
