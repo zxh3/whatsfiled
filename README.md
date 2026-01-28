@@ -39,7 +39,7 @@ pnpm db:push
 pnpm dev
 ```
 
-Open http://localhost:3001 for the frontend.
+Open http://localhost:3000 for the frontend.
 
 ## Project Structure
 

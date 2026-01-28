@@ -4,32 +4,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WhatsFiled is a full-stack application for aggregating and parsing SEC EDGAR filings, focusing on insider trading forms (Form 4, Form 4/A). Built with Next.js 16 + React 19 frontend and tRPC + Express + PostgreSQL backend.
+WhatsFiled is a full-stack application for aggregating and parsing SEC EDGAR filings, focusing on insider trading forms (Form 4, Form 4/A). Built with Next.js 16 App Router + React 19 frontend, tRPC API routes, and PostgreSQL database.
 
 ## Monorepo Structure
 
 ```
 whatsfiled/
 ├── apps/
-│   ├── web/                      # Next.js 16 frontend (port 3001)
-│   │   ├── src/app/              # App Router pages
-│   │   ├── src/components/       # React components
-│   │   └── src/lib/trpc.ts       # tRPC client setup
-│   └── backend/                  # Express + tRPC server (port 3000)
-│       └── src/
-│           ├── index.ts          # Express server entry
-│           ├── env.ts            # Zod-validated env vars
-│           ├── cron/             # node-cron scheduled jobs
-│           ├── db/               # Drizzle ORM schema + connection
-│           └── trpc/             # tRPC routers and context
+│   └── web/                      # Next.js 16 App Router (port 3000)
+│       ├── src/app/              # App Router pages & API routes
+│       │   └── api/trpc/         # tRPC API handler
+│       ├── src/components/       # React components
+│       ├── src/hooks/            # Custom React hooks
+│       └── src/lib/trpc.ts       # tRPC client setup
 ├── packages/
+│   ├── db/                       # Database layer (Drizzle ORM)
+│   │   ├── src/schema.ts         # Database schema
+│   │   ├── src/client.ts         # PostgreSQL connection
+│   │   └── drizzle.config.ts     # Drizzle Kit config
+│   ├── trpc/                     # tRPC routers and context
+│   │   ├── src/routers/          # API route handlers
+│   │   ├── src/context.ts        # Request context with db
+│   │   └── src/init.ts           # tRPC initialization
 │   ├── edgar-client/             # SEC EDGAR API client library
 │   │   ├── src/edgar-client.ts   # Main EdgarClient class
 │   │   ├── src/types/            # TypeScript types (Form4, etc.)
 │   │   └── src/internal/         # Parsers, normalizers, shared utils
 │   ├── ui/                       # Shared Shadcn UI components
 │   └── typescript-config/        # Shared TypeScript configs
-├── archived/                     # Old code (Convex backend)
+├── archived/                     # Old code (Express backend, old web app)
 ├── docker-compose.yml            # PostgreSQL for local dev
 └── biome.json                    # Linting/formatting config
 ```
@@ -38,17 +41,18 @@ whatsfiled/
 
 ```bash
 # Development
-pnpm dev                    # Start all dev servers (frontend + backend)
+pnpm dev                    # Start dev server with local PostgreSQL
+pnpm dev:prod               # Start dev server with Supabase (production DB)
 pnpm build                  # Production build
 pnpm typecheck              # TypeScript checking
 pnpm lint                   # Biome linter
 pnpm format                 # Biome auto-format
 pnpm test                   # Run tests
 
-# Docker (PostgreSQL)
-pnpm docker:up              # Start database
-pnpm docker:down            # Stop database
-pnpm docker:reset           # Reset database (wipes data)
+# Docker (Local PostgreSQL)
+pnpm docker:up              # Start local database
+pnpm docker:down            # Stop local database
+pnpm docker:reset           # Reset local database (wipes data)
 
 # Database
 pnpm db:push                # Push schema to database
@@ -56,13 +60,7 @@ pnpm db:studio              # Open Drizzle Studio
 
 # Individual packages
 pnpm --filter @whatsfiled/web dev
-pnpm --filter @whatsfiled/backend dev
 pnpm --filter @whatsfiled/edgar-client test
-
-# Backend Scripts (see apps/backend/CLAUDE.md for details)
-pnpm --filter @whatsfiled/backend tsx src/scripts/backfill.ts --help     # SEC filing backfill
-pnpm --filter @whatsfiled/backend tsx src/scripts/check-data.ts          # Database summary
-pnpm --filter @whatsfiled/backend tsx src/scripts/cleanup-stuck.ts       # Reset stuck jobs
 ```
 
 ## Git Conventions
@@ -78,19 +76,33 @@ Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
 ## Key Patterns
 
 ### Environment Variables
-Backend uses zod validation in `apps/backend/src/env.ts`. Reads `.env` then `.env.local` (override).
 
-```typescript
-import { env } from "./env.js";
-// env.DATABASE_URL, env.PORT, env.NODE_ENV - all type-safe
+Environment files in `apps/web/`:
+
+| File | Database | Used by |
+|------|----------|---------|
+| `.env.local` | Local PostgreSQL | `pnpm dev` |
+| `.env.production.local` | Supabase | `pnpm dev:prod`, production builds |
+
+Required variable: `DATABASE_URL` - PostgreSQL connection string
+
+```bash
+# apps/web/.env.local (local development)
+DATABASE_URL=postgresql://user:password@localhost:5432/whatsfiled
+
+# apps/web/.env.production.local (production/Supabase)
+DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres
 ```
 
 ### tRPC Setup
-- Backend: `apps/backend/src/trpc/routers/index.ts` defines procedures
-- Frontend: `apps/web/src/lib/trpc.ts` creates typed client
+
+- Routers: `packages/trpc/src/routers/` defines procedures
+- API Handler: `apps/web/src/app/api/trpc/[trpc]/route.ts`
+- Client: `apps/web/src/lib/trpc.ts` creates typed React hooks
 - Uses superjson transformer for Date/etc serialization
 
 ### EdgarClient Usage
+
 ```typescript
 import { EdgarClient } from "@whatsfiled/edgar-client";
 
@@ -100,6 +112,7 @@ const doc = client.parseForm4(content);
 ```
 
 ### Form 4 Parsing
+
 - Extracts XML from SEC document wrappers (`<XML>` tags)
 - Supports schema versions: X0306, X0407, X0508
 - Normalizes across versions for consistent output
@@ -109,12 +122,13 @@ const doc = client.parseForm4(content);
 
 SEC Form 4 has two tables that we store in separate database tables:
 
-| SEC Form 4 | Database Table | Description |
-|------------|----------------|-------------|
-| Table I (Non-Derivative) | `transactions` | Direct changes to common stock ownership |
-| Table II (Derivative) | `derivative_transactions` | Changes to options, RSUs, warrants held |
+| SEC Form 4               | Database Table            | Description                              |
+| ------------------------ | ------------------------- | ---------------------------------------- |
+| Table I (Non-Derivative) | `transactions`            | Direct changes to common stock ownership |
+| Table II (Derivative)    | `derivative_transactions` | Changes to options, RSUs, warrants held  |
 
 **Transaction Codes:**
+
 - `P` = Open market purchase (buying stock)
 - `S` = Open market sale (selling stock)
 - `M` = Exercise/conversion of derivative (e.g., RSU vest, option exercise)
@@ -131,6 +145,7 @@ The company page (`/company/:cik`) shows only Table I transactions (common stock
 - **Awards & Exercises** (codes M, A, F, G, C): Compensation-related events like RSU vests, option exercises, tax withholding. Routine, low signal.
 
 We intentionally exclude Table II (derivative_transactions) from the company page because:
+
 1. When an RSU vests or option is exercised, it appears in BOTH tables (Table II shows derivative disposed, Table I shows stock received)
 2. Showing both creates confusing duplicate rows
 3. Users primarily care about common stock ownership changes
@@ -142,35 +157,41 @@ The filing page (`/filing/:accessionNumber`) shows both Table I and Table II wit
 
 ## Database
 
-PostgreSQL with Drizzle ORM. Schema in `apps/backend/src/db/schema.ts`.
+PostgreSQL with Drizzle ORM. Schema in `packages/db/src/schema.ts`.
+
+**Local development** uses Docker PostgreSQL. **Production** uses Supabase.
 
 ```bash
-# Local setup
-pnpm docker:up
-cp apps/backend/.env.example apps/backend/.env
-pnpm db:push
+# Local development setup
+pnpm docker:up                    # Start local PostgreSQL
+pnpm db:push                      # Push schema
+pnpm dev                          # Run app with local DB
+
+# Production database (Supabase)
+pnpm dev:prod                     # Run app with Supabase
 ```
 
 ## Ports
 
-- Frontend: http://localhost:3001
-- Backend: http://localhost:3000
+- Frontend: http://localhost:3000
 - PostgreSQL: localhost:5432
 
 ## Testing
 
 ### Unit Tests
+
 - edgar-client: Vitest with fixtures in `packages/edgar-client/test/`
 - Run: `pnpm --filter @whatsfiled/edgar-client test`
 
 ### E2E Testing (Local)
+
 When asked to test E2E locally, use the **chrome-devtools MCP server** to interact with the browser.
 
 > **Note**: The MCP server is typically already running (started by the developer). Just use the tools directly—don't try to start or kill the server.
 
 1. Ensure dev servers are running (`pnpm dev`)
 2. Use MCP tools to test:
-   - `mcp__chrome-devtools__navigate_page` - Navigate to http://localhost:3001
+   - `mcp__chrome-devtools__navigate_page` - Navigate to http://localhost:3000
    - `mcp__chrome-devtools__take_snapshot` - Get page content/structure
    - `mcp__chrome-devtools__take_screenshot` - Capture visual state
    - `mcp__chrome-devtools__click` / `mcp__chrome-devtools__fill` - Interact with elements
@@ -178,8 +199,9 @@ When asked to test E2E locally, use the **chrome-devtools MCP server** to intera
    - `mcp__chrome-devtools__list_network_requests` - Verify API calls
 
 Example E2E test flow:
+
 ```
-1. navigate_page to http://localhost:3001
+1. navigate_page to http://localhost:3000
 2. wait_for expected text/element
 3. take_snapshot to verify page structure
 4. list_console_messages to check for errors
@@ -204,5 +226,6 @@ Instead, manually create components using **Base UI** primitives (preferred) or 
 3. Use the shadcn component source as reference for styling: https://ui.shadcn.com/docs/components/<component>
 
 Example components already set up:
+
 - `progress.tsx` - Uses `@base-ui/react/progress`
 - `tooltip.tsx` - Uses `@base-ui/react/tooltip`

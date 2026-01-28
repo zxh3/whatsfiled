@@ -1,3 +1,5 @@
+"use client";
+
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import { useEffect, useRef, useState } from "react";
 import { TransactionTable } from "@/components/transactions/transaction-table";

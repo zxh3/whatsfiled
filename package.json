@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "build:prod": "turbo build && cp -r apps/web/dist apps/backend/public",
     "lint": "biome check .",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
@@ -14,9 +13,8 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v && docker compose up -d",
-    "db:push": "pnpm --filter @whatsfiled/backend db:push",
-    "db:studio": "pnpm --filter @whatsfiled/backend db:studio",
-    "script:test-form4": "tsx scripts/testForm4Parser.ts"
+    "db:push": "pnpm --filter @whatsfiled/db db:push",
+    "db:studio": "pnpm --filter @whatsfiled/db db:studio"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.13",

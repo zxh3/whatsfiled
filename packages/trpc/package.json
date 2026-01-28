@@ -1,0 +1,27 @@
+{
+  "name": "@whatsfiled/trpc",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@trpc/server": "^11.8.1",
+    "@whatsfiled/db": "workspace:*",
+    "drizzle-orm": "^0.38.0",
+    "superjson": "^2.2.6",
+    "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@whatsfiled/typescript-config": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

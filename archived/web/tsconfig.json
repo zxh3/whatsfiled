@@ -1,0 +1,13 @@
+{
+  "extends": "@whatsfiled/typescript-config/base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@whatsfiled/ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../backend/src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

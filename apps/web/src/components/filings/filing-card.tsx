@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { format } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
@@ -99,7 +100,7 @@ export function FilingCard({ filing }: FilingCardProps) {
         <div className="min-w-0 flex-1">
           {/* Company */}
           <div className="flex items-center gap-2">
-            <a
+            <Link
               href={`/company/${company.cik}`}
               className="font-semibold text-foreground hover:underline"
             >
@@ -108,7 +109,7 @@ export function FilingCard({ filing }: FilingCardProps) {
               ) : (
                 company.name
               )}
-            </a>
+            </Link>
             {company.ticker && (
               <span className="text-sm text-muted-foreground truncate">
                 {company.name}
@@ -125,12 +126,12 @@ export function FilingCard({ filing }: FilingCardProps) {
           {primaryOwner && (
             <div className="mt-1 text-sm text-muted-foreground">
               {primaryOwner.cik ? (
-                <a
+                <Link
                   href={`/insider/${primaryOwner.cik}`}
                   className="font-medium text-foreground/80 hover:underline"
                 >
                   {primaryOwner.name}
-                </a>
+                </Link>
               ) : (
                 <span className="font-medium text-foreground/80">
                   {primaryOwner.name}
@@ -272,12 +273,12 @@ export function FilingCard({ filing }: FilingCardProps) {
             )}
           </span>
 
-          <a
+          <Link
             href={`/filing/${filing.accessionNumber}`}
             className="text-xs text-muted-foreground hover:text-foreground underline"
           >
             Filing details
-          </a>
+          </Link>
 
           {/* SEC Filing Link */}
           {filing.documentUrl && (

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 import { cn } from "@whatsfiled/ui/lib/utils";
 import { TransactionBadge } from "./transaction-badge";
 
@@ -210,8 +210,7 @@ function TransactionTable({
               >
                 <td className="whitespace-nowrap px-2 py-1.5">
                   <Link
-                    to="/filing/$accessionNumber"
-                    params={{ accessionNumber: txn.filing.accessionNumber }}
+                    href={`/filing/${txn.filing.accessionNumber}`}
                     className="text-muted-foreground hover:text-foreground hover:underline"
                   >
                     {formatDate(txn.transactionDate)}
@@ -220,8 +219,7 @@ function TransactionTable({
                 {showCompany && txn.company && (
                   <td className="whitespace-nowrap px-2 py-1.5">
                     <Link
-                      to="/company/$cik"
-                      params={{ cik: txn.company.cik }}
+                      href={`/company/${txn.company.cik}`}
                       className="font-medium text-foreground hover:underline"
                     >
                       {txn.company.ticker || txn.company.name}
@@ -234,8 +232,7 @@ function TransactionTable({
                 >
                   {txn.insider.cik ? (
                     <Link
-                      to="/insider/$cik"
-                      params={{ cik: txn.insider.cik }}
+                      href={`/insider/${txn.insider.cik}`}
                       className="font-medium text-foreground hover:underline"
                     >
                       {truncate(txn.insider.name, 18)}

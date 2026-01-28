@@ -1,12 +1,15 @@
-import { useNavigate } from "@tanstack/react-router";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { trpc } from "@/lib/trpc";
+import Link from "next/link";
 
 export function SiteHeader() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -21,7 +24,7 @@ export function SiteHeader() {
     event.preventDefault();
     const trimmed = query.trim();
     if (!trimmed) return;
-    navigate({ to: "/search", search: { q: trimmed } });
+    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     setIsFocused(false);
   };
 
@@ -74,24 +77,19 @@ export function SiteHeader() {
       const selected = items[selectedIndex];
       if (selected) {
         event.preventDefault();
-        navigate({ to: selected.href });
+        router.push(selected.href);
         setIsFocused(false);
       }
     }
   };
 
-  useEffect(() => {
-    if (!isFocused) return;
-    if (!query.trim()) return;
-  }, [isFocused, query]);
-
   return (
     <header className="border-b border-border">
       <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <a href="/" className="text-2xl font-bold hover:opacity-80">
+          <Link href="/" className="text-2xl font-bold hover:opacity-80">
             WhatsFiled
-          </a>
+          </Link>
           <p className="text-sm text-muted-foreground mt-1">
             Recent insider trading activity
           </p>
@@ -142,7 +140,7 @@ export function SiteHeader() {
                               );
                               const isSelected = itemIndex === selectedIndex;
                               return (
-                                <a
+                                <Link
                                   key={`${company.id}:${company.ticker ?? company.cik}`}
                                   href={`/company/${company.cik}`}
                                   className={`block rounded-md px-2 py-1 hover:bg-muted/40 ${
@@ -167,7 +165,7 @@ export function SiteHeader() {
                                       {company.name}
                                     </span>
                                   )}
-                                </a>
+                                </Link>
                               );
                             })}
                           </div>
@@ -186,7 +184,7 @@ export function SiteHeader() {
                               );
                               const isSelected = itemIndex === selectedIndex;
                               return (
-                                <a
+                                <Link
                                   key={`${insider.id}:${insider.cik ?? "unknown"}`}
                                   href={`/insider/${insider.cik}`}
                                   className={`block rounded-md px-2 py-1 hover:bg-muted/40 ${
@@ -205,7 +203,7 @@ export function SiteHeader() {
                                       CIK {insider.cik}
                                     </span>
                                   )}
-                                </a>
+                                </Link>
                               );
                             })}
                           </div>
@@ -218,13 +216,13 @@ export function SiteHeader() {
             </AnimatePresence>
           </form>
           <div className="text-xs text-muted-foreground flex items-center gap-3">
-            <a href="/resources/sec-filings" className="hover:text-foreground">
+            <Link href="/resources/sec-filings" className="hover:text-foreground">
               SEC Filings Reference
-            </a>
+            </Link>
             <span className="text-border">·</span>
-            <a href="/sync" className="hover:text-foreground">
+            <Link href="/sync" className="hover:text-foreground">
               Sync status
-            </a>
+            </Link>
             <span className="text-border">·</span>
             <button
               type="button"
@@ -232,7 +230,7 @@ export function SiteHeader() {
                 setTheme(resolvedTheme === "dark" ? "light" : "dark")
               }
               className="hover:text-foreground p-1 -m-1"
-              aria-label={`Currently ${resolvedTheme} mode, click to switch`}
+              aria-label="Toggle theme"
             >
               {mounted &&
                 (resolvedTheme === "dark" ? (
