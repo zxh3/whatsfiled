@@ -5,9 +5,11 @@ import superjson from "superjson";
 import { trpc } from "@/lib/trpc";
 
 function getBaseUrl() {
-  if (typeof window !== "undefined") {
-    return "http://localhost:3000";
+  // In production, frontend is served from the same origin as the API
+  if (import.meta.env.PROD) {
+    return "";
   }
+  // In development, API runs on port 3000
   return "http://localhost:3000";
 }
 

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "build:prod": "turbo build && cp -r apps/web/dist apps/backend/public",
     "lint": "biome check .",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
