@@ -113,23 +113,26 @@ async function upsertInsiders(
   const insiderIds: string[] = [];
 
   for (const owner of doc.reportingOwners) {
-    let insiderId: string;
+    let insiderId: string | null = null;
 
     if (owner.id.cik) {
-      // Best case: single query upsert using ON CONFLICT DO UPDATE
-      const [result] = await tx
-        .insert(insiders)
-        .values({
-          cik: owner.id.cik,
-          name: owner.id.name,
-          isEntity: false,
-        })
-        .onConflictDoUpdate({
-          target: insiders.cik,
-          set: { name: owner.id.name, updatedAt: new Date() },
-        })
-        .returning({ id: insiders.id });
-      insiderId = result.id;
+      // Find by CIK (globally unique identifier)
+      // Note: Can't use ON CONFLICT because insiders.cik has a PARTIAL unique index (WHERE cik IS NOT NULL)
+      // PostgreSQL doesn't match partial indexes with ON CONFLICT (column) syntax
+      const existing = await tx
+        .select({ id: insiders.id })
+        .from(insiders)
+        .where(eq(insiders.cik, owner.id.cik))
+        .limit(1);
+
+      if (existing.length > 0) {
+        insiderId = existing[0].id;
+        // Update name if changed
+        await tx
+          .update(insiders)
+          .set({ name: owner.id.name, updatedAt: new Date() })
+          .where(eq(insiders.id, insiderId));
+      }
     } else {
       // Fallback for insiders without CIK: find by name + existing role at this company
       // This prevents creating duplicates when re-processing filings
@@ -147,18 +150,20 @@ async function upsertInsiders(
 
       if (existingByName.length > 0) {
         insiderId = existingByName[0].id;
-      } else {
-        // Create new insider without CIK
-        const [inserted] = await tx
-          .insert(insiders)
-          .values({
-            cik: null,
-            name: owner.id.name,
-            isEntity: false,
-          })
-          .returning({ id: insiders.id });
-        insiderId = inserted.id;
       }
+    }
+
+    // If no existing insider found, create new one
+    if (!insiderId) {
+      const [inserted] = await tx
+        .insert(insiders)
+        .values({
+          cik: owner.id.cik || null,
+          name: owner.id.name,
+          isEntity: false,
+        })
+        .returning({ id: insiders.id });
+      insiderId = inserted.id;
     }
 
     insiderIds.push(insiderId);
