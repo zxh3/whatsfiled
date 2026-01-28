@@ -1,6 +1,6 @@
 import { logger, task } from "@trigger.dev/sdk/v3";
 import { dailyIndexFiles, filingQueue, getDb } from "@whatsfiled/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { processFilingTask } from "./filing-processing.js";
 import { processIndexFileTask } from "./index-processing.js";
 
@@ -9,6 +9,10 @@ export interface ProcessPendingIndexesPayload {
   limit?: number;
   /** Whether to trigger filing processing after index processing (default: true) */
   triggerFilingProcessing?: boolean;
+  /** Start date filter (YYYY-MM-DD format, optional) */
+  startDate?: string;
+  /** End date filter (YYYY-MM-DD format, optional) */
+  endDate?: string;
 }
 
 export interface ProcessPendingIndexesResult {
@@ -29,16 +33,30 @@ export const processPendingIndexesTask = task({
   run: async (
     payload: ProcessPendingIndexesPayload,
   ): Promise<ProcessPendingIndexesResult> => {
-    const { limit, triggerFilingProcessing = true } = payload;
+    const {
+      limit,
+      triggerFilingProcessing = true,
+      startDate,
+      endDate,
+    } = payload;
     const db = getDb();
 
-    logger.info("Finding pending index files", { limit });
+    logger.info("Finding pending index files", { limit, startDate, endDate });
+
+    // Build where conditions
+    const conditions = [eq(dailyIndexFiles.status, "pending")];
+    if (startDate) {
+      conditions.push(gte(dailyIndexFiles.indexDate, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(dailyIndexFiles.indexDate, endDate));
+    }
 
     // Query for pending index files
     let query = db
       .select({ id: dailyIndexFiles.id })
       .from(dailyIndexFiles)
-      .where(eq(dailyIndexFiles.status, "pending"))
+      .where(and(...conditions))
       .orderBy(dailyIndexFiles.indexDate);
 
     if (limit) {
@@ -71,6 +89,10 @@ export interface ProcessPendingFilingsPayload {
   limit?: number;
   /** Filter by form type (optional) */
   formType?: string;
+  /** Start date filter (YYYY-MM-DD format, optional) - converted to YYYYMMDD for dateFiled */
+  startDate?: string;
+  /** End date filter (YYYY-MM-DD format, optional) - converted to YYYYMMDD for dateFiled */
+  endDate?: string;
 }
 
 export interface ProcessPendingFilingsResult {
@@ -91,15 +113,30 @@ export const processPendingFilingsTask = task({
   run: async (
     payload: ProcessPendingFilingsPayload,
   ): Promise<ProcessPendingFilingsResult> => {
-    const { limit, formType } = payload;
+    const { limit, formType, startDate, endDate } = payload;
     const db = getDb();
 
-    logger.info("Finding pending filings", { limit, formType });
+    logger.info("Finding pending filings", {
+      limit,
+      formType,
+      startDate,
+      endDate,
+    });
+
+    // Convert YYYY-MM-DD to YYYYMMDD for dateFiled comparison
+    const dateFiledStart = startDate?.replace(/-/g, "");
+    const dateFiledEnd = endDate?.replace(/-/g, "");
 
     // Build where clause
     const conditions = [eq(filingQueue.status, "pending")];
     if (formType) {
       conditions.push(eq(filingQueue.formType, formType));
+    }
+    if (dateFiledStart) {
+      conditions.push(gte(filingQueue.dateFiled, dateFiledStart));
+    }
+    if (dateFiledEnd) {
+      conditions.push(lte(filingQueue.dateFiled, dateFiledEnd));
     }
 
     // Query for pending filings

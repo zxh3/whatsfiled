@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
     "@whatsfiled/ui",
     "@whatsfiled/edgar-client",
   ],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

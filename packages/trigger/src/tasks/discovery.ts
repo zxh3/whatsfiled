@@ -7,8 +7,10 @@ const SEC_USER_AGENT =
   process.env.SEC_USER_AGENT ?? "WhatsFiled contact@whatsfiled.com";
 
 export interface DiscoverIndexFilesPayload {
-  /** Year to discover index files for */
-  year: number;
+  /** Start date for discovery (YYYY-MM-DD format) */
+  startDate: string;
+  /** End date for discovery (YYYY-MM-DD format) */
+  endDate: string;
   /** Form types to filter for (e.g., ["4", "4/A"]) */
   formTypes: string[];
   /** Limit number of index files to process (for testing) */
@@ -29,12 +31,13 @@ export interface DiscoverIndexFilesResult {
 }
 
 /**
- * Discover daily index files for a given year.
+ * Discover daily index files for a given date range.
  *
  * This task:
- * 1. Fetches the list of daily index file names from SEC EDGAR
- * 2. Inserts new index file records into the database
- * 3. Triggers processIndexFileTask for each new pending index file
+ * 1. Fetches the list of daily index file names from SEC EDGAR for each year in the range
+ * 2. Filters files to only include those within the date range
+ * 3. Inserts new index file records into the database
+ * 4. Triggers processIndexFileTask for each new pending index file
  */
 export const discoverIndexFilesTask = task({
   id: "discover-index-files",
@@ -42,7 +45,8 @@ export const discoverIndexFilesTask = task({
     payload: DiscoverIndexFilesPayload,
   ): Promise<DiscoverIndexFilesResult> => {
     const {
-      year,
+      startDate,
+      endDate,
       formTypes,
       limitIndexFiles,
       limitFilingsPerIndex,
@@ -51,11 +55,30 @@ export const discoverIndexFilesTask = task({
     const db = getDb();
     const edgarClient = new EdgarClient({ userAgent: SEC_USER_AGENT });
 
-    logger.info("Discovering index files", { year, formTypes });
+    logger.info("Discovering index files", { startDate, endDate, formTypes });
 
-    // Get list of daily index file names for the year
-    const fileNames = await edgarClient.getDailyIndexFileNames(year);
-    logger.info(`Found ${fileNames.length} index files for ${year}`);
+    // Determine which years we need to fetch
+    const startYear = Number.parseInt(startDate.substring(0, 4), 10);
+    const endYear = Number.parseInt(endDate.substring(0, 4), 10);
+
+    // Fetch index files for each year in range
+    const allFileNames: string[] = [];
+    for (let year = startYear; year <= endYear; year++) {
+      const fileNames = await edgarClient.getDailyIndexFileNames(year);
+      allFileNames.push(...fileNames);
+    }
+
+    // Filter files to only include those within the date range
+    const fileNames = allFileNames.filter((fileName) => {
+      const dateMatch = fileName.match(/form\.(\d{4})(\d{2})(\d{2})\.idx/);
+      if (!dateMatch) return false;
+      const fileDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+      return fileDate >= startDate && fileDate <= endDate;
+    });
+
+    logger.info(
+      `Found ${fileNames.length} index files for ${startDate} to ${endDate}`,
+    );
 
     let inserted = 0;
     const insertedIds: string[] = [];

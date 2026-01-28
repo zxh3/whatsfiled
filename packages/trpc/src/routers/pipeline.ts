@@ -6,7 +6,7 @@ import {
 } from "@whatsfiled/db/schema";
 import { and, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { publicProcedure, router } from "../init.js";
+import { adminProcedure, router } from "../init.js";
 
 // Configure Trigger.dev SDK (only if secret key is available)
 if (process.env.TRIGGER_SECRET_KEY) {
@@ -19,7 +19,7 @@ export const pipelineRouter = router({
   /**
    * Get overall pipeline statistics.
    */
-  getStats: publicProcedure.query(async ({ ctx }) => {
+  getStats: adminProcedure.query(async ({ ctx }) => {
     const { db } = ctx;
     const now = new Date();
     const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
@@ -149,7 +149,7 @@ export const pipelineRouter = router({
    * Get daily index coverage for a year.
    * Shows which dates have data and actual filing processing progress.
    */
-  getIndexCoverage: publicProcedure
+  getIndexCoverage: adminProcedure
     .input(
       z.object({
         year: z.number().min(2000).max(2100),
@@ -280,7 +280,7 @@ export const pipelineRouter = router({
   /**
    * Get filing queue entries for a specific date.
    */
-  getQueueByDate: publicProcedure
+  getQueueByDate: adminProcedure
     .input(
       z.object({
         date: z.string().regex(/^\d{8}$/), // YYYYMMDD format
@@ -341,7 +341,7 @@ export const pipelineRouter = router({
   /**
    * Get recent failed filings for debugging.
    */
-  getFailedFilings: publicProcedure
+  getFailedFilings: adminProcedure
     .input(
       z.object({
         limit: z.number().min(1).max(100).default(50),
@@ -374,7 +374,7 @@ export const pipelineRouter = router({
   /**
    * Get gap detection - find missing dates in daily index coverage.
    */
-  getGaps: publicProcedure
+  getGaps: adminProcedure
     .input(
       z.object({
         startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -425,7 +425,7 @@ export const pipelineRouter = router({
   /**
    * Get recent Trigger.dev runs grouped by task for admin visibility.
    */
-  getTriggerRunsByTask: publicProcedure
+  getTriggerRunsByTask: adminProcedure
     .input(
       z
         .object({
@@ -518,12 +518,13 @@ export const pipelineRouter = router({
     }),
 
   /**
-   * Trigger a backfill task for a specific year.
+   * Trigger a backfill task for a specific date range.
    */
-  triggerBackfill: publicProcedure
+  triggerBackfill: adminProcedure
     .input(
       z.object({
-        year: z.number().min(2000).max(2100),
+        startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         formTypes: z.array(z.string()).default(["4", "4/A"]),
         limitIndexFiles: z.number().min(1).max(500).optional(),
         limitFilingsPerIndex: z.number().min(1).max(10000).optional(),
@@ -536,7 +537,8 @@ export const pipelineRouter = router({
 
       try {
         const handle = await tasks.trigger("backfill", {
-          year: input.year,
+          startDate: input.startDate,
+          endDate: input.endDate,
           formTypes: input.formTypes,
           limitIndexFiles: input.limitIndexFiles,
           limitFilingsPerIndex: input.limitFilingsPerIndex,
@@ -560,11 +562,19 @@ export const pipelineRouter = router({
   /**
    * Trigger processing of pending index files.
    */
-  triggerProcessIndexes: publicProcedure
+  triggerProcessIndexes: adminProcedure
     .input(
       z.object({
         limit: z.number().min(1).max(100).optional(),
         triggerFilingProcessing: z.boolean().default(true),
+        startDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        endDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -576,6 +586,8 @@ export const pipelineRouter = router({
         const handle = await tasks.trigger("process-pending-indexes", {
           limit: input.limit,
           triggerFilingProcessing: input.triggerFilingProcessing,
+          startDate: input.startDate,
+          endDate: input.endDate,
         });
 
         return {
@@ -596,11 +608,19 @@ export const pipelineRouter = router({
   /**
    * Trigger processing of pending filings.
    */
-  triggerProcessFilings: publicProcedure
+  triggerProcessFilings: adminProcedure
     .input(
       z.object({
         limit: z.number().min(1).max(1000).optional(),
         formType: z.string().optional(),
+        startDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        endDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -612,6 +632,8 @@ export const pipelineRouter = router({
         const handle = await tasks.trigger("process-pending-filings", {
           limit: input.limit,
           formType: input.formType,
+          startDate: input.startDate,
+          endDate: input.endDate,
         });
 
         return {

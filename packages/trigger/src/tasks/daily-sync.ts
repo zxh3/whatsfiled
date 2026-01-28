@@ -15,19 +15,22 @@ export const dailySyncSchedule = schedules.task({
   // Run at 6 AM UTC daily
   cron: "0 6 * * *",
   run: async () => {
-    const now = new Date();
-    const year = now.getFullYear();
+    // Get yesterday's date (since we're running after midnight, yesterday's filings are ready)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().split("T")[0];
 
-    logger.info("Starting daily sync", { year });
+    logger.info("Starting daily sync", { date: dateStr });
 
-    // Trigger discovery for Form 4 and Form 4/A filings
+    // Trigger discovery for Form 4 and Form 4/A filings for yesterday
     const result = await discoverIndexFilesTask.triggerAndWait({
-      year,
+      startDate: dateStr,
+      endDate: dateStr,
       formTypes: ["4", "4/A"],
     });
 
     logger.info("Daily sync completed", {
-      year,
+      date: dateStr,
       discovered: result.ok ? result.output.discovered : 0,
       inserted: result.ok ? result.output.inserted : 0,
       triggered: result.ok ? result.output.triggered : 0,
