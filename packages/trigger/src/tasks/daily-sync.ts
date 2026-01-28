@@ -15,22 +15,30 @@ export const dailySyncSchedule = schedules.task({
   // Run at 6 AM UTC daily
   cron: "0 6 * * *",
   run: async () => {
-    // Get yesterday's date (since we're running after midnight, yesterday's filings are ready)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const dateStr = yesterday.toISOString().split("T")[0];
+    // Add buffer: start 3 days ago, end tomorrow
+    // This catches any missed filings from weekends/holidays and late postings
+    const today = new Date();
 
-    logger.info("Starting daily sync", { date: dateStr });
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 3);
+    const startDateStr = startDate.toISOString().split("T")[0];
 
-    // Trigger discovery for Form 4 and Form 4/A filings for yesterday
+    const endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + 1);
+    const endDateStr = endDate.toISOString().split("T")[0];
+
+    logger.info("Starting daily sync", { startDate: startDateStr, endDate: endDateStr });
+
+    // Trigger discovery for Form 4 and Form 4/A filings
     const result = await discoverIndexFilesTask.triggerAndWait({
-      startDate: dateStr,
-      endDate: dateStr,
+      startDate: startDateStr,
+      endDate: endDateStr,
       formTypes: ["4", "4/A"],
     });
 
     logger.info("Daily sync completed", {
-      date: dateStr,
+      startDate: startDateStr,
+      endDate: endDateStr,
       discovered: result.ok ? result.output.discovered : 0,
       inserted: result.ok ? result.output.inserted : 0,
       triggered: result.ok ? result.output.triggered : 0,
