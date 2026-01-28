@@ -674,6 +674,9 @@ async function processFilingsForDate(
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
 
+        // Log the error
+        console.error(`\n  [ERROR] ${locked.fileName}: ${message}`);
+
         // Mark as failed after 3 retries
         const newRetryCount = (locked.retryCount ?? 0) + 1;
         const newStatus = newRetryCount >= 3 ? "failed" : "pending";
