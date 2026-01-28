@@ -1,12 +1,7 @@
-import { type Database, filings } from "@whatsfiled/db";
+import type { Database } from "@whatsfiled/db";
 import { EdgarClient } from "@whatsfiled/edgar-client";
-import { eq } from "drizzle-orm";
 import { mapForm4ToDb } from "../mappers/form4.js";
-import {
-  extractAccessionNumber,
-  parseAcceptanceDateTime,
-  parseFilingDate,
-} from "../utils/index.js";
+import { parseAcceptanceDateTime, parseFilingDate } from "../utils/index.js";
 import type {
   FilingProcessor,
   ProcessorContext,
@@ -18,6 +13,9 @@ import type {
  *
  * Handles parsing of Form 4 documents using EdgarClient and
  * mapping the parsed data to the database.
+ *
+ * Idempotent: duplicate filings are handled atomically via onConflictDoNothing
+ * in the database layer, preventing race conditions between concurrent tasks.
  */
 export class Form4Processor implements FilingProcessor {
   readonly formTypes = ["4", "4/A"] as const;
@@ -32,22 +30,6 @@ export class Form4Processor implements FilingProcessor {
     const { content, fileName, indexMetadata } = ctx;
 
     try {
-      // Check if filing already exists (by accession number)
-      const accessionNumber = extractAccessionNumber(fileName);
-      const existingFiling = await db
-        .select({ id: filings.id })
-        .from(filings)
-        .where(eq(filings.accessionNumber, accessionNumber))
-        .limit(1);
-
-      if (existingFiling.length > 0) {
-        return {
-          success: true,
-          skipped: true,
-          filingId: existingFiling[0].id,
-        };
-      }
-
       // Parse the Form 4
       const doc = this.edgarClient.parseForm4(content, { fileName });
 
@@ -57,6 +39,7 @@ export class Form4Processor implements FilingProcessor {
         acceptanceDateTime ?? parseFilingDate(indexMetadata.dateFiled);
 
       // Map to database within a transaction
+      // Idempotent: if filing already exists, returns skipped=true
       const result = await db.transaction(async (tx) => {
         return await mapForm4ToDb(tx as unknown as Database, doc, {
           rawContent: content,
@@ -68,6 +51,7 @@ export class Form4Processor implements FilingProcessor {
       return {
         success: true,
         filingId: result.filingId,
+        skipped: result.skipped,
       };
     } catch (error) {
       return {

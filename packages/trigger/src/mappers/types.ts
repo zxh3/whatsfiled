@@ -20,4 +20,6 @@ export interface Form4ToDbResult {
   companyId: string;
   /** The database IDs of the insiders (reporting owners) */
   insiderIds: string[];
+  /** Whether the filing already existed (skipped creating related records) */
+  skipped?: boolean;
 }

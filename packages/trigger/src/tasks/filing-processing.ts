@@ -1,9 +1,12 @@
 import { logger, task } from "@trigger.dev/sdk/v3";
 import { filingQueue, getDb } from "@whatsfiled/db";
 import { EdgarClient } from "@whatsfiled/edgar-client";
-import { eq } from "drizzle-orm";
+import { and, eq, or, isNull, lt } from "drizzle-orm";
 import { getProcessor, hasProcessor } from "../processors/index.js";
 import { secRateLimitedQueue } from "../queues/sec-rate-limited.js";
+
+// Lock duration in milliseconds (5 minutes should be plenty for processing)
+const LOCK_DURATION_MS = 5 * 60 * 1000;
 
 const SEC_USER_AGENT =
   process.env.SEC_USER_AGENT ?? "WhatsFiled contact@whatsfiled.com";
@@ -28,9 +31,10 @@ export interface ProcessFilingResult {
  * Process a single filing from the queue.
  *
  * This task:
- * 1. Fetches the filing content from SEC EDGAR
- * 2. Dispatches to the appropriate processor based on form type
- * 3. Updates the queue entry status
+ * 1. Acquires a distributed lock on the queue entry (prevents concurrent processing)
+ * 2. Fetches the filing content from SEC EDGAR
+ * 3. Dispatches to the appropriate processor based on form type
+ * 4. Updates the queue entry status and releases the lock
  */
 export const processFilingTask = task({
   id: "process-filing",
@@ -42,41 +46,90 @@ export const processFilingTask = task({
     const { queueId } = payload;
     const db = getDb();
     const edgarClient = new EdgarClient({ userAgent: SEC_USER_AGENT });
+    const now = new Date();
+    const lockUntil = new Date(now.getTime() + LOCK_DURATION_MS);
 
-    // Get the queue entry
-    const [queueEntry] = await db
-      .select()
-      .from(filingQueue)
-      .where(eq(filingQueue.id, queueId))
-      .limit(1);
+    // Atomically try to acquire lock and mark as processing
+    // Only succeeds if: pending status AND (no lock OR lock expired)
+    const [lockedEntry] = await db
+      .update(filingQueue)
+      .set({
+        status: "processing",
+        lockedUntil: lockUntil,
+      })
+      .where(
+        and(
+          eq(filingQueue.id, queueId),
+          eq(filingQueue.status, "pending"),
+          or(isNull(filingQueue.lockedUntil), lt(filingQueue.lockedUntil, now)),
+        ),
+      )
+      .returning();
 
-    if (!queueEntry) {
-      throw new Error(`Queue entry not found: ${queueId}`);
-    }
+    // If we couldn't acquire the lock, check why
+    if (!lockedEntry) {
+      const [queueEntry] = await db
+        .select()
+        .from(filingQueue)
+        .where(eq(filingQueue.id, queueId))
+        .limit(1);
 
-    // Skip if already processed
-    if (queueEntry.status === "completed" || queueEntry.status === "skipped") {
-      logger.info("Filing already processed, skipping", {
-        queueId,
-        status: queueEntry.status,
-      });
-      return { success: true, skipped: true };
+      if (!queueEntry) {
+        throw new Error(`Queue entry not found: ${queueId}`);
+      }
+
+      // Already processed - success
+      if (
+        queueEntry.status === "completed" ||
+        queueEntry.status === "skipped"
+      ) {
+        logger.info("Filing already processed, skipping", {
+          queueId,
+          status: queueEntry.status,
+        });
+        return { success: true, skipped: true };
+      }
+
+      // Being processed by another worker (lock not expired)
+      if (
+        queueEntry.status === "processing" &&
+        queueEntry.lockedUntil &&
+        queueEntry.lockedUntil > now
+      ) {
+        logger.info("Filing is locked by another worker, skipping", {
+          queueId,
+          lockedUntil: queueEntry.lockedUntil,
+        });
+        return { success: true, skipped: true };
+      }
+
+      // Failed status - don't retry here
+      if (queueEntry.status === "failed") {
+        logger.info("Filing is in failed status, skipping", { queueId });
+        return { success: true, skipped: true };
+      }
+
+      // Unexpected state - throw to trigger retry
+      throw new Error(
+        `Could not acquire lock for queue entry: ${queueId} (status: ${queueEntry.status})`,
+      );
     }
 
     logger.info("Processing filing", {
       queueId,
-      fileName: queueEntry.fileName,
-      formType: queueEntry.formType,
+      fileName: lockedEntry.fileName,
+      formType: lockedEntry.formType,
     });
 
     // Check if we have a processor for this form type
-    if (!hasProcessor(queueEntry.formType)) {
-      const error = `No processor registered for form type: ${queueEntry.formType}`;
+    if (!hasProcessor(lockedEntry.formType)) {
+      const error = `No processor registered for form type: ${lockedEntry.formType}`;
       logger.error(error);
       await db
         .update(filingQueue)
         .set({
           status: "failed",
+          lockedUntil: null,
           lastError: error,
           lastErrorAt: new Date(),
         })
@@ -84,45 +137,40 @@ export const processFilingTask = task({
       return { success: false, error };
     }
 
-    // Mark as processing
-    await db
-      .update(filingQueue)
-      .set({ status: "processing" })
-      .where(eq(filingQueue.id, queueId));
-
     try {
       // Fetch the filing content
-      const content = await edgarClient.fetchFiling(queueEntry.fileName);
+      const content = await edgarClient.fetchFiling(lockedEntry.fileName);
 
       // Get the processor and process the filing
-      const processor = getProcessor(queueEntry.formType);
+      const processor = getProcessor(lockedEntry.formType);
       if (!processor) {
         throw new Error(
-          `Processor disappeared for form type: ${queueEntry.formType}`,
+          `Processor disappeared for form type: ${lockedEntry.formType}`,
         );
       }
 
       const result = await processor.process(
         {
           content,
-          fileName: queueEntry.fileName,
+          fileName: lockedEntry.fileName,
           indexMetadata: {
-            companyName: queueEntry.companyName,
-            cik: queueEntry.cik,
-            dateFiled: queueEntry.dateFiled,
-            formType: queueEntry.formType,
+            companyName: lockedEntry.companyName,
+            cik: lockedEntry.cik,
+            dateFiled: lockedEntry.dateFiled,
+            formType: lockedEntry.formType,
           },
         },
         db,
       );
 
       if (result.success) {
-        // Mark as completed or skipped
+        // Mark as completed or skipped, release lock
         const status = result.skipped ? "skipped" : "completed";
         await db
           .update(filingQueue)
           .set({
             status,
+            lockedUntil: null,
             processedAt: new Date(),
             lastError: null,
             lastErrorAt: null,
@@ -141,12 +189,13 @@ export const processFilingTask = task({
           skipped: result.skipped,
         };
       } else {
-        // Processor returned failure
+        // Processor returned failure - release lock, set to pending for retry
         await db
           .update(filingQueue)
           .set({
-            status: "pending", // Will be retried by Trigger.dev
-            retryCount: queueEntry.retryCount + 1,
+            status: "pending",
+            lockedUntil: null,
+            retryCount: lockedEntry.retryCount + 1,
             lastError: result.error,
             lastErrorAt: new Date(),
           })
@@ -162,12 +211,13 @@ export const processFilingTask = task({
         error: message,
       });
 
-      // Update queue entry with error (let Trigger.dev handle retry)
+      // Release lock and set to pending for retry
       await db
         .update(filingQueue)
         .set({
           status: "pending",
-          retryCount: queueEntry.retryCount + 1,
+          lockedUntil: null,
+          retryCount: lockedEntry.retryCount + 1,
           lastError: message,
           lastErrorAt: new Date(),
         })

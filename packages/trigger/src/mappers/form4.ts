@@ -23,6 +23,7 @@ import type { Form4ToDbOptions, Form4ToDbResult } from "./types.js";
  * Creates filing, filing_owners, transactions, holdings, derivatives, and footnotes.
  *
  * All operations are performed within the provided transaction.
+ * Idempotent: if the filing already exists, returns early with skipped=true.
  */
 export async function mapForm4ToDb(
   tx: Database,
@@ -31,18 +32,24 @@ export async function mapForm4ToDb(
 ): Promise<Form4ToDbResult> {
   const { rawContent, documentUrl, filedAt } = options;
 
-  // 1. Upsert company (issuer)
+  // 1. Upsert company (issuer) - always safe to run
   const companyId = await upsertCompany(tx, doc);
 
-  // 2. Upsert insiders (reporting owners)
+  // 2. Upsert insiders (reporting owners) - always safe to run
   const insiderIds = await upsertInsiders(tx, doc, companyId);
 
-  // 3. Create filing
-  const filingId = await createFiling(tx, doc, companyId, {
+  // 3. Create filing (atomic with onConflictDoNothing)
+  const { filingId, alreadyExists } = await createFiling(tx, doc, companyId, {
     rawContent,
     documentUrl,
     filedAt,
   });
+
+  // If filing already exists, skip creating related records
+  // (they were already created in the previous run)
+  if (alreadyExists) {
+    return { filingId, companyId, insiderIds, skipped: true };
+  }
 
   // 4. Create filing owners (link filing to insiders)
   await createFilingOwners(tx, filingId, doc, insiderIds);
@@ -132,10 +139,10 @@ async function upsertInsiders(
   const insiderIds: string[] = [];
 
   for (const owner of doc.reportingOwners) {
-    // Try to find existing insider by CIK (if provided)
     let insiderId: string | null = null;
 
     if (owner.id.cik) {
+      // Best case: find by CIK (globally unique identifier)
       const existing = await tx
         .select({ id: insiders.id })
         .from(insiders)
@@ -149,6 +156,24 @@ async function upsertInsiders(
           .update(insiders)
           .set({ name: owner.id.name, updatedAt: new Date() })
           .where(eq(insiders.id, insiderId));
+      }
+    } else {
+      // Fallback for insiders without CIK: find by name + existing role at this company
+      // This prevents creating duplicates when re-processing filings
+      const existingByName = await tx
+        .select({ id: insiders.id })
+        .from(insiders)
+        .innerJoin(insiderRoles, eq(insiders.id, insiderRoles.insiderId))
+        .where(
+          and(
+            eq(insiders.name, owner.id.name),
+            eq(insiderRoles.companyId, companyId),
+          ),
+        )
+        .limit(1);
+
+      if (existingByName.length > 0) {
+        insiderId = existingByName[0].id;
       }
     }
 
@@ -183,7 +208,12 @@ async function upsertInsiderRole(
   const existing = await tx
     .select({ id: insiderRoles.id })
     .from(insiderRoles)
-    .where(eq(insiderRoles.insiderId, insiderId))
+    .where(
+      and(
+        eq(insiderRoles.insiderId, insiderId),
+        eq(insiderRoles.companyId, companyId),
+      ),
+    )
     .limit(1);
 
   if (existing.length > 0) {
@@ -216,12 +246,17 @@ async function upsertInsiderRole(
   }
 }
 
+interface CreateFilingResult {
+  filingId: string;
+  alreadyExists: boolean;
+}
+
 async function createFiling(
   tx: Database,
   doc: Form4Document,
   companyId: string,
   options: { rawContent?: string; documentUrl?: string; filedAt?: Date },
-): Promise<string> {
+): Promise<CreateFilingResult> {
   // Extract accession number from source or generate from document info
   const accessionNumber = doc.source?.fileName
     ? extractAccessionNumber(doc.source.fileName)
@@ -229,6 +264,7 @@ async function createFiling(
 
   const formType = doc.documentType as (typeof formTypeEnum.enumValues)[number];
 
+  // Use onConflictDoNothing for atomic idempotency - prevents race conditions
   const [inserted] = await tx
     .insert(filings)
     .values({
@@ -244,9 +280,21 @@ async function createFiling(
       rawContent: options.rawContent,
       processedAt: new Date(),
     })
+    .onConflictDoNothing()
     .returning({ id: filings.id });
 
-  return inserted.id;
+  if (inserted) {
+    return { filingId: inserted.id, alreadyExists: false };
+  }
+
+  // Filing already exists - fetch the existing id
+  const [existing] = await tx
+    .select({ id: filings.id })
+    .from(filings)
+    .where(eq(filings.accessionNumber, accessionNumber))
+    .limit(1);
+
+  return { filingId: existing.id, alreadyExists: true };
 }
 
 function extractAccessionNumber(fileName: string): string {
