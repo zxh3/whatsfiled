@@ -61,6 +61,62 @@ class RateLimiter {
 // Global rate limiter instance
 const rateLimiter = new RateLimiter();
 
+/**
+ * Database operation stats collector.
+ * Tracks timing for all DB operations and prints summary at end.
+ */
+class DbStats {
+  private stats: Map<string, number[]> = new Map();
+  private slowThresholdMs = 500;
+
+  /** Wrap an async DB operation and track its timing */
+  async time<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    const start = Date.now();
+    try {
+      return await fn();
+    } finally {
+      const duration = Date.now() - start;
+      if (!this.stats.has(operation)) {
+        this.stats.set(operation, []);
+      }
+      this.stats.get(operation)!.push(duration);
+
+      // Log slow queries inline
+      if (duration > this.slowThresholdMs) {
+        console.log(`\n  [SLOW] ${operation}: ${duration}ms`);
+      }
+    }
+  }
+
+  /** Print summary of all tracked operations */
+  print() {
+    console.log("\n=== DB Operation Stats ===");
+    const entries = Array.from(this.stats.entries()).sort((a, b) => {
+      const totalA = a[1].reduce((x, y) => x + y, 0);
+      const totalB = b[1].reduce((x, y) => x + y, 0);
+      return totalB - totalA; // Sort by total time descending
+    });
+
+    for (const [op, times] of entries) {
+      const sorted = times.slice().sort((a, b) => a - b);
+      const count = sorted.length;
+      const sum = sorted.reduce((a, b) => a + b, 0);
+      const avg = sum / count;
+      const min = sorted[0];
+      const max = sorted[count - 1];
+      const p50 = sorted[Math.floor(count * 0.5)] ?? min;
+      const p95 = sorted[Math.floor(count * 0.95)] ?? max;
+
+      console.log(
+        `  ${op}: count=${count} total=${(sum / 1000).toFixed(1)}s avg=${avg.toFixed(0)}ms min=${min}ms max=${max}ms p50=${p50}ms p95=${p95}ms`,
+      );
+    }
+  }
+}
+
+// Global DB stats instance
+const dbStats = new DbStats();
+
 // Parse CLI arguments
 const { values } = parseArgs({
   options: {
@@ -269,9 +325,10 @@ async function discoverIndexFiles(
 
   // Test DB connection first
   try {
-    const testStart = Date.now();
-    await db.select({ count: sql<number>`1` }).from(dailyIndexFiles).limit(1);
-    console.log(`  Database connected (${Date.now() - testStart}ms)`);
+    await dbStats.time("db_test_connection", () =>
+      db.select({ count: sql<number>`1` }).from(dailyIndexFiles).limit(1),
+    );
+    console.log(`  Database connected`);
   } catch (err) {
     console.error(`  Database connection failed:`, err);
     throw err;
@@ -289,16 +346,18 @@ async function discoverIndexFiles(
 
     for (const formType of formTypes) {
       try {
-        const [result] = await db
-          .insert(dailyIndexFiles)
-          .values({
-            indexDate,
-            formType,
-            fileName,
-            status: "pending",
-          })
-          .onConflictDoNothing()
-          .returning({ id: dailyIndexFiles.id });
+        const [result] = await dbStats.time("insert_index_file", () =>
+          db
+            .insert(dailyIndexFiles)
+            .values({
+              indexDate,
+              formType,
+              fileName,
+              status: "pending",
+            })
+            .onConflictDoNothing()
+            .returning({ id: dailyIndexFiles.id }),
+        );
 
         if (result) inserted++;
       } catch (err) {
@@ -333,17 +392,19 @@ async function processIndexFiles(
   console.log(`\nProcessing pending index files...`);
 
   // Get pending index files in date range
-  const pendingIndexes = await db
-    .select()
-    .from(dailyIndexFiles)
-    .where(
-      and(
-        eq(dailyIndexFiles.status, "pending"),
-        gte(dailyIndexFiles.indexDate, startDate),
-        lte(dailyIndexFiles.indexDate, endDate),
-      ),
-    )
-    .orderBy(dailyIndexFiles.indexDate);
+  const pendingIndexes = await dbStats.time("select_pending_indexes", () =>
+    db
+      .select()
+      .from(dailyIndexFiles)
+      .where(
+        and(
+          eq(dailyIndexFiles.status, "pending"),
+          gte(dailyIndexFiles.indexDate, startDate),
+          lte(dailyIndexFiles.indexDate, endDate),
+        ),
+      )
+      .orderBy(dailyIndexFiles.indexDate),
+  );
 
   console.log(`  Found ${pendingIndexes.length} pending index files`);
 
@@ -362,10 +423,12 @@ async function processIndexFiles(
   for (const indexFile of pendingIndexes) {
     try {
       // Mark as processing
-      await db
-        .update(dailyIndexFiles)
-        .set({ status: "processing", startedAt: new Date() })
-        .where(eq(dailyIndexFiles.id, indexFile.id));
+      await dbStats.time("update_index_processing", () =>
+        db
+          .update(dailyIndexFiles)
+          .set({ status: "processing", startedAt: new Date() })
+          .where(eq(dailyIndexFiles.id, indexFile.id)),
+      );
 
       // Fetch and parse the daily index (rate limited)
       await rateLimiter.acquire();
@@ -377,21 +440,23 @@ async function processIndexFiles(
       let queued = 0;
       for (const row of rows) {
         try {
-          const [result] = await db
-            .insert(filingQueue)
-            .values({
-              dailyIndexFileId: indexFile.id,
-              fileName: row.fileName,
-              formType: row.formType,
-              companyName: row.companyName,
-              cik: row.cik,
-              dateFiled: row.dateFiled,
-              source: "daily_index",
-              status: "pending",
-              priority: 0,
-            })
-            .onConflictDoNothing()
-            .returning({ id: filingQueue.id });
+          const [result] = await dbStats.time("insert_filing_queue", () =>
+            db
+              .insert(filingQueue)
+              .values({
+                dailyIndexFileId: indexFile.id,
+                fileName: row.fileName,
+                formType: row.formType,
+                companyName: row.companyName,
+                cik: row.cik,
+                dateFiled: row.dateFiled,
+                source: "daily_index",
+                status: "pending",
+                priority: 0,
+              })
+              .onConflictDoNothing()
+              .returning({ id: filingQueue.id }),
+          );
 
           if (result) queued++;
         } catch {
@@ -400,24 +465,28 @@ async function processIndexFiles(
       }
 
       // Mark as completed
-      await db
-        .update(dailyIndexFiles)
-        .set({
-          status: "completed",
-          entriesCount: rows.length,
-          processedCount: queued,
-          completedAt: new Date(),
-        })
-        .where(eq(dailyIndexFiles.id, indexFile.id));
+      await dbStats.time("update_index_completed", () =>
+        db
+          .update(dailyIndexFiles)
+          .set({
+            status: "completed",
+            entriesCount: rows.length,
+            processedCount: queued,
+            completedAt: new Date(),
+          })
+          .where(eq(dailyIndexFiles.id, indexFile.id)),
+      );
 
       totalQueued += queued;
       progress.increment("success", indexFile.fileName);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await db
-        .update(dailyIndexFiles)
-        .set({ status: "failed", errorMessage: message })
-        .where(eq(dailyIndexFiles.id, indexFile.id));
+      await dbStats.time("update_index_failed", () =>
+        db
+          .update(dailyIndexFiles)
+          .set({ status: "failed", errorMessage: message })
+          .where(eq(dailyIndexFiles.id, indexFile.id)),
+      );
       progress.increment("fail", indexFile.fileName);
     }
   }
@@ -442,16 +511,18 @@ async function processFilings(
   const dateFiledEnd = endDate.replace(/-/g, "");
 
   // Get pending filings count
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(filingQueue)
-    .where(
-      and(
-        eq(filingQueue.status, "pending"),
-        gte(filingQueue.dateFiled, dateFiledStart),
-        lte(filingQueue.dateFiled, dateFiledEnd),
+  const [{ count }] = await dbStats.time("count_pending_filings", () =>
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(filingQueue)
+      .where(
+        and(
+          eq(filingQueue.status, "pending"),
+          gte(filingQueue.dateFiled, dateFiledStart),
+          lte(filingQueue.dateFiled, dateFiledEnd),
+        ),
       ),
-    );
+  );
 
   console.log(`  Found ${count} pending filings`);
 
@@ -474,21 +545,23 @@ async function processFilings(
   // Process in batches
   while (true) {
     // Get a batch of pending filings
-    const batch = await db
-      .select()
-      .from(filingQueue)
-      .where(
-        and(
-          eq(filingQueue.status, "pending"),
-          gte(filingQueue.dateFiled, dateFiledStart),
-          lte(filingQueue.dateFiled, dateFiledEnd),
-          or(
-            isNull(filingQueue.lockedUntil),
-            lt(filingQueue.lockedUntil, new Date()),
+    const batch = await dbStats.time("select_filing_batch", () =>
+      db
+        .select()
+        .from(filingQueue)
+        .where(
+          and(
+            eq(filingQueue.status, "pending"),
+            gte(filingQueue.dateFiled, dateFiledStart),
+            lte(filingQueue.dateFiled, dateFiledEnd),
+            or(
+              isNull(filingQueue.lockedUntil),
+              lt(filingQueue.lockedUntil, new Date()),
+            ),
           ),
-        ),
-      )
-      .limit(BATCH_SIZE);
+        )
+        .limit(BATCH_SIZE),
+    );
 
     if (batch.length === 0) break;
 
@@ -498,20 +571,22 @@ async function processFilings(
       const lockUntil = new Date(now.getTime() + LOCK_DURATION_MS);
 
       // Try to acquire lock
-      const [locked] = await db
-        .update(filingQueue)
-        .set({ status: "processing", lockedUntil: lockUntil })
-        .where(
-          and(
-            eq(filingQueue.id, entry.id),
-            eq(filingQueue.status, "pending"),
-            or(
-              isNull(filingQueue.lockedUntil),
-              lt(filingQueue.lockedUntil, now),
+      const [locked] = await dbStats.time("update_acquire_lock", () =>
+        db
+          .update(filingQueue)
+          .set({ status: "processing", lockedUntil: lockUntil })
+          .where(
+            and(
+              eq(filingQueue.id, entry.id),
+              eq(filingQueue.status, "pending"),
+              or(
+                isNull(filingQueue.lockedUntil),
+                lt(filingQueue.lockedUntil, now),
+              ),
             ),
-          ),
-        )
-        .returning();
+          )
+          .returning(),
+      );
 
       if (!locked) {
         skipped++;
@@ -534,26 +609,30 @@ async function processFilings(
         const filedAt = acceptanceDateTime ?? parseFilingDate(locked.dateFiled);
 
         // Map to database
-        const result = await db.transaction(async (tx) => {
-          return await mapForm4ToDb(tx as unknown as Database, doc, {
-            rawContent: content,
-            documentUrl: doc.source?.formattedXmlUrl,
-            filedAt,
-          });
-        });
+        const result = await dbStats.time("transaction_map_form4", () =>
+          db.transaction(async (tx) => {
+            return await mapForm4ToDb(tx as unknown as Database, doc, {
+              rawContent: content,
+              documentUrl: doc.source?.formattedXmlUrl,
+              filedAt,
+            });
+          }),
+        );
 
         // Mark as completed
         const status = result.skipped ? "skipped" : "completed";
-        await db
-          .update(filingQueue)
-          .set({
-            status,
-            lockedUntil: null,
-            processedAt: new Date(),
-            lastError: null,
-            lastErrorAt: null,
-          })
-          .where(eq(filingQueue.id, entry.id));
+        await dbStats.time("update_filing_completed", () =>
+          db
+            .update(filingQueue)
+            .set({
+              status,
+              lockedUntil: null,
+              processedAt: new Date(),
+              lastError: null,
+              lastErrorAt: null,
+            })
+            .where(eq(filingQueue.id, entry.id)),
+        );
 
         if (result.skipped) {
           skipped++;
@@ -569,16 +648,18 @@ async function processFilings(
         const newRetryCount = (locked.retryCount ?? 0) + 1;
         const newStatus = newRetryCount >= 3 ? "failed" : "pending";
 
-        await db
-          .update(filingQueue)
-          .set({
-            status: newStatus,
-            lockedUntil: null,
-            retryCount: newRetryCount,
-            lastError: message,
-            lastErrorAt: new Date(),
-          })
-          .where(eq(filingQueue.id, entry.id));
+        await dbStats.time("update_filing_error", () =>
+          db
+            .update(filingQueue)
+            .set({
+              status: newStatus,
+              lockedUntil: null,
+              retryCount: newRetryCount,
+              lastError: message,
+              lastErrorAt: new Date(),
+            })
+            .where(eq(filingQueue.id, entry.id)),
+        );
 
         if (newStatus === "failed") {
           failed++;
@@ -685,6 +766,9 @@ async function main() {
   console.log(`Skipped:   ${results.skipped}`);
   console.log(`Failed:    ${results.failed}`);
   console.log(`Total time: ${elapsed}s`);
+
+  // Print DB operation stats
+  dbStats.print();
 
   process.exit(0);
 }
