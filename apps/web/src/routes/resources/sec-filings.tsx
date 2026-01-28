@@ -1,18 +1,18 @@
-import { SiteHeader } from "@/components/layout/site-header";
-import { Badge } from "@whatsfiled/ui/components/badge";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Badge } from "@whatsfiled/ui/components/badge";
 import {
+  AlertCircle,
   ArrowLeft,
-  FileText,
-  Clock,
-  TrendingUp,
-  Users,
+  BookOpen,
   Building2,
   Calendar,
-  AlertCircle,
-  BookOpen,
+  Clock,
+  FileText,
   Scale,
+  TrendingUp,
+  Users,
 } from "lucide-react";
+import { SiteHeader } from "@/components/layout/site-header";
 
 export const Route = createFileRoute("/resources/sec-filings")({
   component: SecFilingsPage,
@@ -324,11 +324,11 @@ function SecFilingsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
-                SEC Filings Reference Guide
+                SEC Filings Reference
               </h1>
               <p className="text-muted-foreground mt-2 text-lg">
-                A comprehensive guide to SEC filings, their purposes, and filing
-                requirements.
+                A comprehensive explanation of SEC filings, their purposes, and
+                filing requirements.
               </p>
             </div>
           </div>

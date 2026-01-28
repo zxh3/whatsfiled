@@ -1,13 +1,42 @@
 import { TransactionTable } from "@/components/transactions/transaction-table";
 import { trpc } from "@/lib/trpc";
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const PAGE_SIZE = 50;
+
+type Transaction = {
+  id: string;
+  transactionDate: string | null;
+  transactionCode: string | null;
+  shares: number | null;
+  pricePerShare: number | null;
+  acquiredDisposed: "A" | "D" | null;
+  sharesOwnedAfter: number | null;
+  securityTitle: string;
+  company: {
+    id: string;
+    name: string;
+    cik: string;
+    ticker: string | null;
+  };
+  insider: {
+    id: string;
+    name: string;
+    cik: string | null;
+    title: string;
+  };
+  filing: {
+    accessionNumber: string;
+    filedAt: Date;
+  };
+};
 
 export function ActivityFeed() {
   const [filter, setFilter] = useState<"common" | "options">("common");
   const [offset, setOffset] = useState(0);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const prevOffset = useRef(0);
 
   const { data, isLoading, isError, error, isFetching } =
     trpc.filings.getRecentTransactions.useQuery(
@@ -15,9 +44,25 @@ export function ActivityFeed() {
       { staleTime: 30000 },
     );
 
+  // Accumulate transactions when new data arrives
+  useEffect(() => {
+    if (data?.transactions) {
+      if (offset === 0) {
+        // Reset on filter change or initial load
+        setAllTransactions(data.transactions);
+      } else if (offset > prevOffset.current) {
+        // Append on load more
+        setAllTransactions((prev) => [...prev, ...data.transactions]);
+      }
+      prevOffset.current = offset;
+    }
+  }, [data, offset]);
+
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter as "common" | "options");
     setOffset(0);
+    setAllTransactions([]);
+    prevOffset.current = 0;
   };
 
   const handleLoadMore = () => {
@@ -50,8 +95,8 @@ export function ActivityFeed() {
       </div>
 
       <TransactionTable
-        transactions={data?.transactions ?? []}
-        isLoading={isLoading}
+        transactions={allTransactions}
+        isLoading={isLoading && allTransactions.length === 0}
         showCompany
       />
 
@@ -65,9 +110,9 @@ export function ActivityFeed() {
             >
               {isFetching ? "Loading..." : "Load more"}
             </button>
-          ) : data.transactions.length > 0 ? (
+          ) : allTransactions.length > 0 ? (
             <span className="text-xs text-muted-foreground">
-              Showing {data.transactions.length} of{" "}
+              Showing {allTransactions.length} of{" "}
               {data.pagination.totalCount.toLocaleString()} transactions
             </span>
           ) : null}

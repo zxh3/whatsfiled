@@ -51,14 +51,28 @@ function formatCurrency(value: number | null): string {
   });
 }
 
+function formatCompactCurrency(value: number | null): string {
+  if (value === null) return "-";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (abs >= 1_000) {
+    return `$${(value / 1_000).toFixed(0)}K`;
+  }
+  return `$${value.toFixed(0)}`;
+}
+
 function formatDate(date: string | Date | null): string {
   if (!date) return "-";
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return d.toISOString().split("T")[0];
+}
+
+function truncate(text: string, maxLen: number): string {
+  if (!text) return "-";
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, maxLen - 1)}…`;
 }
 
 function TransactionTable({
@@ -73,64 +87,68 @@ function TransactionTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+                Date
+              </th>
               {showCompany && (
-                <th className="whitespace-nowrap px-3 py-2 font-medium">
+                <th className="whitespace-nowrap px-2 py-1.5 font-medium">
                   Company
                 </th>
               )}
-              <th className="whitespace-nowrap px-3 py-2 font-medium">Type</th>
-              <th className="whitespace-nowrap px-3 py-2 font-medium">
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
                 Insider
               </th>
-              <th className="whitespace-nowrap px-3 py-2 font-medium text-right">
-                Shares
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+                Role
               </th>
-              <th className="whitespace-nowrap px-3 py-2 font-medium text-right">
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+                Type
+              </th>
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Price
               </th>
-              <th className="whitespace-nowrap px-3 py-2 font-medium text-right">
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+                Shares
+              </th>
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Value
               </th>
-              <th className="whitespace-nowrap px-3 py-2 font-medium text-right">
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Owned
-              </th>
-              <th className="whitespace-nowrap px-3 py-2 font-medium">
-                Filing
               </th>
             </tr>
           </thead>
           <tbody>
             {Array.from({ length: 10 }).map((_, i) => (
               <tr key={i} className="border-b border-border/50">
-                <td className="px-3 py-2">
-                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                <td className="px-2 py-1.5">
+                  <div className="h-4 w-12 animate-pulse rounded bg-muted" />
                 </td>
                 {showCompany && (
-                  <td className="px-3 py-2">
-                    <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                  <td className="px-2 py-1.5">
+                    <div className="h-4 w-10 animate-pulse rounded bg-muted" />
                   </td>
                 )}
-                <td className="px-3 py-2">
-                  <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
+                <td className="px-2 py-1.5">
+                  <div className="h-4 w-24 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-3 py-2">
-                  <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                <td className="px-2 py-1.5">
+                  <div className="h-4 w-16 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-3 py-2 text-right">
-                  <div className="ml-auto h-4 w-16 animate-pulse rounded bg-muted" />
+                <td className="px-2 py-1.5">
+                  <div className="h-5 w-12 animate-pulse rounded-full bg-muted" />
                 </td>
-                <td className="px-3 py-2 text-right">
+                <td className="px-2 py-1.5 text-right">
+                  <div className="ml-auto h-4 w-12 animate-pulse rounded bg-muted" />
+                </td>
+                <td className="px-2 py-1.5 text-right">
                   <div className="ml-auto h-4 w-14 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-3 py-2 text-right">
-                  <div className="ml-auto h-4 w-20 animate-pulse rounded bg-muted" />
+                <td className="px-2 py-1.5 text-right">
+                  <div className="ml-auto h-4 w-16 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-3 py-2 text-right">
-                  <div className="ml-auto h-4 w-18 animate-pulse rounded bg-muted" />
-                </td>
-                <td className="px-3 py-2">
-                  <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                <td className="px-2 py-1.5 text-right">
+                  <div className="ml-auto h-4 w-14 animate-pulse rounded bg-muted" />
                 </td>
               </tr>
             ))}
@@ -153,27 +171,29 @@ function TransactionTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium">Date</th>
             {showCompany && (
-              <th className="whitespace-nowrap px-3 py-2 font-medium">
+              <th className="whitespace-nowrap px-2 py-1.5 font-medium">
                 Company
               </th>
             )}
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Type</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Insider</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium text-right">
-              Shares
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium">
+              Insider
             </th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium text-right">
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium">Role</th>
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium">Type</th>
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Price
             </th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium text-right">
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              Shares
+            </th>
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Value
             </th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium text-right">
+            <th className="whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Owned
             </th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Filing</th>
           </tr>
         </thead>
         <tbody>
@@ -188,11 +208,17 @@ function TransactionTable({
                 key={txn.id}
                 className="border-b border-border/50 hover:bg-muted/30"
               >
-                <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
-                  {formatDate(txn.transactionDate)}
+                <td className="whitespace-nowrap px-2 py-1.5">
+                  <Link
+                    to="/filing/$accessionNumber"
+                    params={{ accessionNumber: txn.filing.accessionNumber }}
+                    className="text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    {formatDate(txn.transactionDate)}
+                  </Link>
                 </td>
                 {showCompany && txn.company && (
-                  <td className="px-3 py-2">
+                  <td className="whitespace-nowrap px-2 py-1.5">
                     <Link
                       to="/company/$cik"
                       params={{ cik: txn.company.cik }}
@@ -202,32 +228,37 @@ function TransactionTable({
                     </Link>
                   </td>
                 )}
-                <td className="px-3 py-2">
+                <td
+                  className="whitespace-nowrap px-2 py-1.5"
+                  title={txn.insider.name}
+                >
+                  {txn.insider.cik ? (
+                    <Link
+                      to="/insider/$cik"
+                      params={{ cik: txn.insider.cik }}
+                      className="font-medium text-foreground hover:underline"
+                    >
+                      {truncate(txn.insider.name, 18)}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-foreground">
+                      {truncate(txn.insider.name, 18)}
+                    </span>
+                  )}
+                </td>
+                <td
+                  className="whitespace-nowrap px-2 py-1.5 text-muted-foreground"
+                  title={txn.insider.title}
+                >
+                  {truncate(txn.insider.title, 16)}
+                </td>
+                <td className="px-2 py-1.5">
                   <TransactionBadge code={txn.transactionCode} />
                 </td>
-                <td className="px-3 py-2">
-                  <div className="flex flex-col">
-                    {txn.insider.cik ? (
-                      <Link
-                        to="/insider/$cik"
-                        params={{ cik: txn.insider.cik }}
-                        className="font-medium text-foreground hover:underline"
-                      >
-                        {txn.insider.name}
-                      </Link>
-                    ) : (
-                      <span className="font-medium text-foreground">
-                        {txn.insider.name}
-                      </span>
-                    )}
-                    {txn.insider.title && (
-                      <span className="text-xs text-muted-foreground">
-                        {txn.insider.title}
-                      </span>
-                    )}
-                  </div>
+                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-muted-foreground">
+                  {formatCurrency(txn.pricePerShare)}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right font-mono">
+                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono">
                   <span
                     className={
                       txn.acquiredDisposed === "A"
@@ -245,23 +276,24 @@ function TransactionTable({
                     {formatNumber(txn.shares)}
                   </span>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-muted-foreground">
-                  {formatCurrency(txn.pricePerShare)}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-muted-foreground">
-                  {formatCurrency(value)}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-muted-foreground">
-                  {formatNumber(txn.sharesOwnedAfter)}
-                </td>
-                <td className="whitespace-nowrap px-3 py-2">
-                  <Link
-                    to="/filing/$accessionNumber"
-                    params={{ accessionNumber: txn.filing.accessionNumber }}
-                    className="text-muted-foreground hover:text-foreground hover:underline"
+                <td
+                  className="whitespace-nowrap px-2 py-1.5 text-right font-mono"
+                  title={value ? formatCurrency(value) : undefined}
+                >
+                  <span
+                    className={
+                      txn.acquiredDisposed === "A"
+                        ? "text-green-600 dark:text-green-400"
+                        : txn.acquiredDisposed === "D"
+                          ? "text-red-600 dark:text-red-400"
+                          : ""
+                    }
                   >
-                    {formatDate(txn.filing.filedAt)}
-                  </Link>
+                    {formatCompactCurrency(value)}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-muted-foreground">
+                  {formatNumber(txn.sharesOwnedAfter)}
                 </td>
               </tr>
             );

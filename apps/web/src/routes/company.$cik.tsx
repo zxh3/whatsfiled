@@ -2,7 +2,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { TransactionTable } from "@/components/transactions/transaction-table";
 import { trpc } from "@/lib/trpc";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Pagination } from "@whatsfiled/ui/components/pagination";
+import { PaginationNav } from "@whatsfiled/ui/components/pagination";
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import { z } from "zod";
 
@@ -113,7 +113,7 @@ function CompanyPage() {
         />
 
         {data.pagination.totalPages > 1 && (
-          <Pagination
+          <PaginationNav
             page={data.pagination.page}
             totalPages={data.pagination.totalPages}
             onPageChange={handlePageChange}

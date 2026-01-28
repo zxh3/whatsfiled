@@ -1,9 +1,9 @@
-import { useTheme } from "@/hooks/use-theme";
-import { trpc } from "@/lib/trpc";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTheme } from "@/hooks/use-theme";
+import { trpc } from "@/lib/trpc";
 
 export function SiteHeader() {
   const navigate = useNavigate();
@@ -219,7 +219,7 @@ export function SiteHeader() {
           </form>
           <div className="text-xs text-muted-foreground flex items-center gap-3">
             <a href="/resources/sec-filings" className="hover:text-foreground">
-              SEC Guide
+              SEC Filings Reference
             </a>
             <span className="text-border">·</span>
             <a href="/sync" className="hover:text-foreground">
