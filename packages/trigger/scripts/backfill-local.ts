@@ -7,7 +7,7 @@ import {
   getDb,
 } from "@whatsfiled/db";
 import { EdgarClient } from "@whatsfiled/edgar-client";
-import { and, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { mapForm4ToDb } from "../src/mappers/form4.js";
 import {
   parseAcceptanceDateTime,
@@ -536,8 +536,68 @@ async function processFilingsForDate(
 
     if (batch.length === 0) break;
 
-    // Process batch with concurrency
-    const processOne = async (entry: (typeof batch)[0]) => {
+    // BULK PRE-CHECK: Skip filings that already exist in DB (much faster than one-by-one)
+    // Extract accession numbers from batch
+    const accessionNumbers = batch
+      .map((entry) => {
+        const match = entry.fileName.match(/(\d{10}-\d{2}-\d{6})/);
+        return match ? match[1] : null;
+      })
+      .filter((acc): acc is string => acc !== null);
+
+    // Check which ones already exist (single bulk query)
+    let existingAccessions = new Set<string>();
+    if (accessionNumbers.length > 0) {
+      const existingFilings = await dbStats.time("bulk_check_existing", () =>
+        db
+          .select({ accessionNumber: filings.accessionNumber })
+          .from(filings)
+          .where(inArray(filings.accessionNumber, accessionNumbers)),
+      );
+      existingAccessions = new Set(
+        existingFilings.map((f) => f.accessionNumber),
+      );
+    }
+
+    // Bulk update the ones that already exist to "skipped" (single bulk query)
+    if (existingAccessions.size > 0) {
+      const idsToSkip = batch
+        .filter((entry) => {
+          const match = entry.fileName.match(/(\d{10}-\d{2}-\d{6})/);
+          return match && existingAccessions.has(match[1]);
+        })
+        .map((entry) => entry.id);
+
+      if (idsToSkip.length > 0) {
+        await dbStats.time("bulk_skip_existing", () =>
+          db
+            .update(filingQueue)
+            .set({
+              status: "skipped",
+              processedAt: new Date(),
+            })
+            .where(inArray(filingQueue.id, idsToSkip)),
+        );
+
+        // Update counters
+        skipped += idsToSkip.length;
+        for (const id of idsToSkip) {
+          const entry = batch.find((e) => e.id === id);
+          if (entry) progress.increment("skip", entry.fileName);
+        }
+      }
+    }
+
+    // Filter batch to only items that need processing
+    const toProcess = batch.filter((entry) => {
+      const match = entry.fileName.match(/(\d{10}-\d{2}-\d{6})/);
+      return !match || !existingAccessions.has(match[1]);
+    });
+
+    if (toProcess.length === 0) continue;
+
+    // Process remaining items with concurrency
+    const processOne = async (entry: (typeof toProcess)[0]) => {
       const now = new Date();
       const lockUntil = new Date(now.getTime() + LOCK_DURATION_MS);
 
@@ -566,39 +626,7 @@ async function processFilingsForDate(
       }
 
       try {
-        // Extract accession number from fileName (e.g., "edgar/data/123/0001234567-24-000001.txt")
-        const accessionMatch = locked.fileName.match(/(\d{10}-\d{2}-\d{6})/);
-        const accessionNumber = accessionMatch ? accessionMatch[1] : null;
-
-        // Pre-check: skip if filing already exists in DB (no need to hit SEC)
-        if (accessionNumber) {
-          const [existing] = await dbStats.time("check_filing_exists", () =>
-            db
-              .select({ id: filings.id })
-              .from(filings)
-              .where(eq(filings.accessionNumber, accessionNumber))
-              .limit(1),
-          );
-
-          if (existing) {
-            // Filing already processed, mark as skipped without hitting SEC
-            await dbStats.time("update_filing_skipped", () =>
-              db
-                .update(filingQueue)
-                .set({
-                  status: "skipped",
-                  lockedUntil: null,
-                  processedAt: new Date(),
-                })
-                .where(eq(filingQueue.id, entry.id)),
-            );
-            skipped++;
-            progress.increment("skip", locked.fileName);
-            return;
-          }
-        }
-
-        // Fetch the filing content (rate limited) - only if not already in DB
+        // Fetch the filing content (rate limited)
         await rateLimiter.acquire();
         const content = await edgarClient.fetchFiling(locked.fileName);
 
@@ -673,8 +701,8 @@ async function processFilingsForDate(
       }
     };
 
-    // Process batch with controlled concurrency
-    await processWithConcurrency(batch, concurrency, processOne);
+    // Process remaining items with controlled concurrency
+    await processWithConcurrency(toProcess, concurrency, processOne);
   }
 
   return { processed, failed, skipped };
