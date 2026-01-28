@@ -236,6 +236,7 @@ function FilingPage() {
                     <th className="py-2">Shares</th>
                     <th className="py-2">Price</th>
                     <th className="py-2">Value</th>
+                    <th className="py-2">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,6 +266,23 @@ function FilingPage() {
                           }),
                         )}
                       </td>
+                      <td className="py-2">
+                        {txn.footnoteIds && txn.footnoteIds.length > 0 ? (
+                          <span className="flex flex-wrap gap-1">
+                            {txn.footnoteIds.map((id) => (
+                              <a
+                                key={id}
+                                href={`#footnote-${id}`}
+                                className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                              >
+                                {id}
+                              </a>
+                            ))}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -290,6 +308,7 @@ function FilingPage() {
                     <th className="py-2">Underlying</th>
                     <th className="py-2">Shares</th>
                     <th className="py-2">Price</th>
+                    <th className="py-2">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -315,6 +334,23 @@ function FilingPage() {
                       <td className="py-2">
                         {formatCurrency(txn.pricePerShare)}
                       </td>
+                      <td className="py-2">
+                        {txn.footnoteIds && txn.footnoteIds.length > 0 ? (
+                          <span className="flex flex-wrap gap-1">
+                            {txn.footnoteIds.map((id) => (
+                              <a
+                                key={id}
+                                href={`#footnote-${id}`}
+                                className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                              >
+                                {id}
+                              </a>
+                            ))}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -330,7 +366,11 @@ function FilingPage() {
           ) : (
             <div className="space-y-2 text-sm text-muted-foreground">
               {filing.footnotes.map((note) => (
-                <p key={note.id}>
+                <p
+                  key={note.id}
+                  id={`footnote-${note.footnoteId}`}
+                  className="scroll-mt-4 target:bg-yellow-100 target:dark:bg-yellow-900/30 target:rounded target:px-2 target:-mx-2"
+                >
                   <span className="font-medium text-foreground/80">
                     {note.footnoteId}.
                   </span>{" "}
