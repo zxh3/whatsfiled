@@ -138,9 +138,6 @@ function TransactionTable({
               <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Price
               </th>
-              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
-                Shares
-              </th>
               <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Value
               </th>
@@ -149,6 +146,9 @@ function TransactionTable({
               </th>
               <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Owned
+              </th>
+              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+                Shares
               </th>
             </tr>
           </thead>
@@ -177,16 +177,16 @@ function TransactionTable({
                   <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
-                  <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
-                </td>
-                <td className="px-2 py-1.5 text-right">
                   <div className="ml-auto h-4 w-full max-w-12 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
+                  <div className="ml-auto h-4 w-full max-w-10 animate-pulse rounded bg-muted" />
+                </td>
+                <td className="px-2 py-1.5 text-right">
                   <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
-                  <div className="ml-auto h-4 w-full max-w-10 animate-pulse rounded bg-muted" />
+                  <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
               </tr>
             ))}
@@ -239,9 +239,6 @@ function TransactionTable({
             <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Price
             </th>
-            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
-              Shares
-            </th>
             <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Value
             </th>
@@ -250,6 +247,9 @@ function TransactionTable({
             </th>
             <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Owned
+            </th>
+            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              Shares
             </th>
           </tr>
         </thead>
@@ -312,24 +312,6 @@ function TransactionTable({
                 <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-muted-foreground">
                   {formatCurrency(txn.pricePerShare)}
                 </td>
-                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono">
-                  <span
-                    className={
-                      txn.acquiredDisposed === "A"
-                        ? "text-green-600 dark:text-green-400"
-                        : txn.acquiredDisposed === "D"
-                          ? "text-red-600 dark:text-red-400"
-                          : ""
-                    }
-                  >
-                    {txn.acquiredDisposed === "A"
-                      ? "+"
-                      : txn.acquiredDisposed === "D"
-                        ? "-"
-                        : ""}
-                    {formatNumber(txn.shares)}
-                  </span>
-                </td>
                 <td
                   className="whitespace-nowrap px-2 py-1.5 text-right font-mono"
                   title={value ? formatCurrency(value) : undefined}
@@ -365,6 +347,24 @@ function TransactionTable({
                 </td>
                 <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-muted-foreground">
                   {formatNumber(txn.sharesOwnedAfter)}
+                </td>
+                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono">
+                  <span
+                    className={
+                      txn.acquiredDisposed === "A"
+                        ? "text-green-600 dark:text-green-400"
+                        : txn.acquiredDisposed === "D"
+                          ? "text-red-600 dark:text-red-400"
+                          : ""
+                    }
+                  >
+                    {txn.acquiredDisposed === "A"
+                      ? "+"
+                      : txn.acquiredDisposed === "D"
+                        ? "-"
+                        : ""}
+                    {formatNumber(txn.shares)}
+                  </span>
                 </td>
               </tr>
             );
