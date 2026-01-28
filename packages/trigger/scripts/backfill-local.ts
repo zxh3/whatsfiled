@@ -265,6 +265,17 @@ async function discoverIndexFiles(
 
   const totalToInsert = fileNames.length * formTypes.length;
   console.log(`  Inserting up to ${totalToInsert} index file records...`);
+  console.log(`  Testing database connection...`);
+
+  // Test DB connection first
+  try {
+    const testStart = Date.now();
+    await db.select({ count: sql<number>`1` }).from(dailyIndexFiles).limit(1);
+    console.log(`  Database connected (${Date.now() - testStart}ms)`);
+  } catch (err) {
+    console.error(`  Database connection failed:`, err);
+    throw err;
+  }
 
   let inserted = 0;
   let processed = 0;
