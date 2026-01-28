@@ -453,15 +453,15 @@ async function processIndexFiles(
         .where(eq(dailyIndexFiles.id, indexFile.id));
 
       totalQueued += queued;
+      progress.increment("success", indexFile.fileName);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await db
         .update(dailyIndexFiles)
         .set({ status: "failed", errorMessage: message })
         .where(eq(dailyIndexFiles.id, indexFile.id));
+      progress.increment("fail", indexFile.fileName);
     }
-
-    progress.increment();
   }
 
   progress.done();
@@ -557,7 +557,7 @@ async function processFilings(
 
       if (!locked) {
         skipped++;
-        progress.increment();
+        progress.increment("skip", entry.fileName);
         return;
       }
 
@@ -599,8 +599,10 @@ async function processFilings(
 
         if (result.skipped) {
           skipped++;
+          progress.increment("skip", locked.fileName);
         } else {
           processed++;
+          progress.increment("success", locked.fileName);
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -622,10 +624,12 @@ async function processFilings(
 
         if (newStatus === "failed") {
           failed++;
+          progress.increment("fail", locked.fileName);
+        } else {
+          // Will be retried, count as skip for now
+          progress.increment("skip", locked.fileName);
         }
       }
-
-      progress.increment();
     };
 
     // Process batch with controlled concurrency
