@@ -105,6 +105,41 @@ const doc = client.parseForm4(content);
 - Normalizes across versions for consistent output
 - Located in `packages/edgar-client/src/internal/form4/`
 
+### Form 4 Data Model & Display
+
+SEC Form 4 has two tables that we store in separate database tables:
+
+| SEC Form 4 | Database Table | Description |
+|------------|----------------|-------------|
+| Table I (Non-Derivative) | `transactions` | Direct changes to common stock ownership |
+| Table II (Derivative) | `derivative_transactions` | Changes to options, RSUs, warrants held |
+
+**Transaction Codes:**
+- `P` = Open market purchase (buying stock)
+- `S` = Open market sale (selling stock)
+- `M` = Exercise/conversion of derivative (e.g., RSU vest, option exercise)
+- `A` = Award/grant of stock
+- `F` = Tax withholding (shares sold to cover taxes)
+- `G` = Gift
+- `C` = Conversion of derivative security
+
+**Company Page Display:**
+
+The company page (`/company/:cik`) shows only Table I transactions (common stock changes) with two tabs:
+
+- **Market Trades** (codes P, S): Discretionary open-market purchases and sales. High signal for insider sentiment.
+- **Awards & Exercises** (codes M, A, F, G, C): Compensation-related events like RSU vests, option exercises, tax withholding. Routine, low signal.
+
+We intentionally exclude Table II (derivative_transactions) from the company page because:
+1. When an RSU vests or option is exercised, it appears in BOTH tables (Table II shows derivative disposed, Table I shows stock received)
+2. Showing both creates confusing duplicate rows
+3. Users primarily care about common stock ownership changes
+4. The "Owned" column should consistently mean common shares owned
+
+**Filing Detail Page:**
+
+The filing page (`/filing/:accessionNumber`) shows both Table I and Table II with full detail, matching the SEC filing structure. Footnotes are displayed as tooltips.
+
 ## Database
 
 PostgreSQL with Drizzle ORM. Schema in `apps/backend/src/db/schema.ts`.
