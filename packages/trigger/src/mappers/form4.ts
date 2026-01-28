@@ -70,62 +70,36 @@ async function upsertCompany(
 ): Promise<string> {
   const { issuer } = doc;
 
-  // Try to find existing company by CIK
-  const existing = await tx
-    .select({ id: companies.id })
-    .from(companies)
-    .where(eq(companies.cik, issuer.cik))
-    .limit(1);
+  // Single query upsert using ON CONFLICT DO UPDATE RETURNING
+  const [result] = await tx
+    .insert(companies)
+    .values({
+      cik: issuer.cik,
+      name: issuer.name,
+    })
+    .onConflictDoUpdate({
+      target: companies.cik,
+      set: { name: issuer.name, updatedAt: new Date() },
+    })
+    .returning({ id: companies.id });
 
-  let companyId: string;
+  const companyId = result.id;
 
-  if (existing.length > 0) {
-    companyId = existing[0].id;
-    // Update name if changed
-    await tx
-      .update(companies)
-      .set({ name: issuer.name, updatedAt: new Date() })
-      .where(eq(companies.id, companyId));
-  } else {
-    // Insert new company
-    const [inserted] = await tx
-      .insert(companies)
-      .values({
-        cik: issuer.cik,
-        name: issuer.name,
-      })
-      .returning({ id: companies.id });
-    companyId = inserted.id;
-  }
-
-  // Upsert ticker if available and valid
+  // Upsert ticker if available and valid (single query with ON CONFLICT DO NOTHING)
   const invalidTickers = ["NONE", "N/A", "NA", ""];
   if (
     issuer.tradingSymbol &&
     !invalidTickers.includes(issuer.tradingSymbol.trim().toUpperCase())
   ) {
     const ticker = issuer.tradingSymbol.trim().toUpperCase();
-
-    // Check if ticker already exists for this company
-    const existingTicker = await tx
-      .select({ id: companyTickers.id })
-      .from(companyTickers)
-      .where(
-        and(
-          eq(companyTickers.companyId, companyId),
-          eq(companyTickers.ticker, ticker),
-        ),
-      )
-      .limit(1);
-
-    if (existingTicker.length === 0) {
-      // Insert new ticker
-      await tx.insert(companyTickers).values({
+    await tx
+      .insert(companyTickers)
+      .values({
         companyId,
         ticker,
         isPrimary: true,
-      });
-    }
+      })
+      .onConflictDoNothing();
   }
 
   return companyId;
@@ -139,24 +113,23 @@ async function upsertInsiders(
   const insiderIds: string[] = [];
 
   for (const owner of doc.reportingOwners) {
-    let insiderId: string | null = null;
+    let insiderId: string;
 
     if (owner.id.cik) {
-      // Best case: find by CIK (globally unique identifier)
-      const existing = await tx
-        .select({ id: insiders.id })
-        .from(insiders)
-        .where(eq(insiders.cik, owner.id.cik))
-        .limit(1);
-
-      if (existing.length > 0) {
-        insiderId = existing[0].id;
-        // Update name if changed
-        await tx
-          .update(insiders)
-          .set({ name: owner.id.name, updatedAt: new Date() })
-          .where(eq(insiders.id, insiderId));
-      }
+      // Best case: single query upsert using ON CONFLICT DO UPDATE
+      const [result] = await tx
+        .insert(insiders)
+        .values({
+          cik: owner.id.cik,
+          name: owner.id.name,
+          isEntity: false,
+        })
+        .onConflictDoUpdate({
+          target: insiders.cik,
+          set: { name: owner.id.name, updatedAt: new Date() },
+        })
+        .returning({ id: insiders.id });
+      insiderId = result.id;
     } else {
       // Fallback for insiders without CIK: find by name + existing role at this company
       // This prevents creating duplicates when re-processing filings
@@ -174,20 +147,18 @@ async function upsertInsiders(
 
       if (existingByName.length > 0) {
         insiderId = existingByName[0].id;
+      } else {
+        // Create new insider without CIK
+        const [inserted] = await tx
+          .insert(insiders)
+          .values({
+            cik: null,
+            name: owner.id.name,
+            isEntity: false,
+          })
+          .returning({ id: insiders.id });
+        insiderId = inserted.id;
       }
-    }
-
-    // If no existing insider found, create new one
-    if (!insiderId) {
-      const [inserted] = await tx
-        .insert(insiders)
-        .values({
-          cik: owner.id.cik || null,
-          name: owner.id.name,
-          isEntity: false, // Could be improved with heuristics
-        })
-        .returning({ id: insiders.id });
-      insiderId = inserted.id;
     }
 
     insiderIds.push(insiderId);
@@ -205,35 +176,10 @@ async function upsertInsiderRole(
   companyId: string,
   relationship: Form4Document["reportingOwners"][0]["relationship"],
 ): Promise<void> {
-  const existing = await tx
-    .select({ id: insiderRoles.id })
-    .from(insiderRoles)
-    .where(
-      and(
-        eq(insiderRoles.insiderId, insiderId),
-        eq(insiderRoles.companyId, companyId),
-      ),
-    )
-    .limit(1);
-
-  if (existing.length > 0) {
-    // Update role flags and last seen
-    await tx
-      .update(insiderRoles)
-      .set({
-        isDirector: relationship.isDirector,
-        isOfficer: relationship.isOfficer,
-        isTenPercentOwner: relationship.isTenPercentOwner,
-        isOther: relationship.isOther,
-        officerTitle: relationship.officerTitle,
-        otherText: relationship.otherText,
-        lastSeenAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(insiderRoles.id, existing[0].id));
-  } else {
-    // Create new role
-    await tx.insert(insiderRoles).values({
+  // Single query upsert using ON CONFLICT DO UPDATE
+  await tx
+    .insert(insiderRoles)
+    .values({
       insiderId,
       companyId,
       isDirector: relationship.isDirector,
@@ -242,8 +188,20 @@ async function upsertInsiderRole(
       isOther: relationship.isOther,
       officerTitle: relationship.officerTitle,
       otherText: relationship.otherText,
+    })
+    .onConflictDoUpdate({
+      target: [insiderRoles.insiderId, insiderRoles.companyId],
+      set: {
+        isDirector: relationship.isDirector,
+        isOfficer: relationship.isOfficer,
+        isTenPercentOwner: relationship.isTenPercentOwner,
+        isOther: relationship.isOther,
+        officerTitle: relationship.officerTitle,
+        otherText: relationship.otherText,
+        lastSeenAt: new Date(),
+        updatedAt: new Date(),
+      },
     });
-  }
 }
 
 interface CreateFilingResult {
