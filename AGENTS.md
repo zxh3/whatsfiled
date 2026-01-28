@@ -208,6 +208,35 @@ Example E2E test flow:
 5. take_screenshot to capture final state
 ```
 
+## Backfill (Local Script)
+
+For large backfills, use the local script instead of Trigger.dev to avoid queue limits.
+
+**Always test on local DB first, then run on production.**
+
+```bash
+# 1. Start local PostgreSQL
+pnpm docker:up
+
+# 2. Test backfill on local DB
+cd packages/trigger
+DATABASE_URL="postgresql://user:password@localhost:5432/whatsfiled" \
+  pnpm backfill-local --start 2025-01-01 --end 2025-01-07
+
+# 3. Run on production (Supabase)
+DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres" \
+  pnpm backfill-local --start 2025-01-01 --end 2025-01-31
+```
+
+**Options:**
+- `-s, --start` - Start date (YYYY-MM-DD) [required]
+- `-e, --end` - End date (YYYY-MM-DD) [required]
+- `-c, --concurrency` - Parallel DB operations (default: 3)
+- `--dry-run` - Preview without processing
+- `--skip-discovery` - Only process existing pending filings
+
+**Rate Limiting:** SEC allows 10 req/s. Script uses 8 req/s to stay safe.
+
 ## Path Aliases
 
 - `@/*` → `./src/*` (in web app)

@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "dev": "npx trigger.dev@latest dev",
     "deploy": "npx trigger.dev@latest deploy",
-    "cli": "tsx --env-file=.env.local scripts/cli.ts"
+    "cli": "tsx --env-file=.env.local scripts/cli.ts",
+    "backfill-local": "tsx scripts/backfill-local.ts"
   },
   "dependencies": {
     "@trigger.dev/core": "4.3.3",
