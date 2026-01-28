@@ -13,6 +13,8 @@ export interface ProcessIndexFilePayload {
   indexFileId: string;
   /** Limit number of filings to process (for testing) */
   limitFilings?: number;
+  /** Whether to trigger filing processing (default: true) */
+  triggerProcessing?: boolean;
 }
 
 export interface ProcessIndexFileResult {
@@ -41,7 +43,7 @@ export const processIndexFileTask = task({
   run: async (
     payload: ProcessIndexFilePayload,
   ): Promise<ProcessIndexFileResult> => {
-    const { indexFileId, limitFilings } = payload;
+    const { indexFileId, limitFilings, triggerProcessing = true } = payload;
     const db = getDb();
     const edgarClient = new EdgarClient({ userAgent: SEC_USER_AGENT });
 
@@ -113,15 +115,19 @@ export const processIndexFileTask = task({
 
       logger.info(`Queued ${queued} filings, skipped ${skipped} duplicates`);
 
-      // Batch trigger filing processing tasks (respecting limit)
-      const idsToTrigger = limitFilings
-        ? queuedIds.slice(0, limitFilings)
-        : queuedIds;
+      // Batch trigger filing processing tasks (if enabled)
+      let triggered = 0;
+      if (triggerProcessing) {
+        const idsToTrigger = limitFilings
+          ? queuedIds.slice(0, limitFilings)
+          : queuedIds;
 
-      const triggers = idsToTrigger.map((queueId) =>
-        processFilingTask.trigger({ queueId }),
-      );
-      await Promise.all(triggers);
+        const triggers = idsToTrigger.map((queueId) =>
+          processFilingTask.trigger({ queueId }),
+        );
+        await Promise.all(triggers);
+        triggered = idsToTrigger.length;
+      }
 
       // Mark index file as completed
       await db
@@ -138,7 +144,7 @@ export const processIndexFileTask = task({
         found: rows.length,
         queued,
         skipped,
-        triggered: idsToTrigger.length,
+        triggered,
       };
     } catch (error) {
       // Mark as failed

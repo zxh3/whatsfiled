@@ -112,14 +112,31 @@ pnpm --filter @whatsfiled/trigger cli --help
 # Show pipeline statistics
 pnpm --filter @whatsfiled/trigger cli stats
 
-# Trigger backfill for current year
-pnpm --filter @whatsfiled/trigger cli trigger
-
-# Trigger with options
-pnpm --filter @whatsfiled/trigger cli trigger --year 2026 --limit 10 --wait
-
 # List recent runs
 pnpm --filter @whatsfiled/trigger cli runs
+```
+
+### Stage-by-Stage Processing
+
+```bash
+# Step 1: Discover what's available (doesn't process)
+pnpm --filter @whatsfiled/trigger cli discover --year 2025
+
+# Step 2: Process pending index files → creates filing queue entries
+pnpm --filter @whatsfiled/trigger cli process indexes --limit 10 --wait
+
+# Step 3: Process pending filings → creates filing records
+pnpm --filter @whatsfiled/trigger cli process filings --limit 100 --wait
+```
+
+### Full Pipeline
+
+```bash
+# Run all stages in sequence for current year
+pnpm --filter @whatsfiled/trigger cli sync --wait
+
+# Run with limits (for testing)
+pnpm --filter @whatsfiled/trigger cli sync --year 2026 --limit 5 --wait
 ```
 
 ### CLI Commands
@@ -127,15 +144,18 @@ pnpm --filter @whatsfiled/trigger cli runs
 | Command | Description |
 |---------|-------------|
 | `stats` | Show counts from `daily_index_files` and `filing_queue` tables |
-| `trigger` | Start a backfill run |
 | `runs` | List recent Trigger.dev runs with links |
+| `discover` | Discover index files for a year (no processing) |
+| `process indexes` | Process pending index files → creates filing queue |
+| `process filings` | Process pending filings → creates filing records |
+| `sync` | Full pipeline: discover + process all |
 
-### Trigger Options
+### Options
 
 | Option | Description |
 |--------|-------------|
-| `-y, --year <year>` | Year to backfill (default: current year) |
-| `-l, --limit <n>` | Limit filings to process (for testing) |
+| `-y, --year <year>` | Year for discovery/sync (default: current year) |
+| `-l, --limit <n>` | Limit items to process |
 | `-f, --form-types <types>` | Form types, comma-separated (default: "4,4/A") |
 | `-w, --wait` | Wait for completion and show result |
 

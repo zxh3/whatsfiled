@@ -69,6 +69,33 @@ function formatDate(date: string | Date | null): string {
   return d.toISOString().split("T")[0];
 }
 
+function formatPercentChange(
+  shares: number | null,
+  sharesOwnedAfter: number | null,
+  acquiredDisposed: "A" | "D" | null,
+): string {
+  if (shares === null || sharesOwnedAfter === null || !acquiredDisposed)
+    return "-";
+
+  // Calculate shares owned before the transaction
+  const sharesOwnedBefore =
+    acquiredDisposed === "A"
+      ? sharesOwnedAfter - shares
+      : sharesOwnedAfter + shares;
+
+  if (sharesOwnedBefore === 0) {
+    // New position
+    return acquiredDisposed === "A" ? "New" : "-100%";
+  }
+
+  const pctChange = (shares / sharesOwnedBefore) * 100;
+
+  if (pctChange >= 100) {
+    return `${acquiredDisposed === "A" ? "+" : "-"}${Math.round(pctChange)}%`;
+  }
+  return `${acquiredDisposed === "A" ? "+" : "-"}${pctChange.toFixed(1)}%`;
+}
+
 function TransactionTable({
   transactions,
   isLoading,
@@ -81,18 +108,18 @@ function TransactionTable({
         <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium">
+              <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium">
                 Date
               </th>
               {showCompany && (
-                <th className="w-[7%] whitespace-nowrap px-2 py-1.5 font-medium">
+                <th className="w-[6%] whitespace-nowrap px-2 py-1.5 font-medium">
                   Company
                 </th>
               )}
               <th
                 className={cn(
                   "whitespace-nowrap px-2 py-1.5 font-medium",
-                  showCompany ? "w-[17%]" : "w-[20%]",
+                  showCompany ? "w-[15%]" : "w-[18%]",
                 )}
               >
                 Insider
@@ -100,24 +127,27 @@ function TransactionTable({
               <th
                 className={cn(
                   "whitespace-nowrap px-2 py-1.5 font-medium",
-                  showCompany ? "w-[14%]" : "w-[17%]",
+                  showCompany ? "w-[13%]" : "w-[16%]",
                 )}
               >
                 Role
               </th>
-              <th className="w-[8%] whitespace-nowrap px-2 py-1.5 font-medium">
+              <th className="w-[7%] whitespace-nowrap px-2 py-1.5 font-medium">
                 Type
               </th>
-              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Price
               </th>
-              <th className="w-[12%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Shares
               </th>
-              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Value
               </th>
-              <th className="w-[12%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[8%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+                Chg
+              </th>
+              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
                 Owned
               </th>
             </tr>
@@ -147,13 +177,16 @@ function TransactionTable({
                   <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
-                  <div className="ml-auto h-4 w-full max-w-16 animate-pulse rounded bg-muted" />
+                  <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
+                </td>
+                <td className="px-2 py-1.5 text-right">
+                  <div className="ml-auto h-4 w-full max-w-12 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
                   <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
                 <td className="px-2 py-1.5 text-right">
-                  <div className="ml-auto h-4 w-full max-w-16 animate-pulse rounded bg-muted" />
+                  <div className="ml-auto h-4 w-full max-w-10 animate-pulse rounded bg-muted" />
                 </td>
               </tr>
             ))}
@@ -176,18 +209,18 @@ function TransactionTable({
       <table className="w-full table-fixed text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium">
+            <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium">
               Date
             </th>
             {showCompany && (
-              <th className="w-[7%] whitespace-nowrap px-2 py-1.5 font-medium">
+              <th className="w-[6%] whitespace-nowrap px-2 py-1.5 font-medium">
                 Company
               </th>
             )}
             <th
               className={cn(
                 "whitespace-nowrap px-2 py-1.5 font-medium",
-                showCompany ? "w-[17%]" : "w-[20%]",
+                showCompany ? "w-[15%]" : "w-[18%]",
               )}
             >
               Insider
@@ -195,24 +228,27 @@ function TransactionTable({
             <th
               className={cn(
                 "whitespace-nowrap px-2 py-1.5 font-medium",
-                showCompany ? "w-[14%]" : "w-[17%]",
+                showCompany ? "w-[13%]" : "w-[16%]",
               )}
             >
               Role
             </th>
-            <th className="w-[8%] whitespace-nowrap px-2 py-1.5 font-medium">
+            <th className="w-[7%] whitespace-nowrap px-2 py-1.5 font-medium">
               Type
             </th>
-            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Price
             </th>
-            <th className="w-[12%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Shares
             </th>
-            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Value
             </th>
-            <th className="w-[12%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[8%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              Chg
+            </th>
+            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
               Owned
             </th>
           </tr>
@@ -308,6 +344,23 @@ function TransactionTable({
                     }
                   >
                     {formatCompactCurrency(value)}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono">
+                  <span
+                    className={
+                      txn.acquiredDisposed === "A"
+                        ? "text-green-600 dark:text-green-400"
+                        : txn.acquiredDisposed === "D"
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-muted-foreground"
+                    }
+                  >
+                    {formatPercentChange(
+                      txn.shares,
+                      txn.sharesOwnedAfter,
+                      txn.acquiredDisposed,
+                    )}
                   </span>
                 </td>
                 <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-muted-foreground">

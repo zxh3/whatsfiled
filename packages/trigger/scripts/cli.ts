@@ -3,10 +3,15 @@
  * Trigger.dev Pipeline CLI
  *
  * Usage:
- *   pnpm --filter @whatsfiled/trigger cli --help
- *   pnpm --filter @whatsfiled/trigger cli stats
- *   pnpm --filter @whatsfiled/trigger cli trigger --year 2026
- *   pnpm --filter @whatsfiled/trigger cli trigger --year 2026 --limit 10
+ *   pnpm cli <command> [options]
+ *
+ * Commands:
+ *   stats                    Show pipeline statistics
+ *   runs                     List recent Trigger.dev runs
+ *   discover                 Discover index files for a year
+ *   process indexes          Process pending index files
+ *   process filings          Process pending filings
+ *   sync                     Full pipeline (discover + process all)
  */
 
 import { parseArgs } from "node:util";
@@ -58,29 +63,38 @@ Usage:
   pnpm cli <command> [options]
 
 Commands:
-  stats                 Show pipeline statistics
-  trigger               Trigger a backfill run
-  runs                  List recent runs
+  stats                    Show pipeline statistics
+  runs                     List recent Trigger.dev runs
+  discover                 Discover index files for a year (no processing)
+  process indexes          Process pending index files → creates filing queue
+  process filings          Process pending filings → creates filing records
+  sync                     Full pipeline: discover + process all
 
 Options:
-  -y, --year <year>     Year to backfill (default: current year)
-  -l, --limit <n>       Limit number of filings to process
-  -f, --form-types <t>  Form types to process (default: "4,4/A")
-  -w, --wait            Wait for run to complete (shows progress)
-  -h, --help            Show this help message
+  -y, --year <year>        Year for discovery/sync (default: current year)
+  -l, --limit <n>          Limit items to process
+  -f, --form-types <t>     Form types (default: "4,4/A")
+  -w, --wait               Wait for run to complete
+  -h, --help               Show this help message
 
 Examples:
-  # Show pipeline stats
+  # Show current pipeline status
   pnpm cli stats
 
-  # Trigger backfill for 2026
-  pnpm cli trigger --year 2026
+  # Discover what's available for 2025 (doesn't process)
+  pnpm cli discover --year 2025
 
-  # Trigger with limit and wait for completion
-  pnpm cli trigger --year 2026 --limit 10 --wait
+  # Process 10 pending index files
+  pnpm cli process indexes --limit 10 --wait
 
-  # List recent runs
-  pnpm cli runs
+  # Process 100 pending filings
+  pnpm cli process filings --limit 100
+
+  # Full sync for current year
+  pnpm cli sync --wait
+
+  # Full sync with limits (for testing)
+  pnpm cli sync --year 2026 --limit 5 --wait
 `);
 }
 
@@ -150,36 +164,36 @@ async function showStats() {
   console.log("");
 }
 
-async function triggerBackfill() {
-  const year = values.year
-    ? parseInt(values.year, 10)
-    : new Date().getFullYear();
-  const limit = values.limit ? parseInt(values.limit, 10) : undefined;
-  const formTypes = values["form-types"]?.split(",").map((s) => s.trim()) ?? [
-    "4",
-    "4/A",
-  ];
-  const shouldWait = values.wait;
+async function listRuns() {
+  console.log("\n=== Recent Runs ===\n");
 
-  if (Number.isNaN(year) || year < 2000 || year > 2100) {
-    console.error("Error: Invalid year");
-    process.exit(1);
+  const recentRuns = await runs.list({
+    limit: 10,
+  });
+
+  if (recentRuns.data.length === 0) {
+    console.log("No runs found.");
+    return;
   }
 
-  console.log("\n=== Triggering Backfill ===\n");
-  console.log(`Year:       ${year}`);
-  console.log(`Form types: ${formTypes.join(", ")}`);
-  if (limit) console.log(`Limit:      ${limit} filings per index file`);
-  console.log("");
+  for (const run of recentRuns.data) {
+    const status = run.status.padEnd(12);
+    const taskId = run.taskIdentifier.padEnd(25);
+    const createdAt = new Date(run.createdAt).toLocaleString();
+    console.log(`${status} ${taskId} ${createdAt}`);
+    console.log(
+      `         https://cloud.trigger.dev/projects/v3/${PROJECT_ID}/runs/${run.id}`,
+    );
+    console.log("");
+  }
+}
 
-  const payload = {
-    year,
-    formTypes,
-    // For testing: limit to 1 index file and N filings
-    ...(limit && { limitIndexFiles: 1, limitFilingsPerIndex: limit }),
-  };
-
-  const handle = await tasks.trigger("backfill", payload);
+async function triggerAndWait(
+  taskId: string,
+  payload: Record<string, unknown>,
+  shouldWait: boolean,
+) {
+  const handle = await tasks.trigger(taskId, payload);
 
   console.log(`Run triggered!`);
   console.log(`Run ID: ${handle.id}`);
@@ -207,28 +221,105 @@ async function triggerBackfill() {
   }
 }
 
-async function listRuns() {
-  console.log("\n=== Recent Runs ===\n");
+async function discover() {
+  const year = values.year
+    ? parseInt(values.year, 10)
+    : new Date().getFullYear();
+  const formTypes = values["form-types"]?.split(",").map((s) => s.trim()) ?? [
+    "4",
+    "4/A",
+  ];
+  const shouldWait = values.wait;
 
-  const recentRuns = await runs.list({
-    limit: 10,
-  });
-
-  if (recentRuns.data.length === 0) {
-    console.log("No runs found.");
-    return;
+  if (Number.isNaN(year) || year < 2000 || year > 2100) {
+    console.error("Error: Invalid year");
+    process.exit(1);
   }
 
-  for (const run of recentRuns.data) {
-    const status = run.status.padEnd(12);
-    const taskId = run.taskIdentifier.padEnd(25);
-    const createdAt = new Date(run.createdAt).toLocaleString();
-    console.log(`${status} ${taskId} ${createdAt}`);
-    console.log(
-      `         https://cloud.trigger.dev/projects/v3/${PROJECT_ID}/runs/${run.id}`,
-    );
-    console.log("");
+  console.log("\n=== Discovering Index Files ===\n");
+  console.log(`Year:       ${year}`);
+  console.log(`Form types: ${formTypes.join(", ")}`);
+  console.log(`Processing: No (discovery only)`);
+  console.log("");
+
+  await triggerAndWait(
+    "discover-index-files",
+    {
+      year,
+      formTypes,
+      triggerProcessing: false, // Don't cascade
+    },
+    shouldWait,
+  );
+}
+
+async function processIndexes() {
+  const limit = values.limit ? parseInt(values.limit, 10) : undefined;
+  const shouldWait = values.wait;
+
+  console.log("\n=== Processing Pending Index Files ===\n");
+  if (limit) console.log(`Limit: ${limit}`);
+  console.log("");
+
+  await triggerAndWait(
+    "process-pending-indexes",
+    {
+      limit,
+      triggerFilingProcessing: false, // Don't cascade to filings
+    },
+    shouldWait,
+  );
+}
+
+async function processFilings() {
+  const limit = values.limit ? parseInt(values.limit, 10) : undefined;
+  const shouldWait = values.wait;
+
+  console.log("\n=== Processing Pending Filings ===\n");
+  if (limit) console.log(`Limit: ${limit}`);
+  console.log("");
+
+  await triggerAndWait(
+    "process-pending-filings",
+    {
+      limit,
+    },
+    shouldWait,
+  );
+}
+
+async function sync() {
+  const year = values.year
+    ? parseInt(values.year, 10)
+    : new Date().getFullYear();
+  const limit = values.limit ? parseInt(values.limit, 10) : undefined;
+  const formTypes = values["form-types"]?.split(",").map((s) => s.trim()) ?? [
+    "4",
+    "4/A",
+  ];
+  const shouldWait = values.wait;
+
+  if (Number.isNaN(year) || year < 2000 || year > 2100) {
+    console.error("Error: Invalid year");
+    process.exit(1);
   }
+
+  console.log("\n=== Full Sync ===\n");
+  console.log(`Year:       ${year}`);
+  console.log(`Form types: ${formTypes.join(", ")}`);
+  if (limit) console.log(`Limit:      ${limit} (per stage)`);
+  console.log("");
+
+  // For sync with limit, use the backfill task which handles cascading
+  await triggerAndWait(
+    "backfill",
+    {
+      year,
+      formTypes,
+      ...(limit && { limitIndexFiles: limit, limitFilingsPerIndex: limit }),
+    },
+    shouldWait,
+  );
 }
 
 async function main() {
@@ -244,18 +335,37 @@ async function main() {
   }
 
   const command = positionals[0];
+  const subcommand = positionals[1];
 
   switch (command) {
     case "stats":
       await showStats();
       break;
 
-    case "trigger":
-      await triggerBackfill();
-      break;
-
     case "runs":
       await listRuns();
+      break;
+
+    case "discover":
+      await discover();
+      break;
+
+    case "process":
+      if (subcommand === "indexes" || subcommand === "index") {
+        await processIndexes();
+      } else if (subcommand === "filings" || subcommand === "filing") {
+        await processFilings();
+      } else {
+        console.error(
+          `Unknown subcommand: process ${subcommand || "(missing)"}`,
+        );
+        console.error("Available: process indexes, process filings");
+        process.exit(1);
+      }
+      break;
+
+    case "sync":
+      await sync();
       break;
 
     default:

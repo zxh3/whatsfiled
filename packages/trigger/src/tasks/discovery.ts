@@ -15,6 +15,8 @@ export interface DiscoverIndexFilesPayload {
   limitIndexFiles?: number;
   /** Limit number of filings to process per index file (for testing) */
   limitFilingsPerIndex?: number;
+  /** Whether to trigger processing for discovered files (default: true) */
+  triggerProcessing?: boolean;
 }
 
 export interface DiscoverIndexFilesResult {
@@ -39,7 +41,13 @@ export const discoverIndexFilesTask = task({
   run: async (
     payload: DiscoverIndexFilesPayload,
   ): Promise<DiscoverIndexFilesResult> => {
-    const { year, formTypes, limitIndexFiles, limitFilingsPerIndex } = payload;
+    const {
+      year,
+      formTypes,
+      limitIndexFiles,
+      limitFilingsPerIndex,
+      triggerProcessing = true,
+    } = payload;
     const db = getDb();
     const edgarClient = new EdgarClient({ userAgent: SEC_USER_AGENT });
 
@@ -90,21 +98,25 @@ export const discoverIndexFilesTask = task({
 
     logger.info(`Inserted ${inserted} new index file records`);
 
-    // Trigger processing for new index files (respecting limit)
-    const idsToTrigger = limitIndexFiles
-      ? insertedIds.slice(0, limitIndexFiles)
-      : insertedIds;
-
+    // Trigger processing for new index files (if enabled)
     let triggered = 0;
-    for (const indexFileId of idsToTrigger) {
-      await processIndexFileTask.trigger({
-        indexFileId,
-        limitFilings: limitFilingsPerIndex,
-      });
-      triggered++;
-    }
+    if (triggerProcessing) {
+      const idsToTrigger = limitIndexFiles
+        ? insertedIds.slice(0, limitIndexFiles)
+        : insertedIds;
 
-    logger.info(`Triggered ${triggered} index file processing tasks`);
+      for (const indexFileId of idsToTrigger) {
+        await processIndexFileTask.trigger({
+          indexFileId,
+          limitFilings: limitFilingsPerIndex,
+        });
+        triggered++;
+      }
+
+      logger.info(`Triggered ${triggered} index file processing tasks`);
+    } else {
+      logger.info("Skipping processing trigger (triggerProcessing=false)");
+    }
 
     return {
       discovered: fileNames.length,

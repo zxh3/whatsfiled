@@ -21,6 +21,19 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  apps/trigger-playground:
+    dependencies:
+      '@trigger.dev/sdk':
+        specifier: 4.3.3
+        version: 4.3.3(typescript@5.9.3)(zod@3.25.76)
+    devDependencies:
+      '@trigger.dev/build':
+        specifier: 4.3.3
+        version: 4.3.3(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   apps/web:
     dependencies:
       '@tanstack/react-query':

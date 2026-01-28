@@ -28,3 +28,13 @@ export type {
   ProcessIndexFileResult,
 } from "./index-processing.js";
 export { processIndexFileTask } from "./index-processing.js";
+export type {
+  ProcessPendingFilingsPayload,
+  ProcessPendingFilingsResult,
+  ProcessPendingIndexesPayload,
+  ProcessPendingIndexesResult,
+} from "./process-pending.js";
+export {
+  processPendingFilingsTask,
+  processPendingIndexesTask,
+} from "./process-pending.js";
