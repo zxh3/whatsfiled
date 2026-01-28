@@ -1,5 +1,4 @@
-import { SiteHeader } from "@/components/layout/site-header";
-import { trpc } from "@/lib/trpc";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Progress } from "@whatsfiled/ui/components/progress";
 import {
   Tabs,
@@ -13,10 +12,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CircleHelp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { SiteHeader } from "@/components/layout/site-header";
+import { trpc } from "@/lib/trpc";
 
 const syncSearchSchema = z.object({
   year: z.coerce.number().optional(),

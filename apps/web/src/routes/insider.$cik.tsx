@@ -1,7 +1,7 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { FilingCard } from "@/components/filings/filing-card";
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
-import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/insider/$cik")({
   component: InsiderPage,

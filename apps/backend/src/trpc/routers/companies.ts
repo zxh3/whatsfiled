@@ -6,8 +6,8 @@ import {
   companyTickers,
   filingOwners,
   filings,
-  insiders,
   insiderRoles,
+  insiders,
   transactions,
 } from "../../db/schema.js";
 import { publicProcedure, router } from "../init.js";

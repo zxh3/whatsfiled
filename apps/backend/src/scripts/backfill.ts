@@ -251,7 +251,7 @@ async function main() {
 
       const maxBatchSize = 500;
       let remaining = limit ?? Infinity;
-      let aggregate = {
+      const aggregate = {
         processed: 0,
         completed: 0,
         failed: 0,

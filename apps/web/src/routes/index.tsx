@@ -1,6 +1,6 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { ActivityFeed } from "@/components/filings";
 import { SiteHeader } from "@/components/layout/site-header";
-import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   component: HomePage,

@@ -1,7 +1,7 @@
-import { TransactionTable } from "@/components/transactions/transaction-table";
-import { trpc } from "@/lib/trpc";
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import { useEffect, useRef, useState } from "react";
+import { TransactionTable } from "@/components/transactions/transaction-table";
+import { trpc } from "@/lib/trpc";
 
 const PAGE_SIZE = 50;
 
@@ -104,6 +104,7 @@ export function ActivityFeed() {
         <div className="py-4 text-center">
           {data.pagination.hasMore ? (
             <button
+              type="button"
               onClick={handleLoadMore}
               disabled={isFetching}
               className="text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"

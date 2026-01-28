@@ -1,421 +1,303 @@
 # Deployment Guide
 
-Deploy WhatsFiled on Google Compute Engine as a single VM.
+Deploy WhatsFiled using Vercel + Trigger.dev + Neon.
 
 ## Architecture
 
 ```
-                    yourdomain.com
-                          │
-                          ▼
-┌─────────────────────────────────────────────┐
-│  GCE VM (e2-small, ~$13/mo)                 │
-│                                             │
-│  ┌─────────┐      ┌─────────────────────┐   │
-│  │ nginx   │ ───► │ Node.js app (:3000) │   │
-│  │ (:443)  │      │ ├── Express API     │   │
-│  │ + SSL   │      │ ├── Static frontend │   │
-│  └─────────┘      │ └── Cron jobs       │   │
-│                   └──────────┬──────────┘   │
-│                              │              │
-│                   ┌──────────▼──────────┐   │
-│                   │ PostgreSQL (:5432)  │   │
-│                   └─────────────────────┘   │
-└─────────────────────────────────────────────┘
+                     whatsfiled.com
+                           │
+                           ▼
+┌──────────────────────────────────────────────────────────┐
+│  Vercel                                                  │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │  Next.js App                                       │  │
+│  │  ├── Pages (React)                                 │  │
+│  │  ├── API Routes (tRPC)                             │  │
+│  │  └── Vercel Analytics                              │  │
+│  └────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌──────────────────────────────────────────────────────────┐
+│  Neon (Managed PostgreSQL)                               │
+│  └── whatsfiled database                                 │
+└──────────────────────────────────────────────────────────┘
+                           ▲
+                           │
+┌──────────────────────────────────────────────────────────┐
+│  Trigger.dev                                             │
+│  ├── SEC Filing Sync (scheduled)                         │
+│  └── Backfill Jobs (on-demand)                           │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ## Cost Estimate
 
-| Resource | Monthly Cost |
-|----------|--------------|
-| VM (e2-small, 2 vCPU, 2GB RAM) | ~$13 |
-| Static IP | Free (while attached) |
-| 20GB disk | ~$1 |
-| Domain | ~$1 (annual ÷ 12) |
-| SSL | Free (Let's Encrypt) |
-| **Total** | **~$15/month** |
+| Service | Tier | Monthly Cost |
+|---------|------|--------------|
+| Vercel | Pro | $20 |
+| Neon | Free (0.5GB) / Launch ($19) | $0-19 |
+| Trigger.dev | Free (50k runs) | $0 |
+| Domain | — | ~$1 |
+| **Total** | | **~$20-40/month** |
+
+Free tiers work fine for starting out.
+
+---
 
 ## Prerequisites
 
-- Google Cloud account with billing enabled
-- A domain name (from Cloudflare, Namecheap, etc.)
-- `gcloud` CLI installed locally (optional, can use web console)
+- GitHub account (repo connected to Vercel)
+- Vercel account
+- Neon account
+- Trigger.dev account
 
 ---
 
-## Step 1: Create the VM
+## Step 1: Set Up Neon Database
 
-### Via Google Cloud Console
+1. Go to [neon.tech](https://neon.tech) and create a project
+2. Create a database called `whatsfiled`
+3. Copy the connection string:
+   ```
+   postgresql://user:pass@ep-xyz.us-east-1.aws.neon.tech/whatsfiled?sslmode=require
+   ```
 
-1. Go to [Compute Engine](https://console.cloud.google.com/compute)
-2. Click **Create Instance**
-3. Configure:
-   - **Name**: `whatsfiled`
-   - **Region**: Choose one close to your users
-   - **Machine type**: `e2-small` (2 vCPU, 2GB RAM)
-   - **Boot disk**: Ubuntu 24.04 LTS, 20GB SSD
-   - **Firewall**: ✅ Allow HTTP, ✅ Allow HTTPS
-4. Click **Create**
+### Run Migrations
 
-### Reserve Static IP
-
-1. Go to **VPC Network** → **IP addresses**
-2. Click **Reserve External Static Address**
-3. Attach it to your VM
-
-Note the IP address - you'll need it for DNS.
-
----
-
-## Step 2: Set Up the VM
-
-SSH into the VM:
+From your local machine with the Neon connection string:
 
 ```bash
-gcloud compute ssh whatsfiled
-# or use the SSH button in Cloud Console
-```
-
-### Install Dependencies
-
-```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
-
-# Install Node.js 22
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# Install pnpm and pm2
-sudo npm install -g pnpm pm2
-
-# Install nginx and certbot
-sudo apt install -y nginx certbot python3-certbot-nginx
-
-# Install PostgreSQL
-sudo apt install -y postgresql postgresql-contrib
-```
-
-### Set Up PostgreSQL
-
-```bash
-# Create database and user
-sudo -u postgres psql
-
-CREATE USER whatsfiled WITH PASSWORD 'your-secure-password';
-CREATE DATABASE whatsfiled OWNER whatsfiled;
-\q
+DATABASE_URL="postgresql://..." pnpm db:push
 ```
 
 ---
 
-## Step 3: Deploy the App
+## Step 2: Deploy to Vercel
 
-### Clone and Build
+### Connect Repository
 
-```bash
-# Clone repo
-cd ~
-git clone https://github.com/YOUR_USERNAME/whatsfiled.git
-cd whatsfiled
+1. Go to [vercel.com](https://vercel.com)
+2. Click **Add New Project**
+3. Import your GitHub repository
+4. Configure:
+   - **Framework Preset**: Next.js
+   - **Root Directory**: `apps/web` (after migration)
+   - **Build Command**: `pnpm build`
+   - **Install Command**: `pnpm install`
 
-# Install dependencies
-pnpm install
+### Environment Variables
 
-# Build for production
-pnpm build:prod
+Add these in Vercel project settings:
+
 ```
-
-### Configure Environment
-
-```bash
-# Create environment file
-cat > apps/backend/.env.local << 'EOF'
-DATABASE_URL=postgresql://whatsfiled:your-secure-password@localhost:5432/whatsfiled
-NODE_ENV=production
-PORT=3000
+DATABASE_URL=postgresql://user:pass@ep-xyz.neon.tech/whatsfiled?sslmode=require
 EDGAR_USER_AGENT=WhatsFiled contact@yourdomain.com
-EOF
 ```
 
-### Run Database Migrations
+### Deploy
+
+Push to `main` branch — Vercel auto-deploys.
+
+---
+
+## Step 3: Set Up Trigger.dev
+
+### Create Project
+
+1. Go to [trigger.dev](https://trigger.dev)
+2. Create a new project
+3. Get your API key and project ID
+
+### Install SDK
 
 ```bash
-pnpm db:push
+pnpm add @trigger.dev/sdk @trigger.dev/nextjs
 ```
 
-### Start with pm2
+### Configure Jobs
 
-```bash
-# Start the app
-pm2 start apps/backend/dist/index.js --name whatsfiled
+Create `src/trigger/sync-filings.ts`:
 
-# Save pm2 config and enable startup on reboot
-pm2 save
-pm2 startup
-# Run the command it outputs
+```typescript
+import { schedules } from "@trigger.dev/sdk/v3";
+import { db } from "@/db";
+import { EdgarClient } from "@whatsfiled/edgar-client";
+
+export const syncFilings = schedules.task({
+  id: "sync-sec-filings",
+  cron: "*/15 * * * *", // Every 15 minutes
+  run: async () => {
+    const client = new EdgarClient({
+      userAgent: process.env.EDGAR_USER_AGENT!,
+    });
+
+    // Fetch and process recent filings
+    // ... sync logic here
+
+    return { synced: count };
+  },
+});
 ```
 
-Verify it's running:
+### Environment Variables
+
+Add to Trigger.dev dashboard:
+
+```
+DATABASE_URL=postgresql://...
+EDGAR_USER_AGENT=WhatsFiled contact@yourdomain.com
+```
+
+### Deploy Jobs
 
 ```bash
-pm2 status
-curl http://localhost:3000/health
+npx trigger.dev@latest deploy
 ```
 
 ---
 
-## Step 4: Set Up Domain & SSL
+## Step 4: Domain & Analytics
 
-### Point DNS to VM
+### Custom Domain
 
-In your domain registrar (Cloudflare, Namecheap, etc.):
+1. In Vercel, go to **Settings** → **Domains**
+2. Add your domain (e.g., `whatsfiled.com`)
+3. Update DNS records as instructed
 
-1. Add an **A record**:
-   - **Name**: `@` (or subdomain like `app`)
-   - **Value**: Your VM's static IP
-   - **TTL**: Auto or 300
+### Enable Analytics
 
-2. (Optional) Add a **www** redirect:
-   - **Name**: `www`
-   - **Value**: Your VM's static IP
-
-Wait a few minutes for DNS propagation.
-
-### Configure nginx
-
-```bash
-sudo nano /etc/nginx/sites-available/whatsfiled
-```
-
-Paste:
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-Enable the site:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/whatsfiled /etc/nginx/sites-enabled/
-sudo rm /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-### Get SSL Certificate
-
-```bash
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-```
-
-Follow the prompts. Certbot will:
-- Get a free SSL certificate from Let's Encrypt
-- Configure nginx for HTTPS
-- Set up auto-renewal
-
-Verify HTTPS works: `https://yourdomain.com`
+1. In Vercel, go to **Analytics** tab
+2. Click **Enable**
+3. Analytics are automatic — no code changes needed
 
 ---
 
-## Step 5: Updating the App
+## Migration from Current Stack
 
-SSH into the VM and run:
+### What Changes
 
-```bash
-cd ~/whatsfiled
-git pull
-pnpm install
-pnpm build:prod
-pnpm db:push  # if schema changed
-pm2 restart whatsfiled
-```
+| Current | New |
+|---------|-----|
+| Vite + React | Next.js |
+| TanStack Router | Next.js App Router |
+| Express + tRPC | Next.js API Routes + tRPC |
+| node-cron | Trigger.dev |
+| Local PostgreSQL | Neon |
 
-### Quick Update Script
+### Migration Steps
 
-Create `~/update.sh`:
+1. **Create Next.js app structure**
+   - Move pages to `app/` directory
+   - Convert TanStack routes to Next.js routes
 
-```bash
-#!/bin/bash
-set -e
-cd ~/whatsfiled
-git pull
-pnpm install
-pnpm build:prod
-pm2 restart whatsfiled
-echo "✓ Updated and restarted"
-```
+2. **Move tRPC to API routes**
+   - Create `app/api/trpc/[trpc]/route.ts`
+   - Keep existing routers
 
-```bash
-chmod +x ~/update.sh
-# Then just run: ~/update.sh
-```
+3. **Extract sync jobs to Trigger.dev**
+   - Move cron logic to Trigger.dev tasks
+   - Remove node-cron from backend
+
+4. **Update database connection**
+   - Point to Neon
+   - Use connection pooling for serverless
 
 ---
 
 ## Monitoring
 
-### View Logs
+### Vercel
 
-```bash
-# App logs
-pm2 logs whatsfiled
+- **Analytics**: Traffic, Web Vitals, audience
+- **Logs**: Function logs in dashboard
+- **Alerts**: Set up in project settings
 
-# nginx logs
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
-```
+### Trigger.dev
 
-### Check Status
+- **Runs**: See all job executions
+- **Logs**: Detailed logs per run
+- **Alerts**: Failed job notifications
 
-```bash
-pm2 status
-pm2 monit  # interactive monitor
-```
+### Neon
 
-### Cron Job Logs
-
-```bash
-pm2 logs whatsfiled | grep -i cron
-```
+- **Metrics**: Connections, queries, storage
+- **Query history**: Recent queries
 
 ---
 
-## Maintenance
+## Updating
 
-### SSL Certificate Renewal
+### App Updates
 
-Certbot auto-renews. Test it:
+Push to `main` — Vercel auto-deploys.
 
 ```bash
-sudo certbot renew --dry-run
+git push origin main
 ```
 
-### Database Backups
+### Database Migrations
 
 ```bash
-# Manual backup
-pg_dump -U whatsfiled whatsfiled > backup_$(date +%Y%m%d).sql
-
-# Restore
-psql -U whatsfiled whatsfiled < backup_20240101.sql
+DATABASE_URL="postgresql://..." pnpm db:push
 ```
 
-### Automatic Daily Backups
+### Trigger.dev Jobs
 
 ```bash
-# Add to crontab
-crontab -e
-
-# Add this line (backs up daily at 3 AM)
-0 3 * * * pg_dump -U whatsfiled whatsfiled > ~/backups/whatsfiled_$(date +\%Y\%m\%d).sql
+npx trigger.dev@latest deploy
 ```
 
 ---
 
 ## Troubleshooting
 
-### App Won't Start
+### Build Fails on Vercel
 
 ```bash
-# Check logs
-pm2 logs whatsfiled --lines 50
+# Check build locally
+pnpm build
 
-# Check if port is in use
-sudo lsof -i :3000
-
-# Restart
-pm2 restart whatsfiled
+# Check for env var issues
+vercel env pull
 ```
 
-### 502 Bad Gateway
+### Database Connection Issues
 
-App isn't running or wrong port:
+Neon uses connection pooling. Ensure your connection string includes:
+- `?sslmode=require` for SSL
+- Use the pooled connection string for serverless
 
-```bash
-pm2 status
-curl http://localhost:3000/health
-```
+### Trigger.dev Jobs Not Running
 
-### Database Connection Failed
+1. Check job is deployed: `npx trigger.dev@latest whoami`
+2. Check logs in Trigger.dev dashboard
+3. Verify environment variables are set
 
-```bash
-# Check PostgreSQL is running
-sudo systemctl status postgresql
+---
 
-# Test connection
-psql -U whatsfiled -d whatsfiled -h localhost
-```
+## Rollback
 
-### SSL Certificate Issues
+### Vercel
 
-```bash
-# Check certificate status
-sudo certbot certificates
+1. Go to **Deployments**
+2. Find previous working deployment
+3. Click **...** → **Promote to Production**
 
-# Force renewal
-sudo certbot renew --force-renewal
-```
+### Database
+
+Neon has point-in-time recovery:
+1. Go to **Branches** in Neon dashboard
+2. Create branch from past timestamp
+3. Update connection string temporarily
 
 ---
 
 ## Security Checklist
 
-- [ ] Strong PostgreSQL password
-- [ ] Firewall allows only 22, 80, 443
-- [ ] SSH key authentication (disable password auth)
-- [ ] Regular system updates (`sudo apt update && sudo apt upgrade`)
-- [ ] Database backups enabled
-
-### Firewall (if needed)
-
-GCE firewall is configured via Cloud Console, but you can also use `ufw`:
-
-```bash
-sudo ufw allow 22
-sudo ufw allow 80
-sudo ufw allow 443
-sudo ufw enable
-```
-
----
-
-## Useful Commands
-
-```bash
-# SSH into VM
-gcloud compute ssh whatsfiled
-
-# App management
-pm2 status                    # Check status
-pm2 restart whatsfiled        # Restart app
-pm2 logs whatsfiled           # View logs
-pm2 monit                     # Interactive monitor
-
-# nginx
-sudo nginx -t                 # Test config
-sudo systemctl reload nginx   # Reload config
-
-# PostgreSQL
-sudo -u postgres psql         # Admin access
-psql -U whatsfiled whatsfiled # App user access
-
-# System
-htop                          # Resource usage
-df -h                         # Disk space
-```
+- [ ] Environment variables set (not in code)
+- [ ] Database connection uses SSL
+- [ ] Vercel project is private (if needed)
+- [ ] Trigger.dev API key is secure
+- [ ] Rate limiting on API routes (if needed)

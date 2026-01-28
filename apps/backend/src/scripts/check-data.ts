@@ -7,11 +7,11 @@ import { count } from "drizzle-orm";
 import { db } from "../db/index.js";
 import {
   companies,
-  filings,
+  derivativeTransactions,
   filingOwners,
+  filings,
   insiders,
   transactions,
-  derivativeTransactions,
 } from "../db/schema.js";
 
 async function main() {

@@ -1,7 +1,7 @@
-import { SiteHeader } from "@/components/layout/site-header";
-import { trpc } from "@/lib/trpc";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { SiteHeader } from "@/components/layout/site-header";
+import { trpc } from "@/lib/trpc";
 
 const searchSchema = z.object({
   q: z.string().optional(),
