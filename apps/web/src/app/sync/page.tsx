@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@whatsfiled/ui/components/button";
+import { Checkbox } from "@whatsfiled/ui/components/checkbox";
+import { Label } from "@whatsfiled/ui/components/label";
 import { Progress } from "@whatsfiled/ui/components/progress";
 import {
   Tooltip,
@@ -164,30 +167,30 @@ export default function SyncPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
+              <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
                   checked={autoRefresh}
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                  className="rounded"
+                  onCheckedChange={(checked) =>
+                    setAutoRefresh(checked === true)
+                  }
                 />
                 Auto-refresh
-              </label>
+              </Label>
               {lastUpdated && (
                 <span className="text-xs text-muted-foreground">
                   Updated {lastUpdated.toLocaleTimeString()}
                 </span>
               )}
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => statsQuery.refetch()}
-                className="p-1.5 rounded hover:bg-muted"
                 title="Refresh"
               >
                 <RefreshCw
                   className={`w-4 h-4 ${statsQuery.isFetching ? "animate-spin" : ""}`}
                 />
-              </button>
+              </Button>
             </div>
           </div>
           {/* Loading state */}

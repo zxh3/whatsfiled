@@ -1,19 +1,50 @@
 "use client";
 
+import { Kbd, KbdGroup } from "@whatsfiled/ui/components/kbd";
 import { AnimatePresence, motion } from "framer-motion";
-import { Moon, Sun } from "lucide-react";
+import { Building2, Moon, Search, Sun, User, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { trpc } from "@/lib/trpc";
 
 export function SiteHeader() {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { resolvedTheme, setTheme, mounted } = useTheme();
+
+  // Detect OS for keyboard shortcut display
+  const [isMac, setIsMac] = useState(true);
+  useEffect(() => {
+    setIsMac(navigator.platform.toUpperCase().indexOf("MAC") >= 0);
+  }, []);
+
+  // Global keyboard shortcut: Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault();
+        inputRef.current?.focus();
+      }
+      // Also support Escape to blur
+      if (event.key === "Escape" && isFocused) {
+        inputRef.current?.blur();
+        setIsFocused(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [isFocused]);
+
+  const clearSearch = useCallback(() => {
+    setQuery("");
+    inputRef.current?.focus();
+  }, []);
 
   const { data } = trpc.search.search.useQuery(
     { query, limit: 6 },
@@ -95,22 +126,35 @@ export function SiteHeader() {
           </p>
         </div>
         <div className="flex w-full max-w-sm flex-col gap-2">
-          <form onSubmit={handleSubmit} className="relative flex">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setTimeout(() => setIsFocused(false), 150)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search companies, tickers, insiders"
-              className="w-full rounded-l-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/20"
-            />
-            <button
-              type="submit"
-              className="rounded-r-md border border-l-0 border-border bg-foreground px-3 text-sm font-medium text-background hover:bg-foreground/90"
-            >
-              Search
-            </button>
+          <form onSubmit={handleSubmit} className="relative">
+            <div className="relative flex items-center">
+              <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search companies, tickers, insiders"
+                className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-20 text-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-foreground/20"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-3 p-1 text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : (
+                <KbdGroup className="pointer-events-none absolute right-3 hidden select-none sm:inline-flex">
+                  <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
+                  <Kbd>K</Kbd>
+                </KbdGroup>
+              )}
+            </div>
             <AnimatePresence>
               {isFocused && query.trim().length >= 2 && data && (
                 <motion.div
@@ -122,17 +166,18 @@ export function SiteHeader() {
                   className="absolute left-0 top-full z-20 mt-2 w-full rounded-md border border-border bg-background p-2 text-sm shadow-lg"
                 >
                   {data.companies.length === 0 && data.insiders.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">
-                      No matches found.
+                    <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                      No matches found for "{query}"
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {data.companies.length > 0 && (
                         <div>
-                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <div className="flex items-center gap-1.5 px-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                            <Building2 className="h-3 w-3" />
                             Companies
                           </div>
-                          <div className="mt-1 space-y-1">
+                          <div className="mt-1 space-y-0.5">
                             {data.companies.map((company) => {
                               const itemKey = `company:${company.id}:${company.ticker ?? company.cik}`;
                               const itemIndex = items.findIndex(
@@ -143,8 +188,8 @@ export function SiteHeader() {
                                 <Link
                                   key={`${company.id}:${company.ticker ?? company.cik}`}
                                   href={`/company/${company.cik}`}
-                                  className={`block rounded-md px-2 py-1 hover:bg-muted/40 ${
-                                    isSelected ? "bg-muted/60" : ""
+                                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 ${
+                                    isSelected ? "bg-muted/70" : ""
                                   }`}
                                   onMouseEnter={() => {
                                     if (itemIndex >= 0)
@@ -161,7 +206,7 @@ export function SiteHeader() {
                                     )}
                                   </span>
                                   {company.ticker && (
-                                    <span className="ml-2 text-xs text-muted-foreground">
+                                    <span className="truncate text-xs text-muted-foreground">
                                       {company.name}
                                     </span>
                                   )}
@@ -173,10 +218,11 @@ export function SiteHeader() {
                       )}
                       {data.insiders.length > 0 && (
                         <div>
-                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <div className="flex items-center gap-1.5 px-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                            <User className="h-3 w-3" />
                             Insiders
                           </div>
-                          <div className="mt-1 space-y-1">
+                          <div className="mt-1 space-y-0.5">
                             {data.insiders.map((insider) => {
                               const itemKey = `insider:${insider.id}:${insider.cik ?? "unknown"}`;
                               const itemIndex = items.findIndex(
@@ -187,8 +233,8 @@ export function SiteHeader() {
                                 <Link
                                   key={`${insider.id}:${insider.cik ?? "unknown"}`}
                                   href={`/insider/${insider.cik}`}
-                                  className={`block rounded-md px-2 py-1 hover:bg-muted/40 ${
-                                    isSelected ? "bg-muted/60" : ""
+                                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 ${
+                                    isSelected ? "bg-muted/70" : ""
                                   }`}
                                   onMouseEnter={() => {
                                     if (itemIndex >= 0)
@@ -199,7 +245,7 @@ export function SiteHeader() {
                                     {insider.name}
                                   </span>
                                   {insider.cik && (
-                                    <span className="ml-2 text-xs text-muted-foreground">
+                                    <span className="text-xs text-muted-foreground">
                                       CIK {insider.cik}
                                     </span>
                                   )}
@@ -209,6 +255,28 @@ export function SiteHeader() {
                           </div>
                         </div>
                       )}
+                      {/* Keyboard navigation hint */}
+                      <div className="border-t border-border pt-2 text-[10px] text-muted-foreground">
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="inline-flex items-center gap-1">
+                            <KbdGroup size="sm">
+                              <Kbd size="sm">↑</Kbd>
+                              <Kbd size="sm">↓</Kbd>
+                            </KbdGroup>
+                            <span>navigate</span>
+                          </span>
+                          <span className="text-border">·</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Kbd size="sm">↵</Kbd>
+                            <span>select</span>
+                          </span>
+                          <span className="text-border">·</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Kbd size="sm">esc</Kbd>
+                            <span>close</span>
+                          </span>
+                        </span>
+                      </div>
                     </div>
                   )}
                 </motion.div>

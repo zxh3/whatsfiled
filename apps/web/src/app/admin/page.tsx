@@ -1,5 +1,16 @@
 "use client";
 
+import { Button } from "@whatsfiled/ui/components/button";
+import { Checkbox } from "@whatsfiled/ui/components/checkbox";
+import { Input } from "@whatsfiled/ui/components/input";
+import { Label } from "@whatsfiled/ui/components/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@whatsfiled/ui/components/select";
 import {
   Tooltip,
   TooltipContent,
@@ -268,30 +279,30 @@ export default function AdminPipelinePage() {
                 Open Trigger.dev
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
+              <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
                   checked={autoRefresh}
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                  className="rounded"
+                  onCheckedChange={(checked) =>
+                    setAutoRefresh(checked === true)
+                  }
                 />
                 Auto-refresh
-              </label>
+              </Label>
               {lastUpdated && (
                 <span className="text-xs text-muted-foreground">
                   Updated {lastUpdated.toLocaleTimeString()}
                 </span>
               )}
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => runsQuery.refetch()}
-                className="p-1.5 rounded hover:bg-muted"
                 title="Refresh"
               >
                 <RefreshCw
                   className={`w-4 h-4 ${runsQuery.isFetching ? "animate-spin" : ""}`}
                 />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -351,43 +362,45 @@ export default function AdminPipelinePage() {
                   <InfoTooltip content="Discover all index files for a year and process all filings. This is the full pipeline - discovery → index processing → filing processing." />
                 </div>
                 <div className="flex items-center gap-3">
-                  <select
-                    value={backfillYear}
-                    onChange={(e) => setBackfillYear(Number(e.target.value))}
-                    className="rounded border border-border bg-background px-3 py-1.5 text-sm"
+                  <Select
+                    value={String(backfillYear)}
+                    onValueChange={(value) => setBackfillYear(Number(value))}
                     disabled={isAnyMutationPending}
                   >
-                    {[
-                      CURRENT_YEAR,
-                      CURRENT_YEAR - 1,
-                      CURRENT_YEAR - 2,
-                      CURRENT_YEAR - 3,
-                    ].map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                  <input
+                    <SelectTrigger className="w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        CURRENT_YEAR,
+                        CURRENT_YEAR - 1,
+                        CURRENT_YEAR - 2,
+                        CURRENT_YEAR - 3,
+                      ].map((year) => (
+                        <SelectItem key={year} value={String(year)}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
                     type="number"
                     placeholder="Limit index files (optional)"
                     value={backfillLimit}
                     onChange={(e) => setBackfillLimit(e.target.value)}
-                    className="rounded border border-border bg-background px-3 py-1.5 text-sm w-48"
-                    min="1"
-                    max="500"
+                    className="w-48"
+                    min={1}
+                    max={500}
                     disabled={isAnyMutationPending}
                   />
-                  <button
-                    type="button"
+                  <Button
                     onClick={handleBackfill}
                     disabled={isAnyMutationPending}
-                    className="rounded bg-foreground text-background px-4 py-1.5 text-sm font-medium hover:bg-foreground/90 disabled:opacity-50"
                   >
                     {backfillMutation.isPending
                       ? "Starting..."
                       : "Start Backfill"}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -402,36 +415,35 @@ export default function AdminPipelinePage() {
                   <InfoTooltip content="Process index files that are in 'pending' status. This parses each index file and creates filing queue entries." />
                 </div>
                 <div className="flex items-center gap-3">
-                  <input
+                  <Input
                     type="number"
                     placeholder="Limit (optional)"
                     value={indexLimit}
                     onChange={(e) => setIndexLimit(e.target.value)}
-                    className="rounded border border-border bg-background px-3 py-1.5 text-sm w-32"
-                    min="1"
-                    max="100"
+                    className="w-32"
+                    min={1}
+                    max={100}
                     disabled={isAnyMutationPending}
                   />
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
+                  <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
                       checked={triggerFilings}
-                      onChange={(e) => setTriggerFilings(e.target.checked)}
-                      className="rounded"
+                      onCheckedChange={(checked) =>
+                        setTriggerFilings(checked === true)
+                      }
                       disabled={isAnyMutationPending}
                     />
                     Also process filings
-                  </label>
-                  <button
-                    type="button"
+                  </Label>
+                  <Button
+                    variant="secondary"
                     onClick={handleProcessIndexes}
                     disabled={isAnyMutationPending}
-                    className="rounded bg-muted px-4 py-1.5 text-sm font-medium hover:bg-muted/80 disabled:opacity-50"
                   >
                     {processIndexesMutation.isPending
                       ? "Starting..."
                       : "Process Indexes"}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -446,26 +458,25 @@ export default function AdminPipelinePage() {
                   <InfoTooltip content="Process filings that are in 'pending' status. This fetches each filing from SEC, parses it, and stores the data." />
                 </div>
                 <div className="flex items-center gap-3">
-                  <input
+                  <Input
                     type="number"
                     placeholder="Limit (optional)"
                     value={filingLimit}
                     onChange={(e) => setFilingLimit(e.target.value)}
-                    className="rounded border border-border bg-background px-3 py-1.5 text-sm w-32"
-                    min="1"
-                    max="1000"
+                    className="w-32"
+                    min={1}
+                    max={1000}
                     disabled={isAnyMutationPending}
                   />
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
                     onClick={handleProcessFilings}
                     disabled={isAnyMutationPending}
-                    className="rounded bg-muted px-4 py-1.5 text-sm font-medium hover:bg-muted/80 disabled:opacity-50"
                   >
                     {processFilingsMutation.isPending
                       ? "Starting..."
                       : "Process Filings"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

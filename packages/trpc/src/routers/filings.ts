@@ -288,7 +288,11 @@ export const filingsRouter = router({
         .innerJoin(filings, eq(transactions.filingId, filings.id))
         .innerJoin(companies, eq(filings.companyId, companies.id))
         .where(inArray(transactions.transactionCode, codes))
-        .orderBy(desc(transactions.transactionDate), desc(filings.filedAt))
+        .orderBy(
+          desc(transactions.transactionDate),
+          desc(filings.filedAt),
+          desc(transactions.id),
+        )
         .limit(limit)
         .offset(offset);
 

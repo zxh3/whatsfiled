@@ -53,8 +53,14 @@ export function ActivityFeed() {
         // Reset on filter change or initial load
         setAllTransactions(data.transactions);
       } else if (offset > prevOffset.current) {
-        // Append on load more
-        setAllTransactions((prev) => [...prev, ...data.transactions]);
+        // Append on load more, dedupe by ID to handle edge cases
+        setAllTransactions((prev) => {
+          const existingIds = new Set(prev.map((t) => t.id));
+          const newTransactions = data.transactions.filter(
+            (t) => !existingIds.has(t.id),
+          );
+          return [...prev, ...newTransactions];
+        });
       }
       prevOffset.current = offset;
     }

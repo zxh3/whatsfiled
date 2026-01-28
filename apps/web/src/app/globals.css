@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 
 /* Include UI package and app components in Tailwind scanning */
-@source "../../../../../packages/ui/src/**/*.tsx";
+@source "../../../../packages/ui/src/**/*.tsx";
 @source "../components/**/*.tsx";
 
 @custom-variant dark (&:is(.dark *));
