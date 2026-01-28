@@ -146,7 +146,9 @@ export class EdgarClient {
 
     for (let quarter = 1; quarter <= maxQuarter; quarter++) {
       const url = buildQuarterCatalogUrl(year, quarter);
+      console.log(`Fetching ${url}`);
       const html = await this.fetch(url);
+      console.log(`Extracting file names from ${url}`);
       const names = extractDailyIndexFileNames(html);
       fileNames.push(...names);
       await sleep(this.rateLimitDelayMs);

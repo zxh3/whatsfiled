@@ -27,7 +27,10 @@ export const dailySyncSchedule = schedules.task({
     endDate.setDate(endDate.getDate() + 1);
     const endDateStr = endDate.toISOString().split("T")[0];
 
-    logger.info("Starting daily sync", { startDate: startDateStr, endDate: endDateStr });
+    logger.info("Starting daily sync", {
+      startDate: startDateStr,
+      endDate: endDateStr,
+    });
 
     // Trigger discovery for Form 4 and Form 4/A filings
     const result = await discoverIndexFilesTask.triggerAndWait({

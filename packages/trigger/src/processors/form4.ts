@@ -40,9 +40,9 @@ export class Form4Processor implements FilingProcessor {
 
       // Map to database within a transaction
       // Idempotent: if filing already exists, returns skipped=true
+      // Note: not storing rawContent to save DB space (can re-fetch from SEC via documentUrl)
       const result = await db.transaction(async (tx) => {
         return await mapForm4ToDb(tx as unknown as Database, doc, {
-          rawContent: content,
           documentUrl: doc.source?.formattedXmlUrl,
           filedAt,
         });

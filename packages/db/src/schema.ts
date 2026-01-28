@@ -519,7 +519,10 @@ export const dailyIndexFiles = pgTable(
     ),
     index("daily_index_files_status_idx").on(table.status),
     // Compound index for backfill queries: WHERE status = 'pending' AND indexDate BETWEEN
-    index("daily_index_files_status_date_idx").on(table.status, table.indexDate),
+    index("daily_index_files_status_date_idx").on(
+      table.status,
+      table.indexDate,
+    ),
   ],
 );
 
@@ -576,7 +579,10 @@ export const filingQueue = pgTable(
     index("filing_queue_source_idx").on(table.source), // For source analytics
     index("filing_queue_daily_index_file_idx").on(table.dailyIndexFileId),
     // Compound index for backfill queries: WHERE status = 'pending' AND dateFiled BETWEEN
-    index("filing_queue_status_date_filed_idx").on(table.status, table.dateFiled),
+    index("filing_queue_status_date_filed_idx").on(
+      table.status,
+      table.dateFiled,
+    ),
   ],
 );
 

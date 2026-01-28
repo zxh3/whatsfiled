@@ -322,21 +322,20 @@ async function createFilingOwners(
   doc: Form4Document,
   insiderIds: string[],
 ): Promise<void> {
-  for (let i = 0; i < doc.reportingOwners.length; i++) {
-    const owner = doc.reportingOwners[i];
-    const insiderId = insiderIds[i];
+  if (doc.reportingOwners.length === 0) return;
 
-    await tx.insert(filingOwners).values({
-      filingId,
-      insiderId,
-      isDirector: owner.relationship.isDirector,
-      isOfficer: owner.relationship.isOfficer,
-      isTenPercentOwner: owner.relationship.isTenPercentOwner,
-      isOther: owner.relationship.isOther,
-      officerTitle: owner.relationship.officerTitle,
-      otherText: owner.relationship.otherText,
-    });
-  }
+  const values = doc.reportingOwners.map((owner, i) => ({
+    filingId,
+    insiderId: insiderIds[i],
+    isDirector: owner.relationship.isDirector,
+    isOfficer: owner.relationship.isOfficer,
+    isTenPercentOwner: owner.relationship.isTenPercentOwner,
+    isOther: owner.relationship.isOther,
+    officerTitle: owner.relationship.officerTitle,
+    otherText: owner.relationship.otherText,
+  }));
+
+  await tx.insert(filingOwners).values(values);
 }
 
 async function createNonDerivativeRecords(
@@ -344,9 +343,9 @@ async function createNonDerivativeRecords(
   filingId: string,
   doc: Form4Document,
 ): Promise<void> {
-  // Create non-derivative transactions
-  for (const txn of doc.nonDerivativeTable.transactions) {
-    await tx.insert(transactions).values({
+  // Batch insert non-derivative transactions
+  if (doc.nonDerivativeTable.transactions.length > 0) {
+    const txnValues = doc.nonDerivativeTable.transactions.map((txn) => ({
       filingId,
       securityTitle: txn.securityTitle.value,
       transactionDate: normalizeDate(txn.transactionDate.value),
@@ -359,23 +358,29 @@ async function createNonDerivativeRecords(
       acquiredDisposed: txn.amounts.acquiredDisposedCode.value,
       sharesOwnedAfter:
         txn.postTransactionAmounts.sharesOwned.value?.toString() ?? null,
-      ownershipType: txn.ownershipNature.isDirect.value ? "D" : "I",
+      ownershipType: (txn.ownershipNature.isDirect.value ? "D" : "I") as
+        | "D"
+        | "I",
       indirectNature: txn.ownershipNature.natureOfOwnership.value,
       footnoteIds: collectFootnoteIds(txn),
-    });
+    }));
+    await tx.insert(transactions).values(txnValues);
   }
 
-  // Create non-derivative holdings
-  for (const holding of doc.nonDerivativeTable.holdings) {
-    await tx.insert(holdings).values({
+  // Batch insert non-derivative holdings
+  if (doc.nonDerivativeTable.holdings.length > 0) {
+    const holdingValues = doc.nonDerivativeTable.holdings.map((holding) => ({
       filingId,
       securityTitle: holding.securityTitle.value,
       sharesOwned:
         holding.postTransactionAmounts.sharesOwned.value?.toString() ?? null,
-      ownershipType: holding.ownershipNature.isDirect.value ? "D" : "I",
+      ownershipType: (holding.ownershipNature.isDirect.value ? "D" : "I") as
+        | "D"
+        | "I",
       indirectNature: holding.ownershipNature.natureOfOwnership.value,
       footnoteIds: collectHoldingFootnoteIds(holding),
-    });
+    }));
+    await tx.insert(holdings).values(holdingValues);
   }
 }
 
@@ -384,9 +389,9 @@ async function createDerivativeRecords(
   filingId: string,
   doc: Form4Document,
 ): Promise<void> {
-  // Create derivative transactions
-  for (const txn of doc.derivativeTable.transactions) {
-    await tx.insert(derivativeTransactions).values({
+  // Batch insert derivative transactions
+  if (doc.derivativeTable.transactions.length > 0) {
+    const txnValues = doc.derivativeTable.transactions.map((txn) => ({
       filingId,
       securityTitle: txn.securityTitle.value,
       conversionOrExercisePrice:
@@ -405,15 +410,18 @@ async function createDerivativeRecords(
       underlyingShares: txn.underlyingSecurity.shares.value?.toString() ?? null,
       sharesOwnedAfter:
         txn.postTransactionAmounts.sharesOwned.value?.toString() ?? null,
-      ownershipType: txn.ownershipNature.isDirect.value ? "D" : "I",
+      ownershipType: (txn.ownershipNature.isDirect.value ? "D" : "I") as
+        | "D"
+        | "I",
       indirectNature: txn.ownershipNature.natureOfOwnership.value,
       footnoteIds: collectDerivativeFootnoteIds(txn),
-    });
+    }));
+    await tx.insert(derivativeTransactions).values(txnValues);
   }
 
-  // Create derivative holdings
-  for (const holding of doc.derivativeTable.holdings) {
-    await tx.insert(derivativeHoldings).values({
+  // Batch insert derivative holdings
+  if (doc.derivativeTable.holdings.length > 0) {
+    const holdingValues = doc.derivativeTable.holdings.map((holding) => ({
       filingId,
       securityTitle: holding.securityTitle.value,
       conversionOrExercisePrice:
@@ -425,10 +433,13 @@ async function createDerivativeRecords(
         holding.underlyingSecurity.shares.value?.toString() ?? null,
       sharesOwned:
         holding.postTransactionAmounts.sharesOwned.value?.toString() ?? null,
-      ownershipType: holding.ownershipNature.isDirect.value ? "D" : "I",
+      ownershipType: (holding.ownershipNature.isDirect.value ? "D" : "I") as
+        | "D"
+        | "I",
       indirectNature: holding.ownershipNature.natureOfOwnership.value,
       footnoteIds: collectDerivativeHoldingFootnoteIds(holding),
-    });
+    }));
+    await tx.insert(derivativeHoldings).values(holdingValues);
   }
 }
 
@@ -437,16 +448,16 @@ async function createFootnotes(
   filingId: string,
   doc: Form4Document,
 ): Promise<void> {
-  for (const [footnoteId, content] of Object.entries(doc.footnotes)) {
-    await tx
-      .insert(footnotes)
-      .values({
-        filingId,
-        footnoteId,
-        content: content as string,
-      })
-      .onConflictDoNothing();
-  }
+  const footnoteEntries = Object.entries(doc.footnotes);
+  if (footnoteEntries.length === 0) return;
+
+  const values = footnoteEntries.map(([footnoteId, content]) => ({
+    filingId,
+    footnoteId,
+    content: content as string,
+  }));
+
+  await tx.insert(footnotes).values(values).onConflictDoNothing();
 }
 
 // Helper functions to collect footnote IDs from various fields

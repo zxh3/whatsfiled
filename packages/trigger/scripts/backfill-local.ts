@@ -3,6 +3,7 @@ import {
   type Database,
   dailyIndexFiles,
   filingQueue,
+  filings,
   getDb,
 } from "@whatsfiled/db";
 import { EdgarClient } from "@whatsfiled/edgar-client";
@@ -193,6 +194,8 @@ class Progress {
   private failed = 0;
   private skipped = 0;
   private lastFile = "";
+  private paused = false;
+  private currentDay = "";
 
   start(label: string, total: number) {
     this.label = label;
@@ -204,7 +207,30 @@ class Progress {
     this.startTime = Date.now();
     this.print();
     // Auto-refresh every 500ms so it doesn't look stuck
-    this.timer = setInterval(() => this.print(), 500);
+    this.timer = setInterval(() => {
+      if (!this.paused) this.print();
+    }, 500);
+  }
+
+  /** Update total count (for when new filings are discovered) */
+  updateTotal(newTotal: number) {
+    this.total = newTotal;
+  }
+
+  /** Set current day being processed (shown in progress) */
+  setCurrentDay(day: string) {
+    this.currentDay = day;
+  }
+
+  /** Pause progress updates (call before printing other output) */
+  pause() {
+    this.paused = true;
+  }
+
+  /** Resume progress updates (call after printing other output) */
+  resume() {
+    this.paused = false;
+    this.print();
   }
 
   increment(status: "success" | "fail" | "skip", fileName?: string) {
@@ -213,7 +239,7 @@ class Progress {
     else if (status === "fail") this.failed++;
     else if (status === "skip") this.skipped++;
     if (fileName) this.lastFile = fileName.split("/").pop() || fileName;
-    this.print();
+    if (!this.paused) this.print();
   }
 
   private print() {
@@ -238,9 +264,10 @@ class Progress {
     const stats = `ok:${this.succeeded} skip:${this.skipped} fail:${this.failed}`;
     const etaStr = eta ? ` ETA:${eta}` : "";
     const fileStr = this.lastFile ? ` [${this.lastFile}]` : "";
+    const dayStr = this.currentDay ? ` (${this.currentDay})` : "";
 
     process.stdout.write(
-      `\r${this.label}: ${this.current}/${this.total} (${pct}%) ${stats} - ${elapsed}s ${rate}/s${etaStr}${fileStr}      `,
+      `\r${this.label}: ${this.current}/${this.total} (${pct}%) ${stats} - ${elapsed}s ${rate}/s${etaStr}${dayStr}${fileStr}      `,
     );
   }
 
@@ -290,117 +317,90 @@ async function processWithConcurrency<T, R>(
   return results;
 }
 
-// Discover and insert index files
-async function discoverIndexFiles(
+// Get all dates in a range (inclusive)
+function getDatesInRange(startDate: string, endDate: string): string[] {
+  const dates: string[] = [];
+  const current = new Date(startDate);
+  const end = new Date(endDate);
+
+  while (current <= end) {
+    dates.push(current.toISOString().split("T")[0]);
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dates;
+}
+
+// Cache for index file names by year
+const indexFileNameCache = new Map<number, string[]>();
+
+// Discover and insert index file for a single date
+async function discoverIndexFileForDate(
   db: Database,
   edgarClient: EdgarClient,
-  startDate: string,
-  endDate: string,
+  date: string,
   formTypes: string[],
   dryRun: boolean,
 ): Promise<number> {
-  console.log(`\nDiscovering index files from ${startDate} to ${endDate}...`);
+  const year = parseInt(date.substring(0, 4), 10);
 
-  const startYear = parseInt(startDate.substring(0, 4), 10);
-  const endYear = parseInt(endDate.substring(0, 4), 10);
-
-  // Fetch index file names for each year
-  const allFileNames: string[] = [];
-  for (let year = startYear; year <= endYear; year++) {
-    console.log(`  Fetching index list for ${year}...`);
+  // Fetch index file names for the year (cached)
+  if (!indexFileNameCache.has(year)) {
     await rateLimiter.acquire();
     const fileNames = await edgarClient.getDailyIndexFileNames(year);
-    allFileNames.push(...fileNames);
+    indexFileNameCache.set(year, fileNames);
   }
 
-  // Filter to date range
-  const fileNames = allFileNames.filter((fileName) => {
-    const dateMatch = fileName.match(/form\.(\d{4})(\d{2})(\d{2})\.idx/);
-    if (!dateMatch) return false;
-    const fileDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
-    return fileDate >= startDate && fileDate <= endDate;
-  });
+  const allFileNames = indexFileNameCache.get(year) ?? [];
 
-  console.log(`  Found ${fileNames.length} index files in date range`);
+  // Find the index file for this date
+  const dateCompact = date.replace(/-/g, "");
+  const fileName = allFileNames.find((f) =>
+    f.includes(`form.${dateCompact}.idx`),
+  );
+
+  if (!fileName) {
+    // No index file for this date (weekend/holiday)
+    return 0;
+  }
 
   if (dryRun) {
-    console.log(`  [DRY RUN] Would insert index file records`);
-    return fileNames.length * formTypes.length;
-  }
-
-  const totalToInsert = fileNames.length * formTypes.length;
-  console.log(`  Inserting up to ${totalToInsert} index file records...`);
-  console.log(`  Testing database connection...`);
-
-  // Test DB connection first
-  try {
-    await dbStats.time("db_test_connection", () =>
-      db.select({ count: sql<number>`1` }).from(dailyIndexFiles).limit(1),
-    );
-    console.log(`  Database connected`);
-  } catch (err) {
-    console.error(`  Database connection failed:`, err);
-    throw err;
+    return formTypes.length;
   }
 
   let inserted = 0;
-  let processed = 0;
-  const startTime = Date.now();
+  for (const formType of formTypes) {
+    try {
+      const [result] = await dbStats.time("insert_index_file", () =>
+        db
+          .insert(dailyIndexFiles)
+          .values({
+            indexDate: date,
+            formType,
+            fileName,
+            status: "pending",
+          })
+          .onConflictDoNothing()
+          .returning({ id: dailyIndexFiles.id }),
+      );
 
-  for (const fileName of fileNames) {
-    const dateMatch = fileName.match(/form\.(\d{4})(\d{2})(\d{2})\.idx/);
-    if (!dateMatch) continue;
-
-    const indexDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
-
-    for (const formType of formTypes) {
-      try {
-        const [result] = await dbStats.time("insert_index_file", () =>
-          db
-            .insert(dailyIndexFiles)
-            .values({
-              indexDate,
-              formType,
-              fileName,
-              status: "pending",
-            })
-            .onConflictDoNothing()
-            .returning({ id: dailyIndexFiles.id }),
-        );
-
-        if (result) inserted++;
-      } catch (err) {
-        console.error(`\n  Error inserting ${fileName} (${formType}):`, err);
-      }
-      processed++;
-
-      // Log progress every 100 records
-      if (processed % 100 === 0) {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        const rate = ((processed / (Date.now() - startTime)) * 1000).toFixed(1);
-        process.stdout.write(
-          `\r  Inserting: ${processed}/${totalToInsert} (${inserted} new) - ${elapsed}s ${rate}/s    `,
-        );
-      }
+      if (result) inserted++;
+    } catch (err) {
+      console.error(`  Error inserting ${fileName} (${formType}):`, err);
     }
   }
 
-  console.log(`\n  Inserted ${inserted} new index file records`);
   return inserted;
 }
 
-// Process index files to populate filing queue
-async function processIndexFiles(
+// Process index files for a single date to populate filing queue
+async function processIndexFilesForDate(
   db: Database,
   edgarClient: EdgarClient,
-  startDate: string,
-  endDate: string,
-  concurrency: number,
+  date: string,
   dryRun: boolean,
 ): Promise<number> {
-  console.log(`\nProcessing pending index files...`);
-
-  // Get pending index files in date range
+  // Get pending index files for this date
   const pendingIndexes = await dbStats.time("select_pending_indexes", () =>
     db
       .select()
@@ -408,24 +408,16 @@ async function processIndexFiles(
       .where(
         and(
           eq(dailyIndexFiles.status, "pending"),
-          gte(dailyIndexFiles.indexDate, startDate),
-          lte(dailyIndexFiles.indexDate, endDate),
+          eq(dailyIndexFiles.indexDate, date),
         ),
-      )
-      .orderBy(dailyIndexFiles.indexDate),
+      ),
   );
-
-  console.log(`  Found ${pendingIndexes.length} pending index files`);
-
-  if (dryRun) {
-    console.log(`  [DRY RUN] Would process index files`);
-    return 0;
-  }
 
   if (pendingIndexes.length === 0) return 0;
 
-  const progress = new Progress();
-  progress.start("Index files", pendingIndexes.length);
+  if (dryRun) {
+    return 0;
+  }
 
   let totalQueued = 0;
 
@@ -487,7 +479,6 @@ async function processIndexFiles(
       );
 
       totalQueued += queued;
-      progress.increment("success", indexFile.fileName);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await dbStats.time("update_index_failed", () =>
@@ -496,54 +487,26 @@ async function processIndexFiles(
           .set({ status: "failed", errorMessage: message })
           .where(eq(dailyIndexFiles.id, indexFile.id)),
       );
-      progress.increment("fail", indexFile.fileName);
     }
   }
 
-  progress.done();
-  console.log(`  Total filings queued: ${totalQueued}`);
   return totalQueued;
 }
 
-// Process pending filings
-async function processFilings(
+// Process pending filings for a single date
+async function processFilingsForDate(
   db: Database,
   edgarClient: EdgarClient,
-  startDate: string,
-  endDate: string,
+  date: string,
   concurrency: number,
   dryRun: boolean,
+  progress: Progress,
 ): Promise<{ processed: number; failed: number; skipped: number }> {
-  console.log(`\nProcessing pending filings...`);
-
-  const dateFiledStart = startDate.replace(/-/g, "");
-  const dateFiledEnd = endDate.replace(/-/g, "");
-
-  // Get pending filings count
-  const [{ count }] = await dbStats.time("count_pending_filings", () =>
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(filingQueue)
-      .where(
-        and(
-          eq(filingQueue.status, "pending"),
-          gte(filingQueue.dateFiled, dateFiledStart),
-          lte(filingQueue.dateFiled, dateFiledEnd),
-        ),
-      ),
-  );
-
-  console.log(`  Found ${count} pending filings`);
+  const dateFiled = date.replace(/-/g, "");
 
   if (dryRun) {
-    console.log(`  [DRY RUN] Would process ${count} filings`);
     return { processed: 0, failed: 0, skipped: 0 };
   }
-
-  if (count === 0) return { processed: 0, failed: 0, skipped: 0 };
-
-  const progress = new Progress();
-  progress.start("Filings", count);
 
   let processed = 0;
   let failed = 0;
@@ -553,7 +516,7 @@ async function processFilings(
 
   // Process in batches
   while (true) {
-    // Get a batch of pending filings
+    // Get a batch of pending filings for this date
     const batch = await dbStats.time("select_filing_batch", () =>
       db
         .select()
@@ -561,8 +524,7 @@ async function processFilings(
         .where(
           and(
             eq(filingQueue.status, "pending"),
-            gte(filingQueue.dateFiled, dateFiledStart),
-            lte(filingQueue.dateFiled, dateFiledEnd),
+            eq(filingQueue.dateFiled, dateFiled),
             or(
               isNull(filingQueue.lockedUntil),
               lt(filingQueue.lockedUntil, new Date()),
@@ -604,7 +566,39 @@ async function processFilings(
       }
 
       try {
-        // Fetch the filing content (rate limited)
+        // Extract accession number from fileName (e.g., "edgar/data/123/0001234567-24-000001.txt")
+        const accessionMatch = locked.fileName.match(/(\d{10}-\d{2}-\d{6})/);
+        const accessionNumber = accessionMatch ? accessionMatch[1] : null;
+
+        // Pre-check: skip if filing already exists in DB (no need to hit SEC)
+        if (accessionNumber) {
+          const [existing] = await dbStats.time("check_filing_exists", () =>
+            db
+              .select({ id: filings.id })
+              .from(filings)
+              .where(eq(filings.accessionNumber, accessionNumber))
+              .limit(1),
+          );
+
+          if (existing) {
+            // Filing already processed, mark as skipped without hitting SEC
+            await dbStats.time("update_filing_skipped", () =>
+              db
+                .update(filingQueue)
+                .set({
+                  status: "skipped",
+                  lockedUntil: null,
+                  processedAt: new Date(),
+                })
+                .where(eq(filingQueue.id, entry.id)),
+            );
+            skipped++;
+            progress.increment("skip", locked.fileName);
+            return;
+          }
+        }
+
+        // Fetch the filing content (rate limited) - only if not already in DB
         await rateLimiter.acquire();
         const content = await edgarClient.fetchFiling(locked.fileName);
 
@@ -617,11 +611,10 @@ async function processFilings(
         const acceptanceDateTime = parseAcceptanceDateTime(content);
         const filedAt = acceptanceDateTime ?? parseFilingDate(locked.dateFiled);
 
-        // Map to database
+        // Map to database (not storing rawContent to save space and speed up inserts)
         const result = await dbStats.time("transaction_map_form4", () =>
           db.transaction(async (tx) => {
             return await mapForm4ToDb(tx as unknown as Database, doc, {
-              rawContent: content,
               documentUrl: doc.source?.formattedXmlUrl,
               filedAt,
             });
@@ -684,7 +677,6 @@ async function processFilings(
     await processWithConcurrency(batch, concurrency, processOne);
   }
 
-  progress.done();
   return { processed, failed, skipped };
 }
 
@@ -734,47 +726,164 @@ async function main() {
 
   const startTime = Date.now();
 
-  // Step 1: Discover index files (unless skipped)
-  if (!skipDiscovery) {
-    await discoverIndexFiles(
-      db,
-      edgarClient,
-      startDate,
-      endDate,
-      formTypes,
-      dryRun,
+  // Test DB connection first
+  console.log(`\nTesting database connection...`);
+  try {
+    await dbStats.time("db_test_connection", () =>
+      db.select({ count: sql<number>`1` }).from(dailyIndexFiles).limit(1),
     );
+    console.log(`Database connected`);
+  } catch (err) {
+    console.error(`Database connection failed:`, err);
+    throw err;
   }
 
-  // Step 2: Process index files to populate filing queue
-  if (!skipDiscovery) {
-    await processIndexFiles(
-      db,
-      edgarClient,
-      startDate,
-      endDate,
-      concurrency,
-      dryRun,
+  // Get all dates in range
+  const dates = getDatesInRange(startDate, endDate);
+  console.log(`\nProcessing ${dates.length} days...`);
+
+  // First, count total expected filings for progress bar
+  let totalFilings = 0;
+  if (!dryRun) {
+    // Count existing pending filings in range
+    const dateFiledStart = startDate.replace(/-/g, "");
+    const dateFiledEnd = endDate.replace(/-/g, "");
+    const [{ count }] = await dbStats.time("count_pending_filings", () =>
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(filingQueue)
+        .where(
+          and(
+            eq(filingQueue.status, "pending"),
+            gte(filingQueue.dateFiled, dateFiledStart),
+            lte(filingQueue.dateFiled, dateFiledEnd),
+          ),
+        ),
     );
+    totalFilings = count;
   }
 
-  // Step 3: Process pending filings
-  const results = await processFilings(
-    db,
-    edgarClient,
-    startDate,
-    endDate,
-    concurrency,
-    dryRun,
-  );
+  let totalProcessed = 0;
+  let totalFailed = 0;
+  let totalSkipped = 0;
+  let totalQueued = 0;
+  let daysWithFilings = 0;
+
+  // Create a single progress bar for all filings
+  const progress = new Progress();
+  let progressStarted = false;
+
+  // Process each day: discover -> index -> filings
+  for (let i = 0; i < dates.length; i++) {
+    const date = dates[i];
+    const dayNum = i + 1;
+
+    // Skip weekends (no SEC filings)
+    const dayOfWeek = new Date(date).getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      continue;
+    }
+
+    // Pause progress bar while we print day info
+    if (progressStarted) {
+      progress.pause();
+      process.stdout.write("\n"); // Move to new line before day header
+    }
+
+    console.log(`[${dayNum}/${dates.length}] ${date}`);
+
+    // Step 1: Discover index file for this date (unless skipped)
+    if (!skipDiscovery) {
+      const discovered = await discoverIndexFileForDate(
+        db,
+        edgarClient,
+        date,
+        formTypes,
+        dryRun,
+      );
+      if (discovered > 0) {
+        console.log(`  Discovered ${discovered} index files`);
+      }
+    }
+
+    // Step 2: Process index files for this date
+    if (!skipDiscovery) {
+      const queued = await processIndexFilesForDate(
+        db,
+        edgarClient,
+        date,
+        dryRun,
+      );
+      if (queued > 0) {
+        console.log(`  Queued ${queued} filings`);
+        totalQueued += queued;
+        // Update total for progress bar
+        totalFilings += queued;
+        if (progressStarted) {
+          progress.updateTotal(totalFilings);
+        }
+      }
+    }
+
+    // Step 3: Process filings for this date
+    // Count pending filings for this date
+    const dateFiled = date.replace(/-/g, "");
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(filingQueue)
+      .where(
+        and(
+          eq(filingQueue.status, "pending"),
+          eq(filingQueue.dateFiled, dateFiled),
+        ),
+      );
+
+    if (count > 0) {
+      console.log(`  Processing ${count} filings...`);
+      daysWithFilings++;
+
+      if (!progressStarted && totalFilings > 0) {
+        progress.start("Filings", totalFilings);
+        progressStarted = true;
+      } else if (progressStarted) {
+        progress.setCurrentDay(date);
+        progress.resume();
+      }
+
+      const results = await processFilingsForDate(
+        db,
+        edgarClient,
+        date,
+        concurrency,
+        dryRun,
+        progress,
+      );
+
+      totalProcessed += results.processed;
+      totalFailed += results.failed;
+      totalSkipped += results.skipped;
+    } else {
+      console.log(`  No pending filings`);
+      if (progressStarted) {
+        progress.resume();
+      }
+    }
+  }
+
+  if (progressStarted) {
+    progress.done();
+  }
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
   console.log("\n=== Summary ===");
-  console.log(`Processed: ${results.processed}`);
-  console.log(`Skipped:   ${results.skipped}`);
-  console.log(`Failed:    ${results.failed}`);
-  console.log(`Total time: ${elapsed}s`);
+  console.log(`Days in range:    ${dates.length}`);
+  console.log(`Days with filings: ${daysWithFilings}`);
+  console.log(`Filings queued:   ${totalQueued}`);
+  console.log(`Processed:        ${totalProcessed}`);
+  console.log(`Skipped:          ${totalSkipped}`);
+  console.log(`Failed:           ${totalFailed}`);
+  console.log(`Total time:       ${elapsed}s`);
 
   // Print DB operation stats
   dbStats.print();
