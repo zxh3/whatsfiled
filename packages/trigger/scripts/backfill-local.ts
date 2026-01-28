@@ -301,16 +301,18 @@ async function discoverIndexFiles(
           .returning({ id: dailyIndexFiles.id });
 
         if (result) inserted++;
-      } catch {
-        // Ignore duplicates
+      } catch (err) {
+        console.error(`\n  Error inserting ${fileName} (${formType}):`, err);
       }
       processed++;
 
       // Log progress every 100 records
       if (processed % 100 === 0) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        const rate = (processed / (Date.now() - startTime) * 1000).toFixed(1);
-        process.stdout.write(`\r  Inserting: ${processed}/${totalToInsert} (${inserted} new) - ${elapsed}s ${rate}/s    `);
+        const rate = ((processed / (Date.now() - startTime)) * 1000).toFixed(1);
+        process.stdout.write(
+          `\r  Inserting: ${processed}/${totalToInsert} (${inserted} new) - ${elapsed}s ${rate}/s    `,
+        );
       }
     }
   }
