@@ -10,7 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -36,6 +36,12 @@ export function SyncProgressTab() {
     { year: selectedYear, formType: "4" },
     { refetchInterval: autoRefresh ? 30000 : false },
   );
+
+  const retryMutation = trpc.pipeline.retryFailedFilings.useMutation({
+    onSuccess: () => {
+      statsQuery.refetch();
+    },
+  });
 
   useEffect(() => {
     if (statsQuery.dataUpdatedAt) {
