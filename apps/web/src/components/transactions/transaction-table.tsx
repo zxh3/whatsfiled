@@ -274,10 +274,13 @@ function TransactionTable({
                   </Link>
                 </td>
                 {showCompany && txn.company && (
-                  <td className="whitespace-nowrap px-2 py-1.5">
+                  <td
+                    className="overflow-hidden px-2 py-1.5"
+                    title={txn.company.ticker || txn.company.name}
+                  >
                     <Link
                       href={`/company/${txn.company.cik}`}
-                      className="font-medium text-foreground hover:underline"
+                      className="block truncate font-medium text-foreground hover:underline"
                     >
                       {txn.company.ticker || txn.company.name}
                     </Link>
