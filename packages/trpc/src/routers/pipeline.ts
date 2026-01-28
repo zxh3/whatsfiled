@@ -650,4 +650,58 @@ export const pipelineRouter = router({
         };
       }
     }),
+
+  /**
+   * Retry failed filings by resetting them to pending status.
+   */
+  retryFailedFilings: adminProcedure
+    .input(
+      z.object({
+        ids: z.array(z.string().uuid()).optional(),
+        all: z.boolean().default(false),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { db } = ctx;
+      const { ids, all } = input;
+
+      if (!all && (!ids || ids.length === 0)) {
+        return { success: false, count: 0, error: "No filings specified" };
+      }
+
+      try {
+        const condition = all
+          ? eq(filingQueue.status, "failed")
+          : and(
+              eq(filingQueue.status, "failed"),
+              sql`${filingQueue.id} = ANY(${ids}::uuid[])`,
+            );
+
+        const result = await db
+          .update(filingQueue)
+          .set({
+            status: "pending",
+            retryCount: 0,
+            lastError: null,
+            lastErrorAt: null,
+            lockedUntil: null,
+          })
+          .where(condition!);
+
+        const count = result.rowCount ?? 0;
+
+        return {
+          success: true,
+          count,
+          error: null,
+        };
+      } catch (error) {
+        console.error("Failed to retry failed filings:", error);
+        return {
+          success: false,
+          count: 0,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    }),
 });
