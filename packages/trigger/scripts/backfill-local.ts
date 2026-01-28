@@ -58,17 +58,17 @@
  * ============================================================================
  *
  * SEC EDGAR allows 10 requests/second. This script uses a token bucket rate
- * limiter capped at 8 req/s to stay safely within limits. The --concurrency
+ * limiter capped at 5 req/s to stay safely within limits. The --concurrency
  * flag controls parallel DB operations, but SEC requests are always rate limited.
  *
  */
 
 import { parseArgs } from "node:util";
 import {
+  type Database,
   dailyIndexFiles,
   filingQueue,
   getDb,
-  type Database,
 } from "@whatsfiled/db";
 import { EdgarClient } from "@whatsfiled/edgar-client";
 import { and, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
@@ -81,8 +81,8 @@ import {
 const SEC_USER_AGENT =
   process.env.SEC_USER_AGENT ?? "WhatsFiled contact@whatsfiled.com";
 
-// SEC rate limit: 10 requests per second, we'll use 8 to be safe
-const SEC_RATE_LIMIT = 8;
+// SEC rate limit: 10 requests per second, we'll use 5 to be safe
+const SEC_RATE_LIMIT = 5;
 
 /**
  * Token bucket rate limiter for SEC requests.
@@ -168,7 +168,7 @@ OPTIONS:
   -h, --help              Show this help message
 
 RATE LIMITING:
-  SEC allows 10 req/s. Script uses 8 req/s to stay safe.
+  SEC allows 10 req/s. Script uses 5 req/s to stay safe.
   --concurrency controls DB parallelism, not SEC requests.
 
 EXAMPLES:
