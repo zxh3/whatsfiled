@@ -1,7 +1,9 @@
 "use client";
 
+import { Spinner } from "@whatsfiled/ui/components/spinner";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useDeferredLoading } from "@/hooks/use-deferred-loading";
 import { useSession } from "@/lib/auth-client";
 
 export function AdminGuard({
@@ -13,6 +15,7 @@ export function AdminGuard({
 }) {
   const { data: session, isPending } = useSession();
   const router = useRouter();
+  const showLoading = useDeferredLoading(isPending);
 
   const isAdmin = session
     ? adminEmails.includes(session.user.email.toLowerCase())
@@ -25,11 +28,12 @@ export function AdminGuard({
     }
   }, [isPending, session, isAdmin, router]);
 
-  // Show loading state while checking
+  // Show loading only after delay (avoids flicker on fast auth checks)
   if (isPending) {
+    if (!showLoading) return null;
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        Checking permissions...
+      <div className="flex justify-center py-12">
+        <Spinner size="lg" />
       </div>
     );
   }

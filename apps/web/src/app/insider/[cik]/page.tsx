@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@whatsfiled/ui/components/spinner";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FilingCard } from "@/components/filings/filing-card";
@@ -20,7 +21,16 @@ export default function InsiderPage() {
       <main className="min-h-screen">
         <SiteHeader />
         <div className="mx-auto max-w-4xl px-4 py-8">
-          <p className="text-muted-foreground">Loading insider…</p>
+          <div className="space-y-6">
+            <header>
+              <div className="h-3 w-12 animate-pulse rounded bg-muted" />
+              <div className="mt-2 h-7 w-48 animate-pulse rounded bg-muted" />
+              <div className="mt-1 h-4 w-24 animate-pulse rounded bg-muted" />
+            </header>
+            <div className="flex justify-center py-8">
+              <Spinner size="lg" />
+            </div>
+          </div>
         </div>
       </main>
     );

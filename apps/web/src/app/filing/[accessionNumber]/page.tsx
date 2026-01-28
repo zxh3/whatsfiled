@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@whatsfiled/ui/components/spinner";
 import {
   Tooltip,
   TooltipContent,
@@ -97,7 +98,16 @@ export default function FilingPage() {
       <main className="min-h-screen">
         <SiteHeader />
         <div className="mx-auto max-w-4xl px-4 py-8">
-          <p className="text-muted-foreground">Loading filing…</p>
+          <div className="space-y-6">
+            <header>
+              <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+              <div className="mt-2 h-7 w-64 animate-pulse rounded bg-muted" />
+              <div className="mt-1 h-4 w-32 animate-pulse rounded bg-muted" />
+            </header>
+            <div className="flex justify-center py-8">
+              <Spinner size="lg" />
+            </div>
+          </div>
         </div>
       </main>
     );

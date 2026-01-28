@@ -4,6 +4,7 @@ import { Button } from "@whatsfiled/ui/components/button";
 import { Checkbox } from "@whatsfiled/ui/components/checkbox";
 import { Label } from "@whatsfiled/ui/components/label";
 import { Progress } from "@whatsfiled/ui/components/progress";
+import { Spinner } from "@whatsfiled/ui/components/spinner";
 import {
   Tooltip,
   TooltipContent,
@@ -99,8 +100,8 @@ export function SyncProgressTab() {
 
       {/* Loading state */}
       {statsQuery.isLoading && (
-        <div className="text-center py-8 text-muted-foreground">
-          Loading pipeline stats...
+        <div className="flex justify-center py-12">
+          <Spinner size="lg" />
         </div>
       )}
 

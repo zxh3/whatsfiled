@@ -1,11 +1,13 @@
 "use client";
 
+import { Spinner } from "@whatsfiled/ui/components/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TransactionTable } from "@/components/transactions/transaction-table";
 import { trpc } from "@/lib/trpc";
 
 const PAGE_SIZE = 50;
+const LOAD_MORE_THRESHOLD = "200px"; // Start loading when within 200px of bottom
 
 type Transaction = {
   id: string;
@@ -39,12 +41,15 @@ export function ActivityFeed() {
   const [offset, setOffset] = useState(0);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const prevOffset = useRef(0);
+  const loaderRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, isError, error, isFetching } =
     trpc.filings.getRecentTransactions.useQuery(
       { filter, limit: PAGE_SIZE, offset },
       { staleTime: 30000 },
     );
+
+  const hasMore = data?.pagination.hasMore ?? false;
 
   // Accumulate transactions when new data arrives
   useEffect(() => {
@@ -73,9 +78,28 @@ export function ActivityFeed() {
     prevOffset.current = 0;
   };
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     setOffset((prev) => prev + PAGE_SIZE);
-  };
+  }, []);
+
+  // Infinite scroll: load more when sentinel comes into view
+  useEffect(() => {
+    const loader = loaderRef.current;
+    if (!loader) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting && hasMore && !isFetching) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: LOAD_MORE_THRESHOLD },
+    );
+
+    observer.observe(loader);
+    return () => observer.disconnect();
+  }, [hasMore, isFetching, handleLoadMore]);
 
   if (isError) {
     return (
@@ -108,25 +132,17 @@ export function ActivityFeed() {
         showCompany
       />
 
-      {data && (
-        <div className="py-4 text-center">
-          {data.pagination.hasMore ? (
-            <button
-              type="button"
-              onClick={handleLoadMore}
-              disabled={isFetching}
-              className="text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
-            >
-              {isFetching ? "Loading..." : "Load more"}
-            </button>
-          ) : allTransactions.length > 0 ? (
-            <span className="text-xs text-muted-foreground">
-              Showing {allTransactions.length} of{" "}
-              {data.pagination.totalCount.toLocaleString()} transactions
-            </span>
-          ) : null}
-        </div>
-      )}
+      {/* Sentinel element for infinite scroll */}
+      <div ref={loaderRef} className="h-12 flex items-center justify-center">
+        {isFetching && allTransactions.length > 0 ? (
+          <Spinner size="sm" />
+        ) : allTransactions.length > 0 && data && !hasMore ? (
+          <span className="text-xs text-muted-foreground">
+            Showing all {data.pagination.totalCount.toLocaleString()}{" "}
+            transactions
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }
