@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import { z } from "zod";
 
 const searchSchema = z.object({
-  filter: z.enum(["all", "common", "options"]).catch("all"),
+  filter: z.enum(["common", "options"]).catch("common"),
   page: z.coerce.number().min(1).catch(1),
 });
 
@@ -30,7 +30,7 @@ function CompanyPage() {
     navigate({
       to: "/company/$cik",
       params: { cik },
-      search: { filter: newFilter as "all" | "common" | "options", page: 1 },
+      search: { filter: newFilter as "common" | "options", page: 1 },
       replace: true,
     });
   };
@@ -95,7 +95,6 @@ function CompanyPage() {
 
         <Tabs value={filter} onValueChange={handleFilterChange}>
           <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="common">Common Stock</TabsTrigger>
             <TabsTrigger value="options">Options & Awards</TabsTrigger>
           </TabsList>

@@ -231,7 +231,7 @@ export const companiesRouter = router({
     .input(
       z.object({
         cik: z.string().min(1),
-        filter: z.enum(["all", "common", "options"]).default("all"),
+        filter: z.enum(["common", "options"]).default("common"),
         page: z.number().min(1).default(1),
         pageSize: z.number().min(1).max(100).default(25),
       }),
@@ -409,75 +409,6 @@ export const companiesRouter = router({
             isDerivative: false as const,
           })),
         ].sort((a, b) => {
-          const dateA = a.transactionDate
-            ? new Date(a.transactionDate).getTime()
-            : 0;
-          const dateB = b.transactionDate
-            ? new Date(b.transactionDate).getTime()
-            : 0;
-          if (dateB !== dateA) return dateB - dateA;
-          return b.filedAt.getTime() - a.filedAt.getTime();
-        });
-
-        txnRows = combined.slice(offset, offset + input.pageSize);
-      } else {
-        // "all" - query both tables using UNION via raw SQL for proper pagination
-        // Count from both tables
-        const [nonDerivCount] = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(transactions)
-          .innerJoin(filings, eq(transactions.filingId, filings.id))
-          .where(eq(filings.companyId, companyId));
-        const [derivCount] = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(derivativeTransactions)
-          .innerJoin(filings, eq(derivativeTransactions.filingId, filings.id))
-          .where(eq(filings.companyId, companyId));
-        totalCount = (nonDerivCount?.count ?? 0) + (derivCount?.count ?? 0);
-
-        // Fetch from both tables separately and merge
-        const nonDerivRows = await db
-          .select({
-            id: transactions.id,
-            transactionDate: transactions.transactionDate,
-            transactionCode: transactions.transactionCode,
-            shares: transactions.shares,
-            pricePerShare: transactions.pricePerShare,
-            acquiredDisposed: transactions.acquiredDisposed,
-            sharesOwnedAfter: transactions.sharesOwnedAfter,
-            securityTitle: transactions.securityTitle,
-            filingId: filings.id,
-            accessionNumber: filings.accessionNumber,
-            filedAt: filings.filedAt,
-          })
-          .from(transactions)
-          .innerJoin(filings, eq(transactions.filingId, filings.id))
-          .where(eq(filings.companyId, companyId));
-
-        const derivRows = await db
-          .select({
-            id: derivativeTransactions.id,
-            transactionDate: derivativeTransactions.transactionDate,
-            transactionCode: derivativeTransactions.transactionCode,
-            shares: derivativeTransactions.shares,
-            pricePerShare: derivativeTransactions.pricePerShare,
-            acquiredDisposed: derivativeTransactions.acquiredDisposed,
-            sharesOwnedAfter: derivativeTransactions.sharesOwnedAfter,
-            securityTitle: derivativeTransactions.securityTitle,
-            filingId: filings.id,
-            accessionNumber: filings.accessionNumber,
-            filedAt: filings.filedAt,
-          })
-          .from(derivativeTransactions)
-          .innerJoin(filings, eq(derivativeTransactions.filingId, filings.id))
-          .where(eq(filings.companyId, companyId));
-
-        // Combine, sort, and paginate in JS
-        const combined = [
-          ...nonDerivRows.map((r) => ({ ...r, isDerivative: false as const })),
-          ...derivRows.map((r) => ({ ...r, isDerivative: true as const })),
-        ].sort((a, b) => {
-          // Sort by transaction date desc, then filed_at desc
           const dateA = a.transactionDate
             ? new Date(a.transactionDate).getTime()
             : 0;
