@@ -95,8 +95,8 @@ function CompanyPage() {
 
         <Tabs value={filter} onValueChange={handleFilterChange}>
           <TabsList>
-            <TabsTrigger value="common">Common Stock</TabsTrigger>
-            <TabsTrigger value="options">Options & Awards</TabsTrigger>
+            <TabsTrigger value="common">Market Trades</TabsTrigger>
+            <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
           </TabsList>
         </Tabs>
 

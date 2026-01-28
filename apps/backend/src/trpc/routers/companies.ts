@@ -4,7 +4,6 @@ import { db } from "../../db/index.js";
 import {
   companies,
   companyTickers,
-  derivativeTransactions,
   filingOwners,
   filings,
   insiders,
@@ -336,49 +335,23 @@ export const companiesRouter = router({
 
         txnRows = rows.map((r) => ({ ...r, isDerivative: false }));
       } else if (input.filter === "options") {
-        // Query derivative transactions AND exercise-related non-derivative transactions
-        // Exercise-related codes: M (exercise), A (award), F (tax), G (gift), C (conversion)
-        const exerciseRelatedCodes = ["M", "A", "F", "G", "C"];
+        // Query only Table I transactions with compensation-related codes
+        // M (exercise), A (award), F (tax), G (gift), C (conversion)
+        const compensationCodes = ["M", "A", "F", "G", "C"];
 
-        // Count from both tables
-        const [derivCount] = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(derivativeTransactions)
-          .innerJoin(filings, eq(derivativeTransactions.filingId, filings.id))
-          .where(eq(filings.companyId, companyId));
-        const [nonDerivExerciseCount] = await db
+        const countResult = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(transactions)
           .innerJoin(filings, eq(transactions.filingId, filings.id))
           .where(
             and(
               eq(filings.companyId, companyId),
-              inArray(transactions.transactionCode, exerciseRelatedCodes),
+              inArray(transactions.transactionCode, compensationCodes),
             ),
           );
-        totalCount =
-          (derivCount?.count ?? 0) + (nonDerivExerciseCount?.count ?? 0);
+        totalCount = countResult[0]?.count ?? 0;
 
-        // Fetch from both tables and merge
-        const derivRows = await db
-          .select({
-            id: derivativeTransactions.id,
-            transactionDate: derivativeTransactions.transactionDate,
-            transactionCode: derivativeTransactions.transactionCode,
-            shares: derivativeTransactions.shares,
-            pricePerShare: derivativeTransactions.pricePerShare,
-            acquiredDisposed: derivativeTransactions.acquiredDisposed,
-            sharesOwnedAfter: derivativeTransactions.sharesOwnedAfter,
-            securityTitle: derivativeTransactions.securityTitle,
-            filingId: filings.id,
-            accessionNumber: filings.accessionNumber,
-            filedAt: filings.filedAt,
-          })
-          .from(derivativeTransactions)
-          .innerJoin(filings, eq(derivativeTransactions.filingId, filings.id))
-          .where(eq(filings.companyId, companyId));
-
-        const nonDerivExerciseRows = await db
+        const rows = await db
           .select({
             id: transactions.id,
             transactionDate: transactions.transactionDate,
@@ -397,29 +370,14 @@ export const companiesRouter = router({
           .where(
             and(
               eq(filings.companyId, companyId),
-              inArray(transactions.transactionCode, exerciseRelatedCodes),
+              inArray(transactions.transactionCode, compensationCodes),
             ),
-          );
+          )
+          .orderBy(desc(transactions.transactionDate), desc(filings.filedAt))
+          .limit(input.pageSize)
+          .offset(offset);
 
-        // Combine, sort, and paginate
-        const combined = [
-          ...derivRows.map((r) => ({ ...r, isDerivative: true as const })),
-          ...nonDerivExerciseRows.map((r) => ({
-            ...r,
-            isDerivative: false as const,
-          })),
-        ].sort((a, b) => {
-          const dateA = a.transactionDate
-            ? new Date(a.transactionDate).getTime()
-            : 0;
-          const dateB = b.transactionDate
-            ? new Date(b.transactionDate).getTime()
-            : 0;
-          if (dateB !== dateA) return dateB - dateA;
-          return b.filedAt.getTime() - a.filedAt.getTime();
-        });
-
-        txnRows = combined.slice(offset, offset + input.pageSize);
+        txnRows = rows.map((r) => ({ ...r, isDerivative: false }));
       }
 
       const totalPages = Math.ceil(totalCount / input.pageSize);
