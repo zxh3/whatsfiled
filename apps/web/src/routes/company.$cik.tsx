@@ -93,12 +93,19 @@ function CompanyPage() {
           </p>
         </header>
 
-        <Tabs value={filter} onValueChange={handleFilterChange}>
-          <TabsList>
-            <TabsTrigger value="common">Market Trades</TabsTrigger>
-            <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="space-y-2">
+          <Tabs value={filter} onValueChange={handleFilterChange}>
+            <TabsList>
+              <TabsTrigger value="common">Market Trades</TabsTrigger>
+              <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <p className="text-xs text-muted-foreground">
+            {filter === "common"
+              ? "Open market purchases and sales — discretionary trades that may signal insider sentiment."
+              : "Stock received from option exercises, RSU vests, awards, and tax withholding — routine compensation events."}
+          </p>
+        </div>
 
         <TransactionTable
           transactions={data.transactions}
