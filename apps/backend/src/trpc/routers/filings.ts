@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/index.js";
 import {
@@ -233,6 +233,157 @@ export const filingsRouter = router({
       }
 
       return filing;
+    }),
+
+  /**
+   * Get recent transactions across all companies for the activity feed.
+   * Returns individual transactions (not filings) with company and insider info.
+   */
+  getRecentTransactions: publicProcedure
+    .input(
+      z.object({
+        filter: z.enum(["common", "options"]).default("common"),
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { filter, limit, offset } = input;
+
+      // Determine which transaction codes to include
+      const codes =
+        filter === "common"
+          ? ["P", "S"] // Market trades
+          : ["M", "A", "F", "G", "C"]; // Awards & exercises
+
+      // Count total
+      const [countResult] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(transactions)
+        .innerJoin(filings, eq(transactions.filingId, filings.id))
+        .where(inArray(transactions.transactionCode, codes));
+      const totalCount = countResult?.count ?? 0;
+
+      // Fetch transactions with company and filing info
+      const rows = await db
+        .select({
+          id: transactions.id,
+          transactionDate: transactions.transactionDate,
+          transactionCode: transactions.transactionCode,
+          shares: transactions.shares,
+          pricePerShare: transactions.pricePerShare,
+          acquiredDisposed: transactions.acquiredDisposed,
+          sharesOwnedAfter: transactions.sharesOwnedAfter,
+          securityTitle: transactions.securityTitle,
+          filingId: filings.id,
+          accessionNumber: filings.accessionNumber,
+          filedAt: filings.filedAt,
+          companyId: companies.id,
+          companyName: companies.name,
+          companyCik: companies.cik,
+        })
+        .from(transactions)
+        .innerJoin(filings, eq(transactions.filingId, filings.id))
+        .innerJoin(companies, eq(filings.companyId, companies.id))
+        .where(inArray(transactions.transactionCode, codes))
+        .orderBy(desc(transactions.transactionDate), desc(filings.filedAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Get tickers for companies
+      const companyIds = [...new Set(rows.map((r) => r.companyId))];
+      const tickers =
+        companyIds.length > 0
+          ? await db
+              .select({
+                companyId: companyTickers.companyId,
+                ticker: companyTickers.ticker,
+              })
+              .from(companyTickers)
+              .where(inArray(companyTickers.companyId, companyIds))
+          : [];
+      const tickerMap = new Map(tickers.map((t) => [t.companyId, t.ticker]));
+
+      // Get insider info for each filing
+      const filingIds = [...new Set(rows.map((r) => r.filingId))];
+      const ownerRows =
+        filingIds.length > 0
+          ? await db
+              .select({
+                filingId: filingOwners.filingId,
+                insiderId: insiders.id,
+                insiderName: insiders.name,
+                insiderCik: insiders.cik,
+                officerTitle: filingOwners.officerTitle,
+                isDirector: filingOwners.isDirector,
+                isOfficer: filingOwners.isOfficer,
+                isTenPercentOwner: filingOwners.isTenPercentOwner,
+              })
+              .from(filingOwners)
+              .innerJoin(insiders, eq(filingOwners.insiderId, insiders.id))
+              .where(inArray(filingOwners.filingId, filingIds))
+          : [];
+
+      // Group owners by filing
+      const ownersByFiling = new Map<
+        string,
+        { id: string; name: string; cik: string | null; title: string }
+      >();
+      for (const owner of ownerRows) {
+        if (!ownersByFiling.has(owner.filingId)) {
+          ownersByFiling.set(owner.filingId, {
+            id: owner.insiderId,
+            name: owner.insiderName,
+            cik: owner.insiderCik,
+            title:
+              owner.officerTitle ||
+              getOwnerRole({
+                isDirector: owner.isDirector,
+                isOfficer: owner.isOfficer,
+                isTenPercentOwner: owner.isTenPercentOwner,
+              }),
+          });
+        }
+      }
+
+      const txns = rows.map((row) => ({
+        id: row.id,
+        transactionDate: row.transactionDate,
+        transactionCode: row.transactionCode,
+        shares: row.shares ? parseFloat(row.shares) : null,
+        pricePerShare: row.pricePerShare ? parseFloat(row.pricePerShare) : null,
+        acquiredDisposed: row.acquiredDisposed,
+        sharesOwnedAfter: row.sharesOwnedAfter
+          ? parseFloat(row.sharesOwnedAfter)
+          : null,
+        securityTitle: row.securityTitle,
+        company: {
+          id: row.companyId,
+          name: row.companyName,
+          cik: row.companyCik,
+          ticker: tickerMap.get(row.companyId) ?? null,
+        },
+        insider: ownersByFiling.get(row.filingId) ?? {
+          id: "",
+          name: "Unknown",
+          cik: null,
+          title: "",
+        },
+        filing: {
+          accessionNumber: row.accessionNumber,
+          filedAt: row.filedAt,
+        },
+      }));
+
+      return {
+        transactions: txns,
+        pagination: {
+          offset,
+          limit,
+          totalCount,
+          hasMore: offset + rows.length < totalCount,
+        },
+      };
     }),
 });
 

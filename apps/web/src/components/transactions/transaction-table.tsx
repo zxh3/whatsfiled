@@ -11,6 +11,12 @@ interface Transaction {
   acquiredDisposed: "A" | "D" | null;
   sharesOwnedAfter: number | null;
   securityTitle: string;
+  company?: {
+    id: string;
+    name: string;
+    cik: string;
+    ticker: string | null;
+  };
   insider: {
     id: string;
     name: string;
@@ -26,6 +32,7 @@ interface Transaction {
 interface TransactionTableProps {
   transactions: Transaction[];
   isLoading?: boolean;
+  showCompany?: boolean;
   className?: string;
 }
 
@@ -57,6 +64,7 @@ function formatDate(date: string | Date | null): string {
 function TransactionTable({
   transactions,
   isLoading,
+  showCompany,
   className,
 }: TransactionTableProps) {
   if (isLoading) {
@@ -66,6 +74,11 @@ function TransactionTable({
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
               <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
+              {showCompany && (
+                <th className="whitespace-nowrap px-3 py-2 font-medium">
+                  Company
+                </th>
+              )}
               <th className="whitespace-nowrap px-3 py-2 font-medium">Type</th>
               <th className="whitespace-nowrap px-3 py-2 font-medium">
                 Insider
@@ -93,6 +106,11 @@ function TransactionTable({
                 <td className="px-3 py-2">
                   <div className="h-4 w-20 animate-pulse rounded bg-muted" />
                 </td>
+                {showCompany && (
+                  <td className="px-3 py-2">
+                    <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                  </td>
+                )}
                 <td className="px-3 py-2">
                   <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
                 </td>
@@ -136,6 +154,11 @@ function TransactionTable({
         <thead>
           <tr className="border-b border-border text-left text-xs text-muted-foreground">
             <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
+            {showCompany && (
+              <th className="whitespace-nowrap px-3 py-2 font-medium">
+                Company
+              </th>
+            )}
             <th className="whitespace-nowrap px-3 py-2 font-medium">Type</th>
             <th className="whitespace-nowrap px-3 py-2 font-medium">Insider</th>
             <th className="whitespace-nowrap px-3 py-2 font-medium text-right">
@@ -168,6 +191,17 @@ function TransactionTable({
                 <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                   {formatDate(txn.transactionDate)}
                 </td>
+                {showCompany && txn.company && (
+                  <td className="px-3 py-2">
+                    <Link
+                      to="/company/$cik"
+                      params={{ cik: txn.company.cik }}
+                      className="font-medium text-foreground hover:underline"
+                    >
+                      {txn.company.ticker || txn.company.name}
+                    </Link>
+                  </td>
+                )}
                 <td className="px-3 py-2">
                   <TransactionBadge code={txn.transactionCode} />
                 </td>
