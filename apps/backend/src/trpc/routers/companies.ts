@@ -336,15 +336,31 @@ export const companiesRouter = router({
 
         txnRows = rows.map((r) => ({ ...r, isDerivative: false }));
       } else if (input.filter === "options") {
-        // Query derivative transactions only
-        const countResult = await db
+        // Query derivative transactions AND exercise-related non-derivative transactions
+        // Exercise-related codes: M (exercise), A (award), F (tax), G (gift), C (conversion)
+        const exerciseRelatedCodes = ["M", "A", "F", "G", "C"];
+
+        // Count from both tables
+        const [derivCount] = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(derivativeTransactions)
           .innerJoin(filings, eq(derivativeTransactions.filingId, filings.id))
           .where(eq(filings.companyId, companyId));
-        totalCount = countResult[0]?.count ?? 0;
+        const [nonDerivExerciseCount] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(transactions)
+          .innerJoin(filings, eq(transactions.filingId, filings.id))
+          .where(
+            and(
+              eq(filings.companyId, companyId),
+              inArray(transactions.transactionCode, exerciseRelatedCodes),
+            ),
+          );
+        totalCount =
+          (derivCount?.count ?? 0) + (nonDerivExerciseCount?.count ?? 0);
 
-        const rows = await db
+        // Fetch from both tables and merge
+        const derivRows = await db
           .select({
             id: derivativeTransactions.id,
             transactionDate: derivativeTransactions.transactionDate,
@@ -360,15 +376,50 @@ export const companiesRouter = router({
           })
           .from(derivativeTransactions)
           .innerJoin(filings, eq(derivativeTransactions.filingId, filings.id))
-          .where(eq(filings.companyId, companyId))
-          .orderBy(
-            desc(derivativeTransactions.transactionDate),
-            desc(filings.filedAt),
-          )
-          .limit(input.pageSize)
-          .offset(offset);
+          .where(eq(filings.companyId, companyId));
 
-        txnRows = rows.map((r) => ({ ...r, isDerivative: true }));
+        const nonDerivExerciseRows = await db
+          .select({
+            id: transactions.id,
+            transactionDate: transactions.transactionDate,
+            transactionCode: transactions.transactionCode,
+            shares: transactions.shares,
+            pricePerShare: transactions.pricePerShare,
+            acquiredDisposed: transactions.acquiredDisposed,
+            sharesOwnedAfter: transactions.sharesOwnedAfter,
+            securityTitle: transactions.securityTitle,
+            filingId: filings.id,
+            accessionNumber: filings.accessionNumber,
+            filedAt: filings.filedAt,
+          })
+          .from(transactions)
+          .innerJoin(filings, eq(transactions.filingId, filings.id))
+          .where(
+            and(
+              eq(filings.companyId, companyId),
+              inArray(transactions.transactionCode, exerciseRelatedCodes),
+            ),
+          );
+
+        // Combine, sort, and paginate
+        const combined = [
+          ...derivRows.map((r) => ({ ...r, isDerivative: true as const })),
+          ...nonDerivExerciseRows.map((r) => ({
+            ...r,
+            isDerivative: false as const,
+          })),
+        ].sort((a, b) => {
+          const dateA = a.transactionDate
+            ? new Date(a.transactionDate).getTime()
+            : 0;
+          const dateB = b.transactionDate
+            ? new Date(b.transactionDate).getTime()
+            : 0;
+          if (dateB !== dateA) return dateB - dateA;
+          return b.filedAt.getTime() - a.filedAt.getTime();
+        });
+
+        txnRows = combined.slice(offset, offset + input.pageSize);
       } else {
         // "all" - query both tables using UNION via raw SQL for proper pagination
         // Count from both tables

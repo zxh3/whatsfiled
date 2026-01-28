@@ -11,7 +11,6 @@ interface Transaction {
   acquiredDisposed: "A" | "D" | null;
   sharesOwnedAfter: number | null;
   securityTitle: string;
-  isDerivative: boolean;
   insider: {
     id: string;
     name: string;
@@ -170,10 +169,7 @@ function TransactionTable({
                   {formatDate(txn.transactionDate)}
                 </td>
                 <td className="px-3 py-2">
-                  <TransactionBadge
-                    code={txn.transactionCode}
-                    isDerivative={txn.isDerivative}
-                  />
+                  <TransactionBadge code={txn.transactionCode} />
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-col">
