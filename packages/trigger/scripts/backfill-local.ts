@@ -1,68 +1,3 @@
-#!/usr/bin/env tsx
-/**
- * Local Backfill Script
- *
- * Processes SEC filings directly without Trigger.dev, useful for:
- * - Large backfills that would hit Trigger.dev queue limits
- * - Running against production DB from local machine
- * - Faster processing without task overhead
- *
- * ============================================================================
- * USAGE
- * ============================================================================
- *
- * 1. ALWAYS TEST ON LOCAL DB FIRST
- *
- *    # Start local PostgreSQL
- *    pnpm docker:up
- *
- *    # Run backfill against local DB (uses apps/web/.env.local)
- *    cd packages/trigger
- *    DATABASE_URL="postgresql://user:password@localhost:5432/whatsfiled" \
- *      pnpm backfill-local --start 2025-01-01 --end 2025-01-07
- *
- * 2. THEN RUN ON PRODUCTION (Supabase)
- *
- *    DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres" \
- *      pnpm backfill-local --start 2025-01-01 --end 2025-01-31
- *
- * ============================================================================
- * OPTIONS
- * ============================================================================
- *
- *   --start, -s        Start date (YYYY-MM-DD) [required]
- *   --end, -e          End date (YYYY-MM-DD) [required]
- *   --concurrency, -c  Parallel DB operations (default: 3)
- *   --form-types, -f   Form types to process (default: "4,4/A")
- *   --dry-run          Preview what would be processed
- *   --skip-discovery   Only process existing pending filings
- *
- * ============================================================================
- * EXAMPLES
- * ============================================================================
- *
- *   # Dry run to see what would be processed
- *   DATABASE_URL="..." pnpm backfill-local -s 2025-01-01 -e 2025-01-07 --dry-run
- *
- *   # Backfill one week
- *   DATABASE_URL="..." pnpm backfill-local -s 2025-01-01 -e 2025-01-07
- *
- *   # Backfill one month
- *   DATABASE_URL="..." pnpm backfill-local -s 2025-01-01 -e 2025-01-31
- *
- *   # Re-process failed filings only (skip discovery)
- *   DATABASE_URL="..." pnpm backfill-local -s 2025-01-01 -e 2025-01-31 --skip-discovery
- *
- * ============================================================================
- * RATE LIMITING
- * ============================================================================
- *
- * SEC EDGAR allows 10 requests/second. This script enforces a strict 5 req/s
- * limit (200ms minimum delay between requests). All SEC requests are queued
- * and processed sequentially to guarantee we never exceed the limit.
- *
- */
-
 import { parseArgs } from "node:util";
 import {
   type Database,
@@ -81,8 +16,8 @@ import {
 const SEC_USER_AGENT =
   process.env.SEC_USER_AGENT ?? "WhatsFiled contact@whatsfiled.com";
 
-// Minimum delay between SEC requests: 200ms = 5 req/s max (SEC allows 10)
-const MIN_REQUEST_DELAY_MS = 200;
+// Minimum delay between SEC requests: 300ms = 3.33 req/s max (SEC allows 10)
+const MIN_REQUEST_DELAY_MS = 300;
 
 /**
  * Sequential rate limiter for SEC requests.
@@ -328,7 +263,13 @@ async function discoverIndexFiles(
     return fileNames.length * formTypes.length;
   }
 
+  const totalToInsert = fileNames.length * formTypes.length;
+  console.log(`  Inserting up to ${totalToInsert} index file records...`);
+
   let inserted = 0;
+  let processed = 0;
+  const startTime = Date.now();
+
   for (const fileName of fileNames) {
     const dateMatch = fileName.match(/form\.(\d{4})(\d{2})(\d{2})\.idx/);
     if (!dateMatch) continue;
@@ -352,10 +293,18 @@ async function discoverIndexFiles(
       } catch {
         // Ignore duplicates
       }
+      processed++;
+
+      // Log progress every 100 records
+      if (processed % 100 === 0) {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const rate = (processed / (Date.now() - startTime) * 1000).toFixed(1);
+        process.stdout.write(`\r  Inserting: ${processed}/${totalToInsert} (${inserted} new) - ${elapsed}s ${rate}/s    `);
+      }
     }
   }
 
-  console.log(`  Inserted ${inserted} new index file records`);
+  console.log(`\n  Inserted ${inserted} new index file records`);
   return inserted;
 }
 
