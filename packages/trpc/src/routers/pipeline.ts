@@ -1,11 +1,11 @@
 import { configure, runs } from "@trigger.dev/sdk/v3";
-import { and, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
-import { z } from "zod";
 import {
   dailyIndexFiles,
   filingQueue,
   pipelineWorkers,
 } from "@whatsfiled/db/schema";
+import { and, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
+import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
 
 // Configure Trigger.dev SDK (only if secret key is available)
@@ -423,44 +423,95 @@ export const pipelineRouter = router({
     }),
 
   /**
-   * Get recent Trigger.dev runs for pipeline visibility.
+   * Get recent Trigger.dev runs grouped by task for admin visibility.
    */
-  getTriggerRuns: publicProcedure
+  getTriggerRunsByTask: publicProcedure
     .input(
       z
         .object({
-          limit: z.number().min(1).max(50).default(10),
+          runsPerTask: z.number().min(1).max(20).default(10),
         })
         .optional(),
     )
     .query(async ({ input }) => {
       if (!process.env.TRIGGER_SECRET_KEY) {
-        return { runs: [], error: "Trigger.dev not configured" };
+        return { tasks: [], error: "Trigger.dev not configured" };
       }
 
       try {
+        // Fetch more runs to ensure we have enough per task
         const result = await runs.list({
-          limit: input?.limit ?? 10,
+          limit: 100,
         });
 
+        // Group runs by task identifier
+        const runsByTask: Record<
+          string,
+          {
+            id: string;
+            status: string;
+            createdAt: Date;
+            startedAt: Date | null;
+            finishedAt: Date | null;
+          }[]
+        > = {};
+
+        for (const run of result.data) {
+          if (!runsByTask[run.taskIdentifier]) {
+            runsByTask[run.taskIdentifier] = [];
+          }
+          if (
+            runsByTask[run.taskIdentifier].length < (input?.runsPerTask ?? 10)
+          ) {
+            runsByTask[run.taskIdentifier].push({
+              id: run.id,
+              status: run.status,
+              createdAt: run.createdAt,
+              startedAt: run.startedAt ?? null,
+              finishedAt: run.finishedAt ?? null,
+            });
+          }
+        }
+
+        // Convert to array sorted by most recent activity
+        const tasks = Object.entries(runsByTask)
+          .map(([taskId, taskRuns]) => ({
+            taskId,
+            runs: taskRuns,
+            lastRunAt: taskRuns[0]?.createdAt ?? null,
+            stats: {
+              completed: taskRuns.filter((r) => r.status === "COMPLETED")
+                .length,
+              failed: taskRuns.filter(
+                (r) =>
+                  r.status === "FAILED" ||
+                  r.status === "CRASHED" ||
+                  r.status === "SYSTEM_FAILURE",
+              ).length,
+              running: taskRuns.filter(
+                (r) => r.status === "EXECUTING" || r.status === "REATTEMPTING",
+              ).length,
+              queued: taskRuns.filter(
+                (r) => r.status === "QUEUED" || r.status === "PENDING",
+              ).length,
+            },
+          }))
+          .sort((a, b) => {
+            if (!a.lastRunAt) return 1;
+            if (!b.lastRunAt) return -1;
+            return (
+              new Date(b.lastRunAt).getTime() - new Date(a.lastRunAt).getTime()
+            );
+          });
+
         return {
-          runs: result.data.map((run) => ({
-            id: run.id,
-            taskIdentifier: run.taskIdentifier,
-            status: run.status,
-            createdAt: run.createdAt,
-            updatedAt: run.updatedAt,
-            startedAt: run.startedAt,
-            finishedAt: run.finishedAt,
-            isTest: run.isTest,
-            idempotencyKey: run.idempotencyKey,
-          })),
+          tasks,
           error: null,
         };
       } catch (error) {
         console.error("Failed to fetch Trigger.dev runs:", error);
         return {
-          runs: [],
+          tasks: [],
           error: error instanceof Error ? error.message : "Unknown error",
         };
       }
