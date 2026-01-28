@@ -117,6 +117,15 @@ class DbStats {
 // Global DB stats instance
 const dbStats = new DbStats();
 
+// Print stats on early exit (Ctrl+C)
+function handleExit(signal: string) {
+  console.log(`\n\nReceived ${signal}, printing stats before exit...`);
+  dbStats.print();
+  process.exit(1);
+}
+process.on("SIGINT", () => handleExit("SIGINT"));
+process.on("SIGTERM", () => handleExit("SIGTERM"));
+
 // Parse CLI arguments
 const { values } = parseArgs({
   options: {
