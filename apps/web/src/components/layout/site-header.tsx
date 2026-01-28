@@ -1,11 +1,30 @@
 "use client";
 
+import { Button } from "@whatsfiled/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@whatsfiled/ui/components/dropdown-menu";
 import { Kbd, KbdGroup } from "@whatsfiled/ui/components/kbd";
 import { AnimatePresence, motion } from "framer-motion";
-import { Building2, Moon, Search, Sun, User, X } from "lucide-react";
+import {
+  Building2,
+  FileText,
+  Menu,
+  Moon,
+  RefreshCw,
+  Search,
+  Sun,
+  User,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { UserMenu } from "@/components/auth/user-menu";
 import { useTheme } from "@/hooks/use-theme";
 import { trpc } from "@/lib/trpc";
 
@@ -16,6 +35,7 @@ export function SiteHeader() {
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { resolvedTheme, setTheme, mounted } = useTheme();
+  const { data: isAdmin } = trpc.auth.isAdmin.useQuery();
 
   // Detect OS for keyboard shortcut display
   const [isMac, setIsMac] = useState(true);
@@ -116,201 +136,221 @@ export function SiteHeader() {
 
   return (
     <header className="border-b border-border">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Link href="/" className="text-2xl font-bold hover:opacity-80">
-            WhatsFiled
-          </Link>
-          <p className="text-sm text-muted-foreground mt-1">
-            Recent insider trading activity
-          </p>
-        </div>
-        <div className="flex w-full max-w-sm flex-col gap-2">
-          <form onSubmit={handleSubmit} className="relative">
-            <div className="relative flex items-center">
-              <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setTimeout(() => setIsFocused(false), 150)}
-                onKeyDown={handleKeyDown}
-                placeholder="Search companies, tickers, insiders"
-                className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-20 text-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-foreground/20"
-              />
-              {query ? (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="absolute right-3 p-1 text-muted-foreground hover:text-foreground"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : (
-                <KbdGroup className="pointer-events-none absolute right-3 hidden select-none sm:inline-flex">
-                  <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
-                  <Kbd>K</Kbd>
-                </KbdGroup>
-              )}
-            </div>
-            <AnimatePresence>
-              {isFocused && query.trim().length >= 2 && data && (
-                <motion.div
-                  key="search-dropdown"
-                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute left-0 top-full z-20 mt-2 w-full rounded-md border border-border bg-background p-2 text-sm shadow-lg"
-                >
-                  {data.companies.length === 0 && data.insiders.length === 0 ? (
-                    <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                      No matches found for "{query}"
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {data.companies.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-1.5 px-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                            <Building2 className="h-3 w-3" />
-                            Companies
-                          </div>
-                          <div className="mt-1 space-y-0.5">
-                            {data.companies.map((company) => {
-                              const itemKey = `company:${company.id}:${company.ticker ?? company.cik}`;
-                              const itemIndex = items.findIndex(
-                                (item) => item.key === itemKey,
-                              );
-                              const isSelected = itemIndex === selectedIndex;
-                              return (
-                                <Link
-                                  key={`${company.id}:${company.ticker ?? company.cik}`}
-                                  href={`/company/${company.cik}`}
-                                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 ${
-                                    isSelected ? "bg-muted/70" : ""
-                                  }`}
-                                  onMouseEnter={() => {
-                                    if (itemIndex >= 0)
-                                      setSelectedIndex(itemIndex);
-                                  }}
-                                >
-                                  <span className="font-medium text-foreground">
-                                    {company.ticker ? (
-                                      <span className="font-mono">
-                                        {company.ticker}
-                                      </span>
-                                    ) : (
-                                      company.name
-                                    )}
-                                  </span>
-                                  {company.ticker && (
-                                    <span className="truncate text-xs text-muted-foreground">
-                                      {company.name}
-                                    </span>
-                                  )}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      {data.insiders.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-1.5 px-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                            <User className="h-3 w-3" />
-                            Insiders
-                          </div>
-                          <div className="mt-1 space-y-0.5">
-                            {data.insiders.map((insider) => {
-                              const itemKey = `insider:${insider.id}:${insider.cik ?? "unknown"}`;
-                              const itemIndex = items.findIndex(
-                                (item) => item.key === itemKey,
-                              );
-                              const isSelected = itemIndex === selectedIndex;
-                              return (
-                                <Link
-                                  key={`${insider.id}:${insider.cik ?? "unknown"}`}
-                                  href={`/insider/${insider.cik}`}
-                                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 ${
-                                    isSelected ? "bg-muted/70" : ""
-                                  }`}
-                                  onMouseEnter={() => {
-                                    if (itemIndex >= 0)
-                                      setSelectedIndex(itemIndex);
-                                  }}
-                                >
-                                  <span className="font-medium text-foreground">
-                                    {insider.name}
-                                  </span>
-                                  {insider.cik && (
-                                    <span className="text-xs text-muted-foreground">
-                                      CIK {insider.cik}
-                                    </span>
-                                  )}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      {/* Keyboard navigation hint */}
-                      <div className="border-t border-border pt-2 text-[10px] text-muted-foreground">
-                        <span className="flex items-center justify-center gap-2">
-                          <span className="inline-flex items-center gap-1">
-                            <KbdGroup size="sm">
-                              <Kbd size="sm">↑</Kbd>
-                              <Kbd size="sm">↓</Kbd>
-                            </KbdGroup>
-                            <span>navigate</span>
-                          </span>
-                          <span className="text-border">·</span>
-                          <span className="inline-flex items-center gap-1">
-                            <Kbd size="sm">↵</Kbd>
-                            <span>select</span>
-                          </span>
-                          <span className="text-border">·</span>
-                          <span className="inline-flex items-center gap-1">
-                            <Kbd size="sm">esc</Kbd>
-                            <span>close</span>
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </form>
-          <div className="text-xs text-muted-foreground flex items-center gap-3">
-            <Link
-              href="/resources/sec-filings"
-              className="hover:text-foreground"
-            >
-              SEC Filings Reference
-            </Link>
-            <span className="text-border">·</span>
-            <Link href="/sync" className="hover:text-foreground">
-              Sync status
-            </Link>
-            <span className="text-border">·</span>
-            <button
-              type="button"
-              onClick={() =>
-                setTheme(resolvedTheme === "dark" ? "light" : "dark")
-              }
-              className="hover:text-foreground p-1 -m-1"
-              aria-label="Toggle theme"
-            >
-              {mounted &&
-                (resolvedTheme === "dark" ? (
-                  <Moon className="h-3.5 w-3.5" />
-                ) : (
-                  <Sun className="h-3.5 w-3.5" />
-                ))}
-            </button>
+      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-4 px-4">
+        {/* Logo */}
+        <Link
+          href="/"
+          className="text-lg font-semibold tracking-tight hover:opacity-80"
+        >
+          WhatsFiled
+        </Link>
+
+        {/* Search */}
+        <form onSubmit={handleSubmit} className="relative flex-1 max-w-md">
+          <div className="relative flex items-center">
+            <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+              onKeyDown={handleKeyDown}
+              placeholder="Search companies, tickers, insiders"
+              className="h-9 w-full rounded-md border border-border bg-muted/40 py-2 pl-9 pr-20 text-sm transition-colors placeholder:text-muted-foreground/70 focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring/20"
+            />
+            {query ? (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-3 p-1 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : (
+              <KbdGroup className="pointer-events-none absolute right-3 hidden select-none sm:inline-flex">
+                <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
+                <Kbd>K</Kbd>
+              </KbdGroup>
+            )}
           </div>
+          <AnimatePresence>
+            {isFocused && query.trim().length >= 2 && data && (
+              <motion.div
+                key="search-dropdown"
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                className="absolute left-0 top-full z-20 mt-2 w-full rounded-md border border-border bg-background p-2 text-sm shadow-lg"
+              >
+                {data.companies.length === 0 && data.insiders.length === 0 ? (
+                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    No matches found for "{query}"
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {data.companies.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-1.5 px-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <Building2 className="h-3 w-3" />
+                          Companies
+                        </div>
+                        <div className="mt-1 space-y-0.5">
+                          {data.companies.map((company) => {
+                            const itemKey = `company:${company.id}:${company.ticker ?? company.cik}`;
+                            const itemIndex = items.findIndex(
+                              (item) => item.key === itemKey,
+                            );
+                            const isSelected = itemIndex === selectedIndex;
+                            return (
+                              <Link
+                                key={`${company.id}:${company.ticker ?? company.cik}`}
+                                href={`/company/${company.cik}`}
+                                className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 ${
+                                  isSelected ? "bg-muted/70" : ""
+                                }`}
+                                onMouseEnter={() => {
+                                  if (itemIndex >= 0)
+                                    setSelectedIndex(itemIndex);
+                                }}
+                              >
+                                <span className="font-medium text-foreground">
+                                  {company.ticker ? (
+                                    <span className="font-mono">
+                                      {company.ticker}
+                                    </span>
+                                  ) : (
+                                    company.name
+                                  )}
+                                </span>
+                                {company.ticker && (
+                                  <span className="truncate text-xs text-muted-foreground">
+                                    {company.name}
+                                  </span>
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {data.insiders.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-1.5 px-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <User className="h-3 w-3" />
+                          Insiders
+                        </div>
+                        <div className="mt-1 space-y-0.5">
+                          {data.insiders.map((insider) => {
+                            const itemKey = `insider:${insider.id}:${insider.cik ?? "unknown"}`;
+                            const itemIndex = items.findIndex(
+                              (item) => item.key === itemKey,
+                            );
+                            const isSelected = itemIndex === selectedIndex;
+                            return (
+                              <Link
+                                key={`${insider.id}:${insider.cik ?? "unknown"}`}
+                                href={`/insider/${insider.cik}`}
+                                className={`flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 ${
+                                  isSelected ? "bg-muted/70" : ""
+                                }`}
+                                onMouseEnter={() => {
+                                  if (itemIndex >= 0)
+                                    setSelectedIndex(itemIndex);
+                                }}
+                              >
+                                <span className="font-medium text-foreground">
+                                  {insider.name}
+                                </span>
+                                {insider.cik && (
+                                  <span className="text-xs text-muted-foreground">
+                                    CIK {insider.cik}
+                                  </span>
+                                )}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {/* Keyboard navigation hint */}
+                    <div className="border-t border-border pt-2 text-[10px] text-muted-foreground">
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="inline-flex items-center gap-1">
+                          <KbdGroup size="sm">
+                            <Kbd size="sm">↑</Kbd>
+                            <Kbd size="sm">↓</Kbd>
+                          </KbdGroup>
+                          <span>navigate</span>
+                        </span>
+                        <span className="text-border">·</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Kbd size="sm">↵</Kbd>
+                          <span>select</span>
+                        </span>
+                        <span className="text-border">·</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Kbd size="sm">esc</Kbd>
+                          <span>close</span>
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </form>
+
+        {/* Right side: Menu + User */}
+        <div className="flex items-center gap-2">
+          {/* Render placeholder during SSR to avoid hydration mismatch with Base UI's generated IDs */}
+          {mounted ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="ghost" size="icon-sm" aria-label="Menu">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  render={<Link href="/resources/sec-filings" />}
+                >
+                  <FileText className="h-4 w-4" />
+                  SEC Filings Reference
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem render={<Link href="/admin" />}>
+                    <RefreshCw className="h-4 w-4" />
+                    Admin
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() =>
+                    setTheme(resolvedTheme === "dark" ? "light" : "dark")
+                  }
+                >
+                  {resolvedTheme === "dark" ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                  {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="ghost" size="icon-sm" aria-label="Menu" disabled>
+              <Menu className="h-4 w-4" />
+            </Button>
+          )}
+
+          <UserMenu />
         </div>
       </div>
     </header>

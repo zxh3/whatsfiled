@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
+import { authRouter } from "./auth.js";
 import { companiesRouter } from "./companies.js";
 import { filingsRouter } from "./filings.js";
 import { insidersRouter } from "./insiders.js";
@@ -17,6 +18,9 @@ export const appRouter = router({
     .query(({ input }) => {
       return { echo: input.message };
     }),
+
+  // Auth
+  auth: authRouter,
 
   // Public filing data
   filings: filingsRouter,
