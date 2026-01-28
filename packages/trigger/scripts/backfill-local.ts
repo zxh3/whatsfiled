@@ -186,43 +186,76 @@ EXAMPLES:
 `);
 }
 
-// Simple progress display
+// Progress display with auto-refresh
 class Progress {
   private current = 0;
   private total = 0;
   private startTime = Date.now();
   private label = "";
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private succeeded = 0;
+  private failed = 0;
+  private skipped = 0;
+  private lastFile = "";
 
   start(label: string, total: number) {
     this.label = label;
     this.total = total;
     this.current = 0;
+    this.succeeded = 0;
+    this.failed = 0;
+    this.skipped = 0;
     this.startTime = Date.now();
     this.print();
+    // Auto-refresh every 500ms so it doesn't look stuck
+    this.timer = setInterval(() => this.print(), 500);
   }
 
-  increment(success = true) {
+  increment(status: "success" | "fail" | "skip", fileName?: string) {
     this.current++;
+    if (status === "success") this.succeeded++;
+    else if (status === "fail") this.failed++;
+    else if (status === "skip") this.skipped++;
+    if (fileName) this.lastFile = fileName.split("/").pop() || fileName;
     this.print();
   }
 
   private print() {
     const pct =
       this.total > 0 ? ((this.current / this.total) * 100).toFixed(1) : "0";
-    const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(0);
+    const elapsedMs = Date.now() - this.startTime;
+    const elapsed = (elapsedMs / 1000).toFixed(0);
     const rate =
-      this.current > 0
-        ? ((this.current / (Date.now() - this.startTime)) * 1000).toFixed(1)
-        : "0";
+      this.current > 0 ? ((this.current / elapsedMs) * 1000).toFixed(1) : "0";
+
+    // Calculate ETA
+    let eta = "";
+    if (this.current > 0 && this.current < this.total) {
+      const remaining = this.total - this.current;
+      const msPerItem = elapsedMs / this.current;
+      const etaSeconds = Math.ceil((remaining * msPerItem) / 1000);
+      const etaMin = Math.floor(etaSeconds / 60);
+      const etaSec = etaSeconds % 60;
+      eta = etaMin > 0 ? `${etaMin}m${etaSec}s` : `${etaSec}s`;
+    }
+
+    const stats = `ok:${this.succeeded} skip:${this.skipped} fail:${this.failed}`;
+    const etaStr = eta ? ` ETA:${eta}` : "";
+    const fileStr = this.lastFile ? ` [${this.lastFile}]` : "";
+
     process.stdout.write(
-      `\r${this.label}: ${this.current}/${this.total} (${pct}%) - ${elapsed}s elapsed, ${rate}/s    `,
+      `\r${this.label}: ${this.current}/${this.total} (${pct}%) ${stats} - ${elapsed}s ${rate}/s${etaStr}${fileStr}      `,
     );
   }
 
   done() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
     const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(1);
     console.log(
-      `\n${this.label}: Completed ${this.current}/${this.total} in ${elapsed}s`,
+      `\n${this.label}: Completed ${this.current}/${this.total} in ${elapsed}s (ok:${this.succeeded} skip:${this.skipped} fail:${this.failed})`,
     );
   }
 }

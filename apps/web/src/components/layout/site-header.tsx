@@ -156,7 +156,10 @@ export function SiteHeader() {
         </Link>
 
         {/* Search */}
-        <form onSubmit={handleSubmit} className="relative min-w-0 flex-1 sm:max-w-md">
+        <form
+          onSubmit={handleSubmit}
+          className="relative min-w-0 flex-1 sm:max-w-md"
+        >
           <div className="relative flex items-center">
             <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
             <input

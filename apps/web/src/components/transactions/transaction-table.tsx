@@ -175,24 +175,34 @@ function TransactionCard({
       <div className="flex items-center justify-between text-sm">
         <div className="font-mono">
           <span className={colorClass}>
-            {txn.acquiredDisposed === "A" ? "+" : txn.acquiredDisposed === "D" ? "-" : ""}
+            {txn.acquiredDisposed === "A"
+              ? "+"
+              : txn.acquiredDisposed === "D"
+                ? "-"
+                : ""}
             {formatCompactNumber(txn.shares)}
           </span>
           {txn.pricePerShare && (
             <span className="text-muted-foreground">
-              {" "}@ {formatCurrency(txn.pricePerShare)}
+              {" "}
+              @ {formatCurrency(txn.pricePerShare)}
             </span>
           )}
         </div>
         <span className={cn("font-mono font-medium", colorClass)}>
-          {formatPercentChange(txn.shares, txn.sharesOwnedAfter, txn.acquiredDisposed)}
+          {formatPercentChange(
+            txn.shares,
+            txn.sharesOwnedAfter,
+            txn.acquiredDisposed,
+          )}
         </span>
       </div>
 
       {/* Footer: Value | Owned */}
       <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          <span className={colorClass}>{formatCompactCurrency(value)}</span> value
+          <span className={colorClass}>{formatCompactCurrency(value)}</span>{" "}
+          value
         </span>
         <span>{formatCompactNumber(txn.sharesOwnedAfter)} owned</span>
       </div>
@@ -234,22 +244,48 @@ function DesktopLoadingSkeleton({ showCompany }: { showCompany?: boolean }) {
       <table className="w-full table-fixed text-xs">
         <thead>
           <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium">Date</th>
+            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium">
+              Date
+            </th>
             {showCompany && (
-              <th className="w-[6%] whitespace-nowrap px-2 py-1 font-medium">Company</th>
+              <th className="w-[6%] whitespace-nowrap px-2 py-1 font-medium">
+                Company
+              </th>
             )}
-            <th className={cn("whitespace-nowrap px-2 py-1 font-medium", showCompany ? "w-[15%]" : "w-[18%]")}>
+            <th
+              className={cn(
+                "whitespace-nowrap px-2 py-1 font-medium",
+                showCompany ? "w-[15%]" : "w-[18%]",
+              )}
+            >
               Insider
             </th>
-            <th className={cn("whitespace-nowrap px-2 py-1 font-medium", showCompany ? "w-[13%]" : "w-[16%]")}>
+            <th
+              className={cn(
+                "whitespace-nowrap px-2 py-1 font-medium",
+                showCompany ? "w-[13%]" : "w-[16%]",
+              )}
+            >
               Role
             </th>
-            <th className="w-[7%] whitespace-nowrap px-2 py-1 font-medium">Type</th>
-            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">Price</th>
-            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">Owned</th>
-            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">Shares</th>
-            <th className="w-[8%] whitespace-nowrap px-2 py-1 font-medium text-right">Chg</th>
-            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">Value</th>
+            <th className="w-[7%] whitespace-nowrap px-2 py-1 font-medium">
+              Type
+            </th>
+            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Price
+            </th>
+            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Owned
+            </th>
+            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Shares
+            </th>
+            <th className="w-[8%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Chg
+            </th>
+            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Value
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -309,31 +345,62 @@ function DesktopTable({
       <table className="w-full table-fixed text-xs">
         <thead>
           <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium">Date</th>
+            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium">
+              Date
+            </th>
             {showCompany && (
-              <th className="w-[6%] whitespace-nowrap px-2 py-1 font-medium">Company</th>
+              <th className="w-[6%] whitespace-nowrap px-2 py-1 font-medium">
+                Company
+              </th>
             )}
-            <th className={cn("whitespace-nowrap px-2 py-1 font-medium", showCompany ? "w-[15%]" : "w-[18%]")}>
+            <th
+              className={cn(
+                "whitespace-nowrap px-2 py-1 font-medium",
+                showCompany ? "w-[15%]" : "w-[18%]",
+              )}
+            >
               Insider
             </th>
-            <th className={cn("whitespace-nowrap px-2 py-1 font-medium", showCompany ? "w-[13%]" : "w-[16%]")}>
+            <th
+              className={cn(
+                "whitespace-nowrap px-2 py-1 font-medium",
+                showCompany ? "w-[13%]" : "w-[16%]",
+              )}
+            >
               Role
             </th>
-            <th className="w-[7%] whitespace-nowrap px-2 py-1 font-medium">Type</th>
-            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">Price</th>
-            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">Owned</th>
-            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">Shares</th>
-            <th className="w-[8%] whitespace-nowrap px-2 py-1 font-medium text-right">Chg</th>
-            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">Value</th>
+            <th className="w-[7%] whitespace-nowrap px-2 py-1 font-medium">
+              Type
+            </th>
+            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Price
+            </th>
+            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Owned
+            </th>
+            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Shares
+            </th>
+            <th className="w-[8%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Chg
+            </th>
+            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">
+              Value
+            </th>
           </tr>
         </thead>
         <tbody>
           {transactions.map((txn) => {
             const value =
-              txn.shares && txn.pricePerShare ? txn.shares * txn.pricePerShare : null;
+              txn.shares && txn.pricePerShare
+                ? txn.shares * txn.pricePerShare
+                : null;
 
             return (
-              <tr key={txn.id} className="border-b border-border/50 hover:bg-muted/30">
+              <tr
+                key={txn.id}
+                className="border-b border-border/50 hover:bg-muted/30"
+              >
                 <td className="whitespace-nowrap px-2 py-1">
                   <Link
                     href={`/filing/${txn.filing.accessionNumber}`}
@@ -344,7 +411,10 @@ function DesktopTable({
                   </Link>
                 </td>
                 {showCompany && txn.company && (
-                  <td className="overflow-hidden px-2 py-1" title={txn.company.ticker || txn.company.name}>
+                  <td
+                    className="overflow-hidden px-2 py-1"
+                    title={txn.company.ticker || txn.company.name}
+                  >
                     <Link
                       href={`/company/${txn.company.cik}`}
                       prefetch={false}
@@ -354,7 +424,10 @@ function DesktopTable({
                     </Link>
                   </td>
                 )}
-                <td className="overflow-hidden px-2 py-1" title={txn.insider.name}>
+                <td
+                  className="overflow-hidden px-2 py-1"
+                  title={txn.insider.name}
+                >
                   {txn.insider.cik ? (
                     <Link
                       href={`/insider/${txn.insider.cik}`}
@@ -369,7 +442,10 @@ function DesktopTable({
                     </span>
                   )}
                 </td>
-                <td className="overflow-hidden px-2 py-1 text-muted-foreground" title={txn.insider.title}>
+                <td
+                  className="overflow-hidden px-2 py-1 text-muted-foreground"
+                  title={txn.insider.title}
+                >
                   <span className="block truncate">{txn.insider.title}</span>
                 </td>
                 <td className="px-2 py-1">
@@ -391,7 +467,11 @@ function DesktopTable({
                           : ""
                     }
                   >
-                    {txn.acquiredDisposed === "A" ? "+" : txn.acquiredDisposed === "D" ? "-" : ""}
+                    {txn.acquiredDisposed === "A"
+                      ? "+"
+                      : txn.acquiredDisposed === "D"
+                        ? "-"
+                        : ""}
                     {formatNumber(txn.shares)}
                   </span>
                 </td>
@@ -405,7 +485,11 @@ function DesktopTable({
                           : "text-muted-foreground"
                     }
                   >
-                    {formatPercentChange(txn.shares, txn.sharesOwnedAfter, txn.acquiredDisposed)}
+                    {formatPercentChange(
+                      txn.shares,
+                      txn.sharesOwnedAfter,
+                      txn.acquiredDisposed,
+                    )}
                   </span>
                 </td>
                 <td

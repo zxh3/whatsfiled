@@ -183,7 +183,9 @@ export function FilingCard({ filing }: FilingCardProps) {
                       <div className="mt-1 max-h-40 overflow-auto space-y-1">
                         {mixedTransactions.map((txn, idx) => {
                           const date = txn.transactionDate
-                            ? new Date(txn.transactionDate).toISOString().split("T")[0]
+                            ? new Date(txn.transactionDate)
+                                .toISOString()
+                                .split("T")[0]
                             : "—";
                           const side =
                             txn.acquiredDisposed === "A"

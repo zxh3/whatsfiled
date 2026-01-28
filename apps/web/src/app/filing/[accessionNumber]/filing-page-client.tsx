@@ -223,7 +223,9 @@ export function FilingPageClient() {
 
           <section className="grid grid-cols-3 gap-2 sm:gap-4">
             <div className="rounded-lg border border-border p-2 sm:p-4">
-              <div className="text-[10px] sm:text-xs text-muted-foreground">Total buy</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">
+                Total buy
+              </div>
               <div className="mt-1 sm:mt-2 text-sm sm:text-lg font-semibold">
                 {formatNumber(totalBuyShares)}
               </div>
@@ -232,7 +234,9 @@ export function FilingPageClient() {
               </div>
             </div>
             <div className="rounded-lg border border-border p-2 sm:p-4">
-              <div className="text-[10px] sm:text-xs text-muted-foreground">Total sell</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">
+                Total sell
+              </div>
               <div className="mt-1 sm:mt-2 text-sm sm:text-lg font-semibold">
                 {formatNumber(totalSellShares)}
               </div>
@@ -241,7 +245,9 @@ export function FilingPageClient() {
               </div>
             </div>
             <div className="rounded-lg border border-border p-2 sm:p-4">
-              <div className="text-[10px] sm:text-xs text-muted-foreground">Net change</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">
+                Net change
+              </div>
               <div className="mt-1 sm:mt-2 text-sm sm:text-lg font-semibold">
                 {netShares >= 0 ? "+" : "-"}
                 {formatNumber(Math.abs(netShares))}
@@ -310,7 +316,9 @@ export function FilingPageClient() {
                               ? "Sell"
                               : "—"}
                         </td>
-                        <td className="py-2 pr-2 whitespace-nowrap">{formatNumber(txn.shares)}</td>
+                        <td className="py-2 pr-2 whitespace-nowrap">
+                          {formatNumber(txn.shares)}
+                        </td>
                         <td className="py-2 pr-2 whitespace-nowrap">
                           {formatCurrency(txn.pricePerShare)}
                         </td>
