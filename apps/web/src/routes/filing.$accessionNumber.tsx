@@ -9,6 +9,21 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { formatInTimeZone } from "date-fns-tz";
 
+const TRANSACTION_CODE_DESCRIPTIONS: Record<string, string> = {
+  P: "Open market or private purchase",
+  S: "Open market or private sale",
+  A: "Grant or award",
+  M: "Exercise or conversion of derivative",
+  G: "Gift",
+  F: "Payment of exercise price or tax with securities",
+  D: "Sale or transfer to issuer",
+  C: "Conversion of derivative security",
+  W: "Acquisition or disposition by will or inheritance",
+  J: "Other acquisition or disposition",
+  K: "Equity swap or similar instrument",
+  U: "Disposition due to tender of shares",
+};
+
 function formatNumber(value: number | string | null | undefined): string {
   if (value === null || value === undefined) return "—";
   const num = typeof value === "string" ? Number(value) : value;
@@ -259,7 +274,27 @@ function FilingPage() {
                         <td className="py-2">
                           {formatDate(txn.transactionDate)}
                         </td>
-                        <td className="py-2">{txn.transactionCode || "—"}</td>
+                        <td className="py-2">
+                          {txn.transactionCode ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="underline decoration-dotted cursor-help"
+                                >
+                                  {txn.transactionCode}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {TRANSACTION_CODE_DESCRIPTIONS[
+                                  txn.transactionCode
+                                ] || txn.transactionCode}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="py-2">
                           {txn.acquiredDisposed === "A"
                             ? "Buy"
@@ -338,7 +373,27 @@ function FilingPage() {
                         <td className="py-2">
                           {formatDate(txn.transactionDate)}
                         </td>
-                        <td className="py-2">{txn.transactionCode || "—"}</td>
+                        <td className="py-2">
+                          {txn.transactionCode ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="underline decoration-dotted cursor-help"
+                                >
+                                  {txn.transactionCode}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {TRANSACTION_CODE_DESCRIPTIONS[
+                                  txn.transactionCode
+                                ] || txn.transactionCode}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="py-2">
                           {txn.acquiredDisposed === "A"
                             ? "Buy"
