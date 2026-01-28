@@ -677,7 +677,7 @@ export const pipelineRouter = router({
               sql`${filingQueue.id} = ANY(${ids}::uuid[])`,
             );
 
-        const result = await db
+        const updated = await db
           .update(filingQueue)
           .set({
             status: "pending",
@@ -686,13 +686,12 @@ export const pipelineRouter = router({
             lastErrorAt: null,
             lockedUntil: null,
           })
-          .where(condition!);
-
-        const count = result.rowCount ?? 0;
+          .where(condition!)
+          .returning({ id: filingQueue.id });
 
         return {
           success: true,
-          count,
+          count: updated.length,
           error: null,
         };
       } catch (error) {

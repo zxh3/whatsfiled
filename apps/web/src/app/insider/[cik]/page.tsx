@@ -1,138 +1,65 @@
-"use client";
+import type { Metadata } from "next";
+import { eq, getDb, insiders, or, sql } from "@whatsfiled/db";
+import { InsiderPageClient } from "./insider-page-client";
 
-import { Spinner } from "@whatsfiled/ui/components/spinner";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { FilingCard } from "@/components/filings/filing-card";
-import { SiteHeader } from "@/components/layout/site-header";
-import { trpc } from "@/lib/trpc";
+type Props = {
+  params: Promise<{ cik: string }>;
+};
 
-export default function InsiderPage() {
-  const params = useParams();
-  const cik = params.cik as string;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { cik } = await params;
+  const db = getDb();
+  const normalizedCik = cik.replace(/^0+/, "");
 
-  const { data, isLoading, isError } = trpc.insiders.getByCik.useQuery(
-    { cik, limit: 50 },
-    { enabled: Boolean(cik) },
-  );
+  const insider = await db
+    .select({
+      id: insiders.id,
+      name: insiders.name,
+      cik: insiders.cik,
+    })
+    .from(insiders)
+    .where(
+      or(
+        eq(insiders.cik, cik),
+        sql`ltrim(${insiders.cik}, '0') = ${normalizedCik}`,
+      ),
+    )
+    .limit(1);
 
-  if (!cik || isLoading) {
-    return (
-      <main className="min-h-screen">
-        <SiteHeader />
-        <div className="mx-auto max-w-4xl px-4 py-8">
-          <div className="space-y-6">
-            <header>
-              <div className="h-3 w-12 animate-pulse rounded bg-muted" />
-              <div className="mt-2 h-7 w-48 animate-pulse rounded bg-muted" />
-              <div className="mt-1 h-4 w-24 animate-pulse rounded bg-muted" />
-            </header>
-            <div className="flex justify-center py-8">
-              <Spinner size="lg" />
-            </div>
-          </div>
-        </div>
-      </main>
-    );
+  if (insider.length === 0) {
+    return {
+      title: "Insider Not Found",
+      description: "The requested insider could not be found.",
+    };
   }
 
-  if (isError || !data) {
-    return (
-      <main className="min-h-screen">
-        <SiteHeader />
-        <div className="mx-auto max-w-4xl px-4 py-8">
-          <p className="text-red-500 font-medium">Insider not found</p>
-        </div>
-      </main>
-    );
-  }
+  const insiderName = insider[0].name;
+  const title = `${insiderName} - Insider Trading Activity`;
+  const description = `View SEC Form 4 filings and insider trading activity for ${insiderName}. Track stock purchases, sales, and company affiliations.`;
 
-  return (
-    <main className="min-h-screen">
-      <SiteHeader />
-      <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
-        <header>
-          <div className="text-xs text-muted-foreground">Insider</div>
-          <h1 className="text-2xl font-semibold">{data.insider.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            CIK {data.insider.cik}
-          </p>
-        </header>
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://whatsfiled.com";
+  const canonicalUrl = `${siteUrl}/insider/${insider[0].cik}`;
 
-        <section className="grid gap-6 md:grid-cols-[0.9fr_1.1fr]">
-          <aside className="rounded-lg border border-border p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Company affiliations
-            </h3>
-            {data.affiliations.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">
-                No company roles recorded yet.
-              </p>
-            ) : (
-              <div className="mt-3 space-y-3 text-sm">
-                {data.affiliations.map((company) => (
-                  <div
-                    key={company.id}
-                    className="flex items-start justify-between gap-3"
-                  >
-                    <div>
-                      <Link
-                        href={`/company/${company.cik}`}
-                        className="font-medium text-foreground hover:underline"
-                      >
-                        {company.ticker ? (
-                          <span className="font-mono">{company.ticker}</span>
-                        ) : (
-                          company.name
-                        )}
-                      </Link>
-                      {company.ticker && (
-                        <div className="text-xs text-muted-foreground">
-                          {company.name}
-                        </div>
-                      )}
-                      <div className="text-xs text-muted-foreground">
-                        {company.title || "Insider"}
-                      </div>
-                    </div>
-                    <div className="text-[11px] text-muted-foreground text-right">
-                      {getRoleTags(company).map((tag) => (
-                        <div key={tag}>{tag}</div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </aside>
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Recent filings</h2>
-            {data.filings.length === 0 ? (
-              <p className="text-muted-foreground">No filings found.</p>
-            ) : (
-              <div>
-                {data.filings.map((filing) => (
-                  <FilingCard key={filing.id} filing={filing} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
-    </main>
-  );
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${title} | WhatsFiled`,
+      description,
+      url: canonicalUrl,
+      type: "profile",
+    },
+    twitter: {
+      card: "summary",
+      title: `${title} | WhatsFiled`,
+      description,
+    },
+    alternates: {
+      canonical: canonicalUrl,
+    },
+  };
 }
 
-function getRoleTags(company: {
-  isDirector: boolean;
-  isOfficer: boolean;
-  isTenPercentOwner: boolean;
-  title?: string | null;
-}): string[] {
-  const tags: string[] = [];
-  if (company.isDirector) tags.push("Director");
-  if (company.isOfficer) tags.push("Officer");
-  if (company.isTenPercentOwner) tags.push("10% Owner");
-  const title = company.title?.toLowerCase() ?? "";
-  return tags.filter((tag) => !title.includes(tag.toLowerCase()));
+export default function InsiderPage() {
+  return <InsiderPageClient />;
 }

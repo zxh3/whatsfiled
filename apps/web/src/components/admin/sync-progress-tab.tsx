@@ -15,7 +15,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { formatNumber, LegendItem, SectionHeader, StatCard } from "./shared";
+import {
+  formatNumber,
+  InfoTooltip,
+  LegendItem,
+  SectionHeader,
+  StatCard,
+} from "./shared";
 
 export function SyncProgressTab() {
   const searchParams = useSearchParams();
@@ -200,12 +206,31 @@ export function SyncProgressTab() {
                 tooltip="Successfully fetched, parsed, and stored. Data is now available in the activity feed."
                 color="text-green-600"
               />
-              <StatCard
-                label="Failed"
-                value={stats.queue.failed}
-                tooltip="Failed to process after 3 attempts. Usually due to malformed XML or network errors. Can be manually retried."
-                color="text-red-600"
-              />
+              <div className="bg-card border border-border rounded-lg p-4">
+                <div className="text-sm text-muted-foreground flex items-center">
+                  Failed
+                  <InfoTooltip content="Failed to process after 3 attempts. Usually due to malformed XML or network errors. Can be manually retried." />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-mono font-bold text-red-600">
+                    {formatNumber(stats.queue.failed)}
+                  </span>
+                  {stats.queue.failed > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => retryMutation.mutate({ all: true })}
+                      disabled={retryMutation.isPending}
+                      className="h-7 text-xs"
+                    >
+                      <RotateCcw
+                        className={`w-3 h-3 mr-1 ${retryMutation.isPending ? "animate-spin" : ""}`}
+                      />
+                      Retry all
+                    </Button>
+                  )}
+                </div>
+              </div>
               {showSkipped && (
                 <StatCard
                   label="Skipped"

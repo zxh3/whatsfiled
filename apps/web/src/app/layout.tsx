@@ -13,10 +13,57 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://whatsfiled.com";
+
 export const metadata: Metadata = {
-  title: "WhatsFiled - Insider Trading Made Clear",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "WhatsFiled - Insider Trading Made Clear",
+    template: "%s | WhatsFiled",
+  },
   description:
-    "Search public companies. Follow insiders. Track SEC Form 4 filings.",
+    "Track SEC Form 4 insider trading filings. Search public companies, follow insiders, and monitor stock transactions in real-time.",
+  keywords: [
+    "SEC filings",
+    "Form 4",
+    "insider trading",
+    "stock transactions",
+    "SEC EDGAR",
+    "insider buying",
+    "insider selling",
+    "executive stock sales",
+  ],
+  authors: [{ name: "WhatsFiled" }],
+  creator: "WhatsFiled",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "WhatsFiled",
+    title: "WhatsFiled - Insider Trading Made Clear",
+    description:
+      "Track SEC Form 4 insider trading filings. Search public companies, follow insiders, and monitor stock transactions in real-time.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "WhatsFiled - Insider Trading Made Clear",
+    description:
+      "Track SEC Form 4 insider trading filings. Search public companies, follow insiders, and monitor stock transactions in real-time.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: siteUrl,
+  },
 };
 
 export default function RootLayout({
@@ -26,9 +73,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${figtree.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${figtree.variable} ${geistMono.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>
