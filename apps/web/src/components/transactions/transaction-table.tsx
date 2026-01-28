@@ -105,20 +105,20 @@ function TransactionTable({
   if (isLoading) {
     return (
       <div className={cn("overflow-x-auto", className)}>
-        <table className="w-full table-fixed text-sm">
+        <table className="w-full table-fixed text-xs">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium">
+              <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium">
                 Date
               </th>
               {showCompany && (
-                <th className="w-[6%] whitespace-nowrap px-2 py-1.5 font-medium">
+                <th className="w-[6%] whitespace-nowrap px-2 py-1 font-medium">
                   Company
                 </th>
               )}
               <th
                 className={cn(
-                  "whitespace-nowrap px-2 py-1.5 font-medium",
+                  "whitespace-nowrap px-2 py-1 font-medium",
                   showCompany ? "w-[15%]" : "w-[18%]",
                 )}
               >
@@ -126,28 +126,28 @@ function TransactionTable({
               </th>
               <th
                 className={cn(
-                  "whitespace-nowrap px-2 py-1.5 font-medium",
+                  "whitespace-nowrap px-2 py-1 font-medium",
                   showCompany ? "w-[13%]" : "w-[16%]",
                 )}
               >
                 Role
               </th>
-              <th className="w-[7%] whitespace-nowrap px-2 py-1.5 font-medium">
+              <th className="w-[7%] whitespace-nowrap px-2 py-1 font-medium">
                 Type
               </th>
-              <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">
                 Price
               </th>
-              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">
                 Owned
               </th>
-              <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">
                 Shares
               </th>
-              <th className="w-[8%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[8%] whitespace-nowrap px-2 py-1 font-medium text-right">
                 Chg
               </th>
-              <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+              <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">
                 Value
               </th>
             </tr>
@@ -156,36 +156,36 @@ function TransactionTable({
             {Array.from({ length: 10 }).map((_, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton rows
               <tr key={i} className="border-b border-border/50">
-                <td className="px-2 py-1.5">
+                <td className="px-2 py-1">
                   <div className="h-4 w-full max-w-16 animate-pulse rounded bg-muted" />
                 </td>
                 {showCompany && (
-                  <td className="px-2 py-1.5">
+                  <td className="px-2 py-1">
                     <div className="h-4 w-full max-w-12 animate-pulse rounded bg-muted" />
                   </td>
                 )}
-                <td className="px-2 py-1.5">
+                <td className="px-2 py-1">
                   <div className="h-4 w-full max-w-32 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-2 py-1.5">
+                <td className="px-2 py-1">
                   <div className="h-4 w-full max-w-24 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-2 py-1.5">
+                <td className="px-2 py-1">
                   <div className="h-5 w-full max-w-14 animate-pulse rounded-full bg-muted" />
                 </td>
-                <td className="px-2 py-1.5 text-right">
+                <td className="px-2 py-1 text-right">
                   <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-2 py-1.5 text-right">
+                <td className="px-2 py-1 text-right">
                   <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-2 py-1.5 text-right">
+                <td className="px-2 py-1 text-right">
                   <div className="ml-auto h-4 w-full max-w-14 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-2 py-1.5 text-right">
+                <td className="px-2 py-1 text-right">
                   <div className="ml-auto h-4 w-full max-w-10 animate-pulse rounded bg-muted" />
                 </td>
-                <td className="px-2 py-1.5 text-right">
+                <td className="px-2 py-1 text-right">
                   <div className="ml-auto h-4 w-full max-w-12 animate-pulse rounded bg-muted" />
                 </td>
               </tr>
@@ -206,20 +206,20 @@ function TransactionTable({
 
   return (
     <div className={cn("overflow-x-auto", className)}>
-      <table className="w-full table-fixed text-sm">
+      <table className="w-full table-fixed text-xs">
         <thead>
           <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium">
+            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium">
               Date
             </th>
             {showCompany && (
-              <th className="w-[6%] whitespace-nowrap px-2 py-1.5 font-medium">
+              <th className="w-[6%] whitespace-nowrap px-2 py-1 font-medium">
                 Company
               </th>
             )}
             <th
               className={cn(
-                "whitespace-nowrap px-2 py-1.5 font-medium",
+                "whitespace-nowrap px-2 py-1 font-medium",
                 showCompany ? "w-[15%]" : "w-[18%]",
               )}
             >
@@ -227,28 +227,28 @@ function TransactionTable({
             </th>
             <th
               className={cn(
-                "whitespace-nowrap px-2 py-1.5 font-medium",
+                "whitespace-nowrap px-2 py-1 font-medium",
                 showCompany ? "w-[13%]" : "w-[16%]",
               )}
             >
               Role
             </th>
-            <th className="w-[7%] whitespace-nowrap px-2 py-1.5 font-medium">
+            <th className="w-[7%] whitespace-nowrap px-2 py-1 font-medium">
               Type
             </th>
-            <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">
               Price
             </th>
-            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">
               Owned
             </th>
-            <th className="w-[10%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[10%] whitespace-nowrap px-2 py-1 font-medium text-right">
               Shares
             </th>
-            <th className="w-[8%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[8%] whitespace-nowrap px-2 py-1 font-medium text-right">
               Chg
             </th>
-            <th className="w-[9%] whitespace-nowrap px-2 py-1.5 font-medium text-right">
+            <th className="w-[9%] whitespace-nowrap px-2 py-1 font-medium text-right">
               Value
             </th>
           </tr>
@@ -265,7 +265,7 @@ function TransactionTable({
                 key={txn.id}
                 className="border-b border-border/50 hover:bg-muted/30"
               >
-                <td className="whitespace-nowrap px-2 py-1.5">
+                <td className="whitespace-nowrap px-2 py-1">
                   <Link
                     href={`/filing/${txn.filing.accessionNumber}`}
                     className="text-muted-foreground hover:text-foreground hover:underline"
@@ -275,7 +275,7 @@ function TransactionTable({
                 </td>
                 {showCompany && txn.company && (
                   <td
-                    className="overflow-hidden px-2 py-1.5"
+                    className="overflow-hidden px-2 py-1"
                     title={txn.company.ticker || txn.company.name}
                   >
                     <Link
@@ -287,7 +287,7 @@ function TransactionTable({
                   </td>
                 )}
                 <td
-                  className="overflow-hidden px-2 py-1.5"
+                  className="overflow-hidden px-2 py-1"
                   title={txn.insider.name}
                 >
                   {txn.insider.cik ? (
@@ -304,21 +304,21 @@ function TransactionTable({
                   )}
                 </td>
                 <td
-                  className="overflow-hidden px-2 py-1.5 text-muted-foreground"
+                  className="overflow-hidden px-2 py-1 text-muted-foreground"
                   title={txn.insider.title}
                 >
                   <span className="block truncate">{txn.insider.title}</span>
                 </td>
-                <td className="px-2 py-1.5">
+                <td className="px-2 py-1">
                   <TransactionBadge code={txn.transactionCode} />
                 </td>
-                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-muted-foreground">
+                <td className="whitespace-nowrap px-2 py-1 text-right font-mono text-muted-foreground">
                   {formatCurrency(txn.pricePerShare)}
                 </td>
-                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-muted-foreground">
+                <td className="whitespace-nowrap px-2 py-1 text-right font-mono text-muted-foreground">
                   {formatNumber(txn.sharesOwnedAfter)}
                 </td>
-                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono">
+                <td className="whitespace-nowrap px-2 py-1 text-right font-mono">
                   <span
                     className={
                       txn.acquiredDisposed === "A"
@@ -336,7 +336,7 @@ function TransactionTable({
                     {formatNumber(txn.shares)}
                   </span>
                 </td>
-                <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono">
+                <td className="whitespace-nowrap px-2 py-1 text-right font-mono">
                   <span
                     className={
                       txn.acquiredDisposed === "A"
@@ -354,7 +354,7 @@ function TransactionTable({
                   </span>
                 </td>
                 <td
-                  className="whitespace-nowrap px-2 py-1.5 text-right font-mono"
+                  className="whitespace-nowrap px-2 py-1 text-right font-mono"
                   title={value ? formatCurrency(value) : undefined}
                 >
                   <span

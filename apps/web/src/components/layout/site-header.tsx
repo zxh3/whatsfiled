@@ -21,6 +21,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -140,8 +141,17 @@ export function SiteHeader() {
         {/* Logo */}
         <Link
           href="/"
-          className="text-lg font-semibold tracking-tight hover:opacity-80"
+          className="flex items-center gap-2 text-lg font-semibold tracking-tight hover:opacity-80"
         >
+          <Image
+            src="/logo.png"
+            alt="WhatsFiled logo"
+            width={24}
+            height={24}
+            quality={100}
+            priority
+            className="rounded"
+          />
           WhatsFiled
         </Link>
 
