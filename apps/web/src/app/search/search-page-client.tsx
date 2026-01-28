@@ -18,7 +18,7 @@ export function SearchPageClient() {
   return (
     <main className="min-h-screen">
       <SiteHeader />
-      <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
+      <div className="mx-auto max-w-4xl px-3 py-6 space-y-4 sm:px-4 sm:py-8 sm:space-y-6">
         <div>
           <h1 className="text-2xl font-semibold">Search</h1>
           {query ? (

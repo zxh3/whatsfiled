@@ -94,8 +94,8 @@ export function FilingCard({ filing }: FilingCardProps) {
   const isNotable = value >= 1_000_000 || shares >= 100_000;
 
   return (
-    <div className="border-b border-border py-4 first:pt-0 last:border-b-0">
-      <div className="flex items-start justify-between gap-4">
+    <div className="border-b border-border py-3 sm:py-4 first:pt-0 last:border-b-0">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         {/* Left: Company and Insider Info */}
         <div className="min-w-0 flex-1">
           {/* Company */}
@@ -248,7 +248,7 @@ export function FilingCard({ filing }: FilingCardProps) {
         </div>
 
         {/* Right: Ownership Change and Time */}
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:flex-col sm:items-end sm:gap-1 shrink-0">
           {/* Ownership Change */}
           {summary.ownershipChangePercent !== null && (
             <span
@@ -267,7 +267,7 @@ export function FilingCard({ filing }: FilingCardProps) {
             {formatInTimeZone(
               new Date(filing.filedAt),
               "America/New_York",
-              "MMM d, yyyy • h:mm a zzz",
+              "MMM d, yyyy",
             )}
           </span>
 
@@ -275,7 +275,7 @@ export function FilingCard({ filing }: FilingCardProps) {
             href={`/filing/${filing.accessionNumber}`}
             className="text-xs text-muted-foreground hover:text-foreground underline"
           >
-            Filing details
+            Details
           </Link>
 
           {/* SEC Filing Link */}
@@ -286,7 +286,7 @@ export function FilingCard({ filing }: FilingCardProps) {
               rel="noopener noreferrer"
               className="text-xs text-muted-foreground hover:text-foreground underline"
             >
-              SEC Filing
+              SEC
             </a>
           )}
 

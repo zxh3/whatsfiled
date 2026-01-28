@@ -178,7 +178,7 @@ export function FilingPageClient() {
     <TooltipProvider delayDuration={100}>
       <main className="min-h-screen">
         <SiteHeader />
-        <div className="mx-auto max-w-4xl px-4 py-8 space-y-8">
+        <div className="mx-auto max-w-4xl px-3 py-6 space-y-6 sm:px-4 sm:py-8 sm:space-y-8">
           <header className="space-y-2">
             <div className="text-xs text-muted-foreground">
               Form {filing.formType}
@@ -227,35 +227,35 @@ export function FilingPageClient() {
             )}
           </header>
 
-          <section className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-lg border border-border p-4">
-              <div className="text-xs text-muted-foreground">Total buy</div>
-              <div className="mt-2 text-lg font-semibold">
-                {formatNumber(totalBuyShares)} shares
+          <section className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="rounded-lg border border-border p-2 sm:p-4">
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Total buy</div>
+              <div className="mt-1 sm:mt-2 text-sm sm:text-lg font-semibold">
+                {formatNumber(totalBuyShares)}
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-[10px] sm:text-sm text-muted-foreground">
                 {formatCurrency(totalBuyValue)}
               </div>
             </div>
-            <div className="rounded-lg border border-border p-4">
-              <div className="text-xs text-muted-foreground">Total sell</div>
-              <div className="mt-2 text-lg font-semibold">
-                {formatNumber(totalSellShares)} shares
+            <div className="rounded-lg border border-border p-2 sm:p-4">
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Total sell</div>
+              <div className="mt-1 sm:mt-2 text-sm sm:text-lg font-semibold">
+                {formatNumber(totalSellShares)}
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-[10px] sm:text-sm text-muted-foreground">
                 {formatCurrency(totalSellValue)}
               </div>
             </div>
-            <div className="rounded-lg border border-border p-4">
-              <div className="text-xs text-muted-foreground">Net change</div>
-              <div className="mt-2 text-lg font-semibold">
+            <div className="rounded-lg border border-border p-2 sm:p-4">
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Net change</div>
+              <div className="mt-1 sm:mt-2 text-sm sm:text-lg font-semibold">
                 {netShares >= 0 ? "+" : "-"}
-                {formatNumber(Math.abs(netShares))} shares
+                {formatNumber(Math.abs(netShares))}
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-[10px] sm:text-sm text-muted-foreground truncate">
                 {sharesOwnedBefore !== null && sharesOwnedAfter !== null
                   ? `${formatNumber(sharesOwnedBefore)} → ${formatNumber(sharesOwnedAfter)}`
-                  : "Ownership data unavailable"}
+                  : "—"}
               </div>
             </div>
           </section>
@@ -269,26 +269,26 @@ export function FilingPageClient() {
                 No transactions listed.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+                <table className="w-full text-xs sm:text-sm min-w-[500px]">
                   <thead className="text-left text-muted-foreground">
                     <tr className="border-b border-border">
-                      <th className="py-2">Date</th>
-                      <th className="py-2">Code</th>
-                      <th className="py-2">Type</th>
-                      <th className="py-2">Shares</th>
-                      <th className="py-2">Price</th>
-                      <th className="py-2">Value</th>
+                      <th className="py-2 pr-2">Date</th>
+                      <th className="py-2 pr-2">Code</th>
+                      <th className="py-2 pr-2">Type</th>
+                      <th className="py-2 pr-2">Shares</th>
+                      <th className="py-2 pr-2">Price</th>
+                      <th className="py-2 pr-2">Value</th>
                       <th className="py-2">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filing.transactions.map((txn) => (
                       <tr key={txn.id} className="border-b border-border/60">
-                        <td className="py-2">
+                        <td className="py-2 pr-2 whitespace-nowrap">
                           {formatDate(txn.transactionDate)}
                         </td>
-                        <td className="py-2">
+                        <td className="py-2 pr-2">
                           {txn.transactionCode ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -309,18 +309,18 @@ export function FilingPageClient() {
                             "—"
                           )}
                         </td>
-                        <td className="py-2">
+                        <td className="py-2 pr-2">
                           {txn.acquiredDisposed === "A"
                             ? "Buy"
                             : txn.acquiredDisposed === "D"
                               ? "Sell"
                               : "—"}
                         </td>
-                        <td className="py-2">{formatNumber(txn.shares)}</td>
-                        <td className="py-2">
+                        <td className="py-2 pr-2 whitespace-nowrap">{formatNumber(txn.shares)}</td>
+                        <td className="py-2 pr-2 whitespace-nowrap">
                           {formatCurrency(txn.pricePerShare)}
                         </td>
-                        <td className="py-2">
+                        <td className="py-2 pr-2 whitespace-nowrap">
                           {formatCurrency(
                             resolveValue({
                               totalValue: txn.totalValue,
@@ -368,26 +368,26 @@ export function FilingPageClient() {
                 No derivative transactions listed.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+                <table className="w-full text-xs sm:text-sm min-w-[500px]">
                   <thead className="text-left text-muted-foreground">
                     <tr className="border-b border-border">
-                      <th className="py-2">Date</th>
-                      <th className="py-2">Code</th>
-                      <th className="py-2">Type</th>
-                      <th className="py-2">Underlying</th>
-                      <th className="py-2">Shares</th>
-                      <th className="py-2">Price</th>
+                      <th className="py-2 pr-2">Date</th>
+                      <th className="py-2 pr-2">Code</th>
+                      <th className="py-2 pr-2">Type</th>
+                      <th className="py-2 pr-2">Underlying</th>
+                      <th className="py-2 pr-2">Shares</th>
+                      <th className="py-2 pr-2">Price</th>
                       <th className="py-2">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filing.derivativeTransactions.map((txn) => (
                       <tr key={txn.id} className="border-b border-border/60">
-                        <td className="py-2">
+                        <td className="py-2 pr-2 whitespace-nowrap">
                           {formatDate(txn.transactionDate)}
                         </td>
-                        <td className="py-2">
+                        <td className="py-2 pr-2">
                           {txn.transactionCode ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -408,20 +408,20 @@ export function FilingPageClient() {
                             "—"
                           )}
                         </td>
-                        <td className="py-2">
+                        <td className="py-2 pr-2">
                           {txn.acquiredDisposed === "A"
                             ? "Buy"
                             : txn.acquiredDisposed === "D"
                               ? "Sell"
                               : "—"}
                         </td>
-                        <td className="py-2">
+                        <td className="py-2 pr-2 max-w-[120px] truncate">
                           {txn.underlyingSecurityTitle || "—"}
                         </td>
-                        <td className="py-2">
+                        <td className="py-2 pr-2 whitespace-nowrap">
                           {formatNumber(txn.underlyingShares)}
                         </td>
-                        <td className="py-2">
+                        <td className="py-2 pr-2 whitespace-nowrap">
                           {formatCurrency(txn.pricePerShare)}
                         </td>
                         <td className="py-2">
