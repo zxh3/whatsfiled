@@ -101,6 +101,41 @@ DATABASE_URL="..." pnpm backfill-local -s 2025-01-01 -e 2025-01-31 -c 5
 - Use `--skip-discovery` to re-process existing pending filings
 - Check `filing_queue.last_error` for failure reasons
 
+## Sync Local DB to Production
+
+Push filing data from local PostgreSQL to Supabase (excludes auth tables).
+
+```bash
+# Dump local data (exclude auth tables)
+pg_dump --data-only \
+  --exclude-table=users \
+  --exclude-table=sessions \
+  --exclude-table=accounts \
+  --exclude-table=verifications \
+  "postgresql://user:password@localhost:5432/whatsfiled" > data.sql
+
+# Push to Supabase
+PGPASSWORD="[password]" psql \
+  "postgresql://postgres.[ref]@aws-0-us-west-1.pooler.supabase.com:6543/postgres" < data.sql
+```
+
+Or all-in-one:
+
+```bash
+pg_dump --data-only \
+  --exclude-table=users \
+  --exclude-table=sessions \
+  --exclude-table=accounts \
+  --exclude-table=verifications \
+  "postgresql://user:password@localhost:5432/whatsfiled" | \
+PGPASSWORD="[password]" psql \
+  "postgresql://postgres.[ref]@aws-0-us-west-1.pooler.supabase.com:6543/postgres"
+```
+
+**Note:** This may fail on duplicate keys if data already exists in production. To handle conflicts, you can either:
+- Truncate production tables first (destructive)
+- Use `--on-conflict-do-nothing` with a custom import script
+
 ## CLI Script
 
 The `cli.ts` script triggers Trigger.dev tasks remotely. See `pnpm cli --help` for usage.
