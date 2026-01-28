@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -16,6 +16,62 @@ import { trpc } from "@/lib/trpc";
 
 function formatNumber(num: number): string {
   return num.toLocaleString();
+}
+
+function formatRelativeTime(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+
+  if (diffSec < 60) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  return d.toLocaleDateString();
+}
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "COMPLETED":
+      return "text-green-600";
+    case "FAILED":
+    case "CRASHED":
+    case "SYSTEM_FAILURE":
+      return "text-red-600";
+    case "EXECUTING":
+    case "REATTEMPTING":
+      return "text-blue-600";
+    case "QUEUED":
+    case "PENDING":
+      return "text-yellow-600";
+    case "CANCELED":
+      return "text-gray-500";
+    default:
+      return "text-muted-foreground";
+  }
+}
+
+function getStatusDot(status: string): string {
+  switch (status) {
+    case "COMPLETED":
+      return "bg-green-500";
+    case "FAILED":
+    case "CRASHED":
+    case "SYSTEM_FAILURE":
+      return "bg-red-500";
+    case "EXECUTING":
+    case "REATTEMPTING":
+      return "bg-blue-500 animate-pulse";
+    case "QUEUED":
+    case "PENDING":
+      return "bg-yellow-500";
+    case "CANCELED":
+      return "bg-gray-400";
+    default:
+      return "bg-muted-foreground";
+  }
 }
 
 function HelpIcon() {
@@ -122,6 +178,11 @@ export default function SyncPage() {
   const coverageQuery = trpc.pipeline.getIndexCoverage.useQuery(
     { year: selectedYear, formType: "4" },
     { refetchInterval: autoRefresh ? 30000 : false },
+  );
+
+  const runsQuery = trpc.pipeline.getTriggerRuns.useQuery(
+    { limit: 10 },
+    { refetchInterval: autoRefresh ? 5000 : false },
   );
 
   useEffect(() => {
@@ -311,6 +372,76 @@ export default function SyncPage() {
                   )}
                 </div>
               </section>
+
+              {/* Recent Runs */}
+              {runsQuery.data && runsQuery.data.runs.length > 0 && (
+                <section>
+                  <div className="flex items-center justify-between mb-4">
+                    <SectionHeader
+                      title="Recent Runs"
+                      tooltip="Recent Trigger.dev task executions. Shows cron jobs, backfills, and individual filing processing tasks."
+                    />
+                    <a
+                      href="https://cloud.trigger.dev/projects/v3/proj_tqvevnijvybdwlvcqfee/runs"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    >
+                      View all in Trigger.dev
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="bg-card border border-border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-4 py-2 text-left">Task</th>
+                          <th className="px-4 py-2 text-left">Status</th>
+                          <th className="px-4 py-2 text-right">Started</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {runsQuery.data.runs.map((run) => (
+                          <tr
+                            key={run.id}
+                            className="border-t border-border hover:bg-muted/30"
+                          >
+                            <td className="px-4 py-2">
+                              <a
+                                href={`https://cloud.trigger.dev/projects/v3/proj_tqvevnijvybdwlvcqfee/runs/${run.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-xs hover:underline"
+                              >
+                                {run.taskIdentifier}
+                              </a>
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className="flex items-center gap-2">
+                                <span
+                                  className={`w-2 h-2 rounded-full ${getStatusDot(run.status)}`}
+                                />
+                                <span
+                                  className={`text-xs font-medium ${getStatusColor(run.status)}`}
+                                >
+                                  {run.status}
+                                </span>
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-right text-xs text-muted-foreground">
+                              {run.startedAt
+                                ? formatRelativeTime(run.startedAt)
+                                : run.createdAt
+                                  ? formatRelativeTime(run.createdAt)
+                                  : "-"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
 
               {/* Coverage */}
               {coverage && (

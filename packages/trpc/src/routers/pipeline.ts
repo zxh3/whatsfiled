@@ -1,3 +1,4 @@
+import { configure, runs } from "@trigger.dev/sdk/v3";
 import { and, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -6,6 +7,13 @@ import {
   pipelineWorkers,
 } from "@whatsfiled/db/schema";
 import { publicProcedure, router } from "../init.js";
+
+// Configure Trigger.dev SDK (only if secret key is available)
+if (process.env.TRIGGER_SECRET_KEY) {
+  configure({
+    secretKey: process.env.TRIGGER_SECRET_KEY,
+  });
+}
 
 export const pipelineRouter = router({
   /**
@@ -412,5 +420,49 @@ export const pipelineRouter = router({
         missingDates,
         totalGaps: missingDates.length,
       };
+    }),
+
+  /**
+   * Get recent Trigger.dev runs for pipeline visibility.
+   */
+  getTriggerRuns: publicProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().min(1).max(50).default(10),
+        })
+        .optional(),
+    )
+    .query(async ({ input }) => {
+      if (!process.env.TRIGGER_SECRET_KEY) {
+        return { runs: [], error: "Trigger.dev not configured" };
+      }
+
+      try {
+        const result = await runs.list({
+          limit: input?.limit ?? 10,
+        });
+
+        return {
+          runs: result.data.map((run) => ({
+            id: run.id,
+            taskIdentifier: run.taskIdentifier,
+            status: run.status,
+            createdAt: run.createdAt,
+            updatedAt: run.updatedAt,
+            startedAt: run.startedAt,
+            finishedAt: run.finishedAt,
+            isTest: run.isTest,
+            idempotencyKey: run.idempotencyKey,
+          })),
+          error: null,
+        };
+      } catch (error) {
+        console.error("Failed to fetch Trigger.dev runs:", error);
+        return {
+          runs: [],
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
     }),
 });
