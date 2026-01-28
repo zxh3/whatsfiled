@@ -3,6 +3,9 @@ import { Suspense } from "react";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AdminContent } from "./admin-content";
 
+// Force dynamic rendering so ADMIN_EMAILS is read at runtime, not build time
+export const dynamic = "force-dynamic";
+
 export default function AdminPage() {
   const adminEmails = (process.env.ADMIN_EMAILS || "")
     .split(",")
