@@ -42,7 +42,7 @@ export function formatRelativeTime(date: Date | string | null): string {
   if (diffMin < 60) return `${diffMin}m ago`;
   if (diffHour < 24) return `${diffHour}h ago`;
   if (diffDay < 7) return `${diffDay}d ago`;
-  return d.toLocaleDateString();
+  return d.toISOString().split("T")[0];
 }
 
 export function formatNumber(num: number): string {

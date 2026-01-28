@@ -14,7 +14,8 @@
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v && docker compose up -d",
     "db:push": "pnpm --filter @whatsfiled/db db:push",
-    "db:studio": "pnpm --filter @whatsfiled/db db:studio"
+    "db:studio": "pnpm --filter @whatsfiled/db db:studio",
+    "db:sync": "./scripts/db-sync.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.13",

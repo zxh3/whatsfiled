@@ -1,5 +1,3 @@
-import { format } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
 import Link from "next/link";
 
 export interface FilingCardProps {
@@ -185,7 +183,7 @@ export function FilingCard({ filing }: FilingCardProps) {
                       <div className="mt-1 max-h-40 overflow-auto space-y-1">
                         {mixedTransactions.map((txn, idx) => {
                           const date = txn.transactionDate
-                            ? format(new Date(txn.transactionDate), "MMM d, yy")
+                            ? new Date(txn.transactionDate).toISOString().split("T")[0]
                             : "—";
                           const side =
                             txn.acquiredDisposed === "A"
@@ -264,11 +262,7 @@ export function FilingCard({ filing }: FilingCardProps) {
 
           {/* Date (SEC Eastern Time) */}
           <span className="text-xs text-muted-foreground">
-            {formatInTimeZone(
-              new Date(filing.filedAt),
-              "America/New_York",
-              "MMM d, yyyy",
-            )}
+            {new Date(filing.filedAt).toISOString().split("T")[0]}
           </span>
 
           <Link

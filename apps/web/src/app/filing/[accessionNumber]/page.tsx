@@ -43,11 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `${companyName} (${tickerSymbol})`
     : companyName;
 
-  const filedDate = new Date(filing[0].filedAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const filedDate = new Date(filing[0].filedAt).toISOString().split("T")[0];
 
   const title = `Form ${filing[0].formType} - ${displayName}`;
   const description = `SEC Form ${filing[0].formType} insider trading filing for ${displayName}, filed ${filedDate}. View transaction details, ownership changes, and footnotes.`;

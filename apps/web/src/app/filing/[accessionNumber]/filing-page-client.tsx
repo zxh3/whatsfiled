@@ -7,7 +7,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@whatsfiled/ui/components/tooltip";
-import { formatInTimeZone } from "date-fns-tz";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -44,7 +43,7 @@ function formatCurrency(value: number | string | null | undefined): string {
 
 function formatDate(value: Date | string | null | undefined): string {
   if (!value) return "—";
-  return formatInTimeZone(new Date(value), "America/New_York", "MMM d, yyyy");
+  return new Date(value).toISOString().split("T")[0];
 }
 
 function sumNumber(values: Array<number | string | null | undefined>): number {
@@ -208,12 +207,7 @@ export function FilingPageClient() {
               )}
             </div>
             <div className="text-sm text-muted-foreground">
-              Filed{" "}
-              {formatInTimeZone(
-                new Date(filing.filedAt),
-                "America/New_York",
-                "MMM d, yyyy • h:mm a zzz",
-              )}
+              Filed {new Date(filing.filedAt).toISOString().split("T")[0]}
             </div>
             {filing.documentUrl && (
               <a

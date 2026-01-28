@@ -48,6 +48,7 @@ yarn-error.log*
 
 # script output
 scripts/tmp
+scripts/.db-dump.sql
 
 # convex generated
 packages/backend/convex/_generated
