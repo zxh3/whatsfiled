@@ -137,11 +137,11 @@ export function SiteHeader() {
 
   return (
     <header className="border-b border-border">
-      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-4 px-4">
+      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4">
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 text-lg font-semibold tracking-tight hover:opacity-80"
+          className="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight hover:opacity-80"
         >
           <Image
             src="/logo.png"
@@ -152,11 +152,11 @@ export function SiteHeader() {
             priority
             className="rounded"
           />
-          WhatsFiled
+          <span className="hidden sm:inline">WhatsFiled</span>
         </Link>
 
         {/* Search */}
-        <form onSubmit={handleSubmit} className="relative flex-1 max-w-md">
+        <form onSubmit={handleSubmit} className="relative min-w-0 flex-1 sm:max-w-md">
           <div className="relative flex items-center">
             <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
             <input
@@ -166,8 +166,8 @@ export function SiteHeader() {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setTimeout(() => setIsFocused(false), 150)}
               onKeyDown={handleKeyDown}
-              placeholder="Search companies, tickers, insiders"
-              className="h-9 w-full rounded-md border border-border bg-muted/40 py-2 pl-9 pr-20 text-sm transition-colors placeholder:text-muted-foreground/70 focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring/20"
+              placeholder="Search..."
+              className="h-9 w-full rounded-md border border-border bg-muted/40 py-2 pl-9 pr-10 text-sm transition-colors placeholder:text-muted-foreground/70 focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring/20 sm:pr-20"
             />
             {query ? (
               <button
@@ -285,8 +285,8 @@ export function SiteHeader() {
                         </div>
                       </div>
                     )}
-                    {/* Keyboard navigation hint */}
-                    <div className="border-t border-border pt-2 text-[10px] text-muted-foreground">
+                    {/* Keyboard navigation hint - hidden on mobile */}
+                    <div className="hidden border-t border-border pt-2 text-[10px] text-muted-foreground sm:block">
                       <span className="flex items-center justify-center gap-2">
                         <span className="inline-flex items-center gap-1">
                           <KbdGroup size="sm">
