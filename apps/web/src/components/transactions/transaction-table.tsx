@@ -268,6 +268,7 @@ function TransactionTable({
                 <td className="whitespace-nowrap px-2 py-1">
                   <Link
                     href={`/filing/${txn.filing.accessionNumber}`}
+                    prefetch={false}
                     className="text-muted-foreground hover:text-foreground hover:underline"
                   >
                     {formatDate(txn.transactionDate)}
@@ -280,6 +281,7 @@ function TransactionTable({
                   >
                     <Link
                       href={`/company/${txn.company.cik}`}
+                      prefetch={false}
                       className="block truncate font-medium text-foreground hover:underline"
                     >
                       {txn.company.ticker || txn.company.name}
@@ -293,6 +295,7 @@ function TransactionTable({
                   {txn.insider.cik ? (
                     <Link
                       href={`/insider/${txn.insider.cik}`}
+                      prefetch={false}
                       className="block truncate font-medium text-foreground hover:underline"
                     >
                       {txn.insider.name}
