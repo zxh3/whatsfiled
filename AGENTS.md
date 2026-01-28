@@ -215,17 +215,28 @@ Example E2E test flow:
 
 ## Shadcn UI Components
 
-Components are in `packages/ui/src/components/`. When adding new shadcn components:
+**Always use the shared UI package** (`packages/ui/src/components/`) for common UI components. Do NOT create custom/ad-hoc components in `apps/web/src/components/` when a shadcn component exists.
 
-**DO NOT use the shadcn CLI** (`npx shadcn@latest add <component>`) - it creates files in the wrong location with circular imports.
+### Adding Missing Components
 
-Instead, manually create components using **Base UI** primitives (preferred) or Radix UI:
+If a shadcn component you need is not in the UI package, install it using the shadcn CLI:
 
-1. Base UI is already installed (`@base-ui/react`) - check https://base-ui.com/react/components/ for available components
-2. Create the component file at `packages/ui/src/components/<component>.tsx`
-3. Use the shadcn component source as reference for styling: https://ui.shadcn.com/docs/components/<component>
+```bash
+cd packages/ui
+pnpm dlx shadcn@latest add <component>
+```
+
+Then export the component from `packages/ui/src/index.ts` if not already exported.
+
+### Guidelines
+
+1. **Check existing components first** - Look in `packages/ui/src/components/` before creating anything new
+2. **Use shadcn CLI for standard components** - Button, Card, Dialog, etc. should come from shadcn
+3. **Do NOT invent new components** unless explicitly asked - prefer composition of existing shadcn components
+4. **Import from the UI package** - Use `import { Button } from "@whatsfiled/ui"` in the web app
 
 Example components already set up:
 
+- `button.tsx`, `card.tsx`, `table.tsx` - Standard shadcn components
 - `progress.tsx` - Uses `@base-ui/react/progress`
 - `tooltip.tsx` - Uses `@base-ui/react/tooltip`
