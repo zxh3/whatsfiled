@@ -810,7 +810,8 @@ async function main() {
     const dayNum = i + 1;
 
     // Skip weekends (no SEC filings)
-    const dayOfWeek = new Date(date).getDay();
+    // Use getUTCDay() because date string "YYYY-MM-DD" is parsed as UTC midnight
+    const dayOfWeek = new Date(date).getUTCDay();
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       continue;
     }
