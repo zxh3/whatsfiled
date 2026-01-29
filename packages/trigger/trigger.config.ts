@@ -19,4 +19,19 @@ export default defineConfig({
     },
   },
   dirs: ["src/tasks"],
+  // Register processors before any task runs
+  init: async () => {
+    const { Form4Processor } = await import("./src/processors/form4.js");
+    const { registerProcessor, hasProcessor } = await import(
+      "./src/processors/index.js"
+    );
+
+    const SEC_USER_AGENT =
+      process.env.SEC_USER_AGENT ?? "WhatsFiled contact@whatsfiled.com";
+
+    // Only register if not already registered (idempotent)
+    if (!hasProcessor("4")) {
+      registerProcessor(new Form4Processor(SEC_USER_AGENT));
+    }
+  },
 });

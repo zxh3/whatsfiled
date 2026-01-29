@@ -23,19 +23,16 @@ export { secRateLimitedQueue } from "./queues/index.js";
 export type {
   BackfillPayload,
   BackfillResult,
-  DiscoverIndexFilesPayload,
-  DiscoverIndexFilesResult,
+  ProcessDayPayload,
+  ProcessDayResult,
   ProcessFilingPayload,
   ProcessFilingResult,
-  ProcessIndexFilePayload,
-  ProcessIndexFileResult,
 } from "./tasks/index.js";
 export {
   backfillTask,
   dailySyncSchedule,
-  discoverIndexFilesTask,
+  processDayTask,
   processFilingTask,
-  processIndexFileTask,
 } from "./tasks/index.js";
 
 // Utils

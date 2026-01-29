@@ -1,5 +1,5 @@
 import { logger, schedules } from "@trigger.dev/sdk/v3";
-import { discoverIndexFilesTask } from "./discovery.js";
+import { processDayTask } from "./process-day.js";
 
 /**
  * Daily sync scheduled task.
@@ -9,47 +9,103 @@ import { discoverIndexFilesTask } from "./discovery.js";
  *
  * SEC publishes daily index files after market close (~5-6 PM ET),
  * so running at 1 AM ET gives plenty of buffer time.
+ *
+ * Processing is sequential by date:
+ * 1. Process each date one at a time
+ * 2. For each date: discover index → queue filings → process ALL filings
+ * 3. Only move to next date after all filings complete
  */
 export const dailySyncSchedule = schedules.task({
   id: "daily-sync",
   // Run at 6 AM UTC daily
   cron: "0 6 * * *",
   run: async () => {
-    // Add buffer: start 3 days ago, end tomorrow
+    // Add buffer: start 3 days ago, end today
     // This catches any missed filings from weekends/holidays and late postings
     const today = new Date();
 
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - 3);
-    const startDateStr = startDate.toISOString().split("T")[0];
 
     const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + 1);
-    const endDateStr = endDate.toISOString().split("T")[0];
 
     logger.info("Starting daily sync", {
-      startDate: startDateStr,
-      endDate: endDateStr,
+      startDate: startDate.toISOString().split("T")[0],
+      endDate: endDate.toISOString().split("T")[0],
     });
 
-    // Trigger discovery for Form 4 and Form 4/A filings
-    const result = await discoverIndexFilesTask.triggerAndWait({
-      startDate: startDateStr,
-      endDate: endDateStr,
-      formTypes: ["4", "4/A"],
-    });
+    const formTypes = ["4", "4/A"];
+    const results: Array<{
+      date: string;
+      processed: number;
+      skipped: number;
+      failed: number;
+    }> = [];
+
+    // Process each date sequentially
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      const dateStr = current.toISOString().split("T")[0];
+
+      logger.info("Processing date", { date: dateStr });
+
+      // Process this day and WAIT for completion before moving to next
+      const result = await processDayTask.triggerAndWait({
+        date: dateStr,
+        formTypes,
+      });
+
+      if (result.ok) {
+        results.push({
+          date: dateStr,
+          processed: result.output.filingsProcessed,
+          skipped: result.output.filingsSkipped,
+          failed: result.output.filingsFailed,
+        });
+
+        logger.info("Date completed", {
+          date: dateStr,
+          processed: result.output.filingsProcessed,
+          skipped: result.output.filingsSkipped,
+          failed: result.output.filingsFailed,
+        });
+      } else {
+        logger.error("Date processing failed", {
+          date: dateStr,
+          error: result.error,
+        });
+        results.push({
+          date: dateStr,
+          processed: 0,
+          skipped: 0,
+          failed: -1, // Indicates task-level failure
+        });
+      }
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    // Summarize results
+    const totals = results.reduce(
+      (acc, r) => ({
+        processed: acc.processed + r.processed,
+        skipped: acc.skipped + r.skipped,
+        failed: acc.failed + (r.failed > 0 ? r.failed : 0),
+        daysWithFailures: acc.daysWithFailures + (r.failed !== 0 ? 1 : 0),
+      }),
+      { processed: 0, skipped: 0, failed: 0, daysWithFailures: 0 },
+    );
 
     logger.info("Daily sync completed", {
-      startDate: startDateStr,
-      endDate: endDateStr,
-      discovered: result.ok ? result.output.discovered : 0,
-      inserted: result.ok ? result.output.inserted : 0,
-      triggered: result.ok ? result.output.triggered : 0,
+      daysProcessed: results.length,
+      ...totals,
     });
 
     return {
-      success: result.ok,
-      result: result.ok ? result.output : null,
+      success: totals.daysWithFailures === 0,
+      daysProcessed: results.length,
+      ...totals,
+      results,
     };
   },
 });
