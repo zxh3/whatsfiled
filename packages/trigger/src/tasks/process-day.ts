@@ -248,6 +248,8 @@ export const processDayTask = task({
 
 /**
  * Get pending filings for a specific date.
+ * Includes both "pending" status and "processing" status with expired locks
+ * (to recover from crashed workers).
  */
 async function getPendingFilingsForDate(
   db: ReturnType<typeof getDb>,
@@ -261,9 +263,16 @@ async function getPendingFilingsForDate(
     .from(filingQueue)
     .where(
       and(
-        eq(filingQueue.status, "pending"),
         eq(filingQueue.dateFiled, dateFiled),
-        or(isNull(filingQueue.lockedUntil), lt(filingQueue.lockedUntil, now)),
+        or(
+          // Pending filings ready to process
+          eq(filingQueue.status, "pending"),
+          // Stuck "processing" filings with expired locks (crashed workers)
+          and(
+            eq(filingQueue.status, "processing"),
+            lt(filingQueue.lockedUntil, now),
+          ),
+        ),
       ),
     );
 }
