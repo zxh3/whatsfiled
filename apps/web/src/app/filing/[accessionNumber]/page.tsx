@@ -51,6 +51,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://whatsfiled.com";
   const canonicalUrl = `${siteUrl}/filing/${filing[0].accessionNumber}`;
 
+  const ogImageUrl = `${siteUrl}/api/og/filing?accession=${filing[0].accessionNumber}`;
+
   return {
     title,
     description,
@@ -60,11 +62,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: canonicalUrl,
       type: "article",
       publishedTime: filing[0].filedAt.toISOString(),
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `Form ${filing[0].formType} Filing for ${displayName}`,
+        },
+      ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: `${title} | WhatsFiled`,
       description,
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: canonicalUrl,
