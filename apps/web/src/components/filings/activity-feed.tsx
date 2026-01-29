@@ -2,6 +2,7 @@
 
 import { Spinner } from "@whatsfiled/ui/components/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TransactionTable } from "@/components/transactions/transaction-table";
 import { trpc } from "@/lib/trpc";
@@ -113,12 +114,20 @@ export function ActivityFeed() {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Tabs value={filter} onValueChange={handleFilterChange}>
-          <TabsList>
-            <TabsTrigger value="common">Market Trades</TabsTrigger>
-            <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Tabs value={filter} onValueChange={handleFilterChange}>
+            <TabsList>
+              <TabsTrigger value="common">Market Trades</TabsTrigger>
+              <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Link
+            href="/coverage"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            View data coverage →
+          </Link>
+        </div>
         <p className="text-xs text-muted-foreground">
           {filter === "common"
             ? "Open market purchases and sales — discretionary trades that may signal insider sentiment."
