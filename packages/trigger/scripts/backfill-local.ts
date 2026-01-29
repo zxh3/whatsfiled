@@ -809,13 +809,6 @@ async function main() {
     const date = dates[i];
     const dayNum = i + 1;
 
-    // Skip weekends (no SEC filings)
-    // Use getUTCDay() because date string "YYYY-MM-DD" is parsed as UTC midnight
-    const dayOfWeek = new Date(date).getUTCDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      continue;
-    }
-
     // Pause progress bar while we print day info
     if (progressStarted) {
       progress.pause();
