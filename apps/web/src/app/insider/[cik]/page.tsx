@@ -40,6 +40,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://whatsfiled.com";
   const canonicalUrl = `${siteUrl}/insider/${insider[0].cik}`;
 
+  const ogImageUrl = `${siteUrl}/api/og/insider?cik=${insider[0].cik}`;
+
   return {
     title,
     description,
@@ -48,11 +50,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: canonicalUrl,
       type: "profile",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${insiderName} Insider Trading Profile`,
+        },
+      ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: `${title} | WhatsFiled`,
       description,
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: canonicalUrl,
