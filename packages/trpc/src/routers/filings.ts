@@ -57,12 +57,22 @@ export const filingsRouter = router({
 
       const recentFilings = await query;
 
-      // For each filing, get the owners and transaction summary
-      const filingsWithDetails = await Promise.all(
-        recentFilings.map(async (filing) => {
-          // Get filing owners with insider info
-          const owners = await db
+      // Early return if no filings
+      if (recentFilings.length === 0) {
+        return { filings: [], hasMore: false };
+      }
+
+      // Collect IDs for batch queries
+      const filingIds = recentFilings.map((f) => f.id);
+      const companyIds = [...new Set(recentFilings.map((f) => f.companyId))];
+
+      // Batch fetch all related data (4 queries instead of 150-200)
+      const [allOwners, allSummaries, allTickers, allMixedTransactions] =
+        await Promise.all([
+          // Batch fetch owners
+          db
             .select({
+              filingId: filingOwners.filingId,
               insiderId: insiders.id,
               insiderName: insiders.name,
               insiderCik: insiders.cik,
@@ -73,11 +83,12 @@ export const filingsRouter = router({
             })
             .from(filingOwners)
             .innerJoin(insiders, eq(filingOwners.insiderId, insiders.id))
-            .where(eq(filingOwners.filingId, filing.id));
+            .where(inArray(filingOwners.filingId, filingIds)),
 
-          // Get transaction summary
-          const txnSummary = await db
+          // Batch fetch transaction summaries
+          db
             .select({
+              filingId: transactions.filingId,
               totalAcquired: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'A' THEN shares ELSE 0 END), 0)`,
               totalDisposed: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'D' THEN shares ELSE 0 END), 0)`,
               totalAcquiredValue: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'A' THEN shares * price_per_share ELSE 0 END), 0)`,
@@ -86,117 +97,176 @@ export const filingsRouter = router({
               sharesOwnedAfter: sql<string>`MAX(shares_owned_after)`,
             })
             .from(transactions)
-            .where(eq(transactions.filingId, filing.id));
+            .where(inArray(transactions.filingId, filingIds))
+            .groupBy(transactions.filingId),
 
-          const summary = txnSummary[0];
-
-          // Calculate ownership change percentage
-          const sharesOwnedAfter = parseFloat(summary?.sharesOwnedAfter || "0");
-          const totalAcquired = parseFloat(summary?.totalAcquired || "0");
-          const totalDisposed = parseFloat(summary?.totalDisposed || "0");
-          const netChange = totalAcquired - totalDisposed;
-          const sharesOwnedBefore = sharesOwnedAfter - netChange;
-
-          let ownershipChangePercent: number | null = null;
-          if (sharesOwnedBefore > 0) {
-            ownershipChangePercent = (netChange / sharesOwnedBefore) * 100;
-          } else if (netChange > 0) {
-            ownershipChangePercent = 100; // New position
-          }
-
-          // Get primary ticker for company
-          const ticker = await db
-            .select({ ticker: companyTickers.ticker })
+          // Batch fetch tickers
+          db
+            .select({
+              companyId: companyTickers.companyId,
+              ticker: companyTickers.ticker,
+            })
             .from(companyTickers)
-            .where(eq(companyTickers.companyId, filing.companyId))
-            .limit(1);
+            .where(inArray(companyTickers.companyId, companyIds)),
 
-          // Determine transaction type (buy/sell/mixed)
-          let transactionType: "buy" | "sell" | "mixed" | "none" = "none";
-          if (totalAcquired > 0 && totalDisposed > 0) {
-            transactionType = "mixed";
-          } else if (totalAcquired > 0) {
-            transactionType = "buy";
-          } else if (totalDisposed > 0) {
-            transactionType = "sell";
-          }
-
-          // For mixed filings, include compact transaction list for hover detail
-          let mixedTransactions: Array<{
-            transactionDate: string | null;
-            transactionCode: string | null;
-            acquiredDisposed: "A" | "D" | null;
-            shares: number | null;
-            pricePerShare: number | null;
-          }> | null = null;
-
-          if (transactionType === "mixed") {
-            const rows = await db
-              .select({
-                transactionDate: transactions.transactionDate,
-                transactionCode: transactions.transactionCode,
-                acquiredDisposed: transactions.acquiredDisposed,
-                shares: transactions.shares,
-                pricePerShare: transactions.pricePerShare,
-              })
-              .from(transactions)
-              .where(
-                and(
-                  eq(transactions.filingId, filing.id),
-                  lte(transactions.transactionDate, sql`CURRENT_DATE`),
-                ),
-              )
-              .orderBy(transactions.transactionDate);
-
-            mixedTransactions = rows.map((row) => ({
-              transactionDate: row.transactionDate,
-              transactionCode: row.transactionCode ?? null,
-              acquiredDisposed: row.acquiredDisposed ?? null,
-              shares: row.shares ? Number(row.shares) : null,
-              pricePerShare: row.pricePerShare
-                ? Number(row.pricePerShare)
-                : null,
-            }));
-          }
-
-          return {
-            id: filing.id,
-            accessionNumber: filing.accessionNumber,
-            formType: filing.formType,
-            filedAt: filing.filedAt,
-            periodOfReport: filing.periodOfReport,
-            isAmendment: filing.isAmendment,
-            documentUrl: filing.documentUrl,
-            company: {
-              id: filing.companyId,
-              name: filing.companyName,
-              cik: filing.companyCik,
-              ticker: ticker[0]?.ticker || null,
-            },
-            owners: owners.map((o) => ({
-              id: o.insiderId,
-              name: o.insiderName,
-              cik: o.insiderCik,
-              title: o.officerTitle || getOwnerRole(o),
-            })),
-            summary: {
-              transactionType,
-              totalAcquired: parseFloat(summary?.totalAcquired || "0"),
-              totalDisposed: parseFloat(summary?.totalDisposed || "0"),
-              totalAcquiredValue: parseFloat(
-                summary?.totalAcquiredValue || "0",
+          // Batch fetch all transactions for potential mixed filings
+          db
+            .select({
+              filingId: transactions.filingId,
+              transactionDate: transactions.transactionDate,
+              transactionCode: transactions.transactionCode,
+              acquiredDisposed: transactions.acquiredDisposed,
+              shares: transactions.shares,
+              pricePerShare: transactions.pricePerShare,
+            })
+            .from(transactions)
+            .where(
+              and(
+                inArray(transactions.filingId, filingIds),
+                lte(transactions.transactionDate, sql`CURRENT_DATE`),
               ),
-              totalDisposedValue: parseFloat(
-                summary?.totalDisposedValue || "0",
-              ),
-              avgPrice: parseFloat(summary?.avgPrice || "0"),
-              sharesOwnedAfter,
-              ownershipChangePercent,
-            },
-            transactions: mixedTransactions,
-          };
-        }),
-      );
+            )
+            .orderBy(transactions.transactionDate),
+        ]);
+
+      // Create lookup Maps
+      const ownersByFiling = new Map<
+        string,
+        Array<{
+          insiderId: string;
+          insiderName: string;
+          insiderCik: string | null;
+          isDirector: boolean;
+          isOfficer: boolean;
+          isTenPercentOwner: boolean;
+          officerTitle: string | null;
+        }>
+      >();
+      for (const owner of allOwners) {
+        const list = ownersByFiling.get(owner.filingId) ?? [];
+        list.push(owner);
+        ownersByFiling.set(owner.filingId, list);
+      }
+
+      const summaryByFiling = new Map<
+        string,
+        {
+          totalAcquired: string;
+          totalDisposed: string;
+          totalAcquiredValue: string;
+          totalDisposedValue: string;
+          avgPrice: string;
+          sharesOwnedAfter: string;
+        }
+      >();
+      for (const summary of allSummaries) {
+        summaryByFiling.set(summary.filingId, summary);
+      }
+
+      const tickerByCompany = new Map<string, string>();
+      for (const t of allTickers) {
+        if (!tickerByCompany.has(t.companyId)) {
+          tickerByCompany.set(t.companyId, t.ticker);
+        }
+      }
+
+      const transactionsByFiling = new Map<
+        string,
+        Array<{
+          transactionDate: string | null;
+          transactionCode: string | null;
+          acquiredDisposed: "A" | "D" | null;
+          shares: string | null;
+          pricePerShare: string | null;
+        }>
+      >();
+      for (const txn of allMixedTransactions) {
+        const list = transactionsByFiling.get(txn.filingId) ?? [];
+        list.push(txn);
+        transactionsByFiling.set(txn.filingId, list);
+      }
+
+      // Assemble response using Maps (no additional queries)
+      const filingsWithDetails = recentFilings.map((filing) => {
+        const owners = ownersByFiling.get(filing.id) ?? [];
+        const summary = summaryByFiling.get(filing.id);
+
+        const sharesOwnedAfter = parseFloat(summary?.sharesOwnedAfter || "0");
+        const totalAcquired = parseFloat(summary?.totalAcquired || "0");
+        const totalDisposed = parseFloat(summary?.totalDisposed || "0");
+        const netChange = totalAcquired - totalDisposed;
+        const sharesOwnedBefore = sharesOwnedAfter - netChange;
+
+        let ownershipChangePercent: number | null = null;
+        if (sharesOwnedBefore > 0) {
+          ownershipChangePercent = (netChange / sharesOwnedBefore) * 100;
+        } else if (netChange > 0) {
+          ownershipChangePercent = 100; // New position
+        }
+
+        // Determine transaction type (buy/sell/mixed)
+        let transactionType: "buy" | "sell" | "mixed" | "none" = "none";
+        if (totalAcquired > 0 && totalDisposed > 0) {
+          transactionType = "mixed";
+        } else if (totalAcquired > 0) {
+          transactionType = "buy";
+        } else if (totalDisposed > 0) {
+          transactionType = "sell";
+        }
+
+        // For mixed filings, include compact transaction list for hover detail
+        let mixedTransactions: Array<{
+          transactionDate: string | null;
+          transactionCode: string | null;
+          acquiredDisposed: "A" | "D" | null;
+          shares: number | null;
+          pricePerShare: number | null;
+        }> | null = null;
+
+        if (transactionType === "mixed") {
+          const txns = transactionsByFiling.get(filing.id) ?? [];
+          mixedTransactions = txns.map((row) => ({
+            transactionDate: row.transactionDate,
+            transactionCode: row.transactionCode ?? null,
+            acquiredDisposed: row.acquiredDisposed ?? null,
+            shares: row.shares ? Number(row.shares) : null,
+            pricePerShare: row.pricePerShare ? Number(row.pricePerShare) : null,
+          }));
+        }
+
+        return {
+          id: filing.id,
+          accessionNumber: filing.accessionNumber,
+          formType: filing.formType,
+          filedAt: filing.filedAt,
+          periodOfReport: filing.periodOfReport,
+          isAmendment: filing.isAmendment,
+          documentUrl: filing.documentUrl,
+          company: {
+            id: filing.companyId,
+            name: filing.companyName,
+            cik: filing.companyCik,
+            ticker: tickerByCompany.get(filing.companyId) ?? null,
+          },
+          owners: owners.map((o) => ({
+            id: o.insiderId,
+            name: o.insiderName,
+            cik: o.insiderCik,
+            title: o.officerTitle || getOwnerRole(o),
+          })),
+          summary: {
+            transactionType,
+            totalAcquired: parseFloat(summary?.totalAcquired || "0"),
+            totalDisposed: parseFloat(summary?.totalDisposed || "0"),
+            totalAcquiredValue: parseFloat(summary?.totalAcquiredValue || "0"),
+            totalDisposedValue: parseFloat(summary?.totalDisposedValue || "0"),
+            avgPrice: parseFloat(summary?.avgPrice || "0"),
+            sharesOwnedAfter,
+            ownershipChangePercent,
+          },
+          transactions: mixedTransactions,
+        };
+      });
 
       return {
         filings: filingsWithDetails,
