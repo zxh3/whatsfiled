@@ -26,6 +26,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { UserMenu } from "@/components/auth/user-menu";
+import { WatchlistDropdown } from "@/components/watchlist/watchlist-dropdown";
 import { useTheme } from "@/hooks/use-theme";
 import { trpc } from "@/lib/trpc";
 
@@ -317,8 +318,9 @@ export function SiteHeader() {
           </AnimatePresence>
         </form>
 
-        {/* Right side: Menu + User */}
+        {/* Right side: Watchlist + Menu + User */}
         <div className="flex items-center gap-2">
+          <WatchlistDropdown />
           {/* Render placeholder during SSR to avoid hydration mismatch with Base UI's generated IDs */}
           {mounted ? (
             <DropdownMenu>

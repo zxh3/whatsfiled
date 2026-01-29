@@ -8,6 +8,7 @@ import { filingsRouter } from "./filings.js";
 import { insidersRouter } from "./insiders.js";
 import { pipelineRouter } from "./pipeline.js";
 import { searchRouter } from "./search.js";
+import { watchlistRouter } from "./watchlist.js";
 
 export const appRouter = router({
   health: publicProcedure.query(() => {
@@ -36,6 +37,9 @@ export const appRouter = router({
 
   // Pipeline management (admin)
   pipeline: pipelineRouter,
+
+  // User watchlist
+  watchlist: watchlistRouter,
 });
 
 export type AppRouter = typeof appRouter;

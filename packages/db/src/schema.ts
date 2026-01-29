@@ -85,6 +85,7 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   tickers: many(companyTickers),
   insiderRoles: many(insiderRoles),
   filings: many(filings),
+  watchlistItems: many(watchlistItems),
 }));
 
 // ============================================================================
@@ -672,6 +673,39 @@ export const verifications = pgTable("verifications", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ============================================================================
+// Watchlist Items
+// ============================================================================
+
+export const watchlistItems = pgTable(
+  "watchlist_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("watchlist_user_company_idx").on(table.userId, table.companyId),
+    index("watchlist_user_idx").on(table.userId),
+  ],
+);
+
+export const watchlistItemsRelations = relations(watchlistItems, ({ one }) => ({
+  user: one(users, {
+    fields: [watchlistItems.userId],
+    references: [users.id],
+  }),
+  company: one(companies, {
+    fields: [watchlistItems.companyId],
+    references: [companies.id],
+  }),
+}));
 
 // ============================================================================
 // Chat Messages (Real-time chat)

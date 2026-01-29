@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/layout/site-header";
 import { TransactionTable } from "@/components/transactions/transaction-table";
+import { WatchButton } from "@/components/watchlist/watch-button";
 import { trpc } from "@/lib/trpc";
 
 const PAGE_SIZE = 25;
@@ -74,14 +75,17 @@ export function CompanyPageClient() {
       <div className="mx-auto max-w-5xl px-3 py-6 space-y-4 sm:px-4 sm:py-8 sm:space-y-6">
         <header>
           <div className="text-xs text-muted-foreground">Company</div>
-          <h1 className="text-2xl font-semibold">
-            {data.company.name}
-            {data.company.ticker && (
-              <span className="ml-2 font-mono text-sm text-muted-foreground">
-                {data.company.ticker}
-              </span>
-            )}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">
+              {data.company.name}
+              {data.company.ticker && (
+                <span className="ml-2 font-mono text-sm text-muted-foreground">
+                  {data.company.ticker}
+                </span>
+              )}
+            </h1>
+            <WatchButton companyId={data.company.id} />
+          </div>
           <p className="text-sm text-muted-foreground">
             CIK {data.company.cik}
           </p>

@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TransactionTable } from "@/components/transactions/transaction-table";
+import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
 
 const PAGE_SIZE = 50;
@@ -38,23 +39,53 @@ type Transaction = {
 };
 
 export function ActivityFeed() {
+  const { data: session } = useSession();
   const [filter, setFilter] = useState<"common" | "options">("common");
   const [offset, setOffset] = useState(0);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const prevOffset = useRef(0);
+  const prevSource = useRef<"generic" | "watchlist">("generic");
   const loaderRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading, isError, error, isFetching } =
-    trpc.filings.getRecentTransactions.useQuery(
-      { filter, limit: PAGE_SIZE, offset },
-      { staleTime: 30000 },
-    );
+  // Check if user has a watchlist (only when signed in)
+  const { data: watchlistData, isLoading: watchlistLoading } =
+    trpc.watchlist.list.useQuery(undefined, {
+      enabled: !!session,
+    });
+
+  const hasWatchlist = (watchlistData?.length ?? 0) > 0;
+  const useWatchlistFeed = !!session && hasWatchlist;
+
+  // Generic feed query (when not signed in or no watchlist)
+  const genericQuery = trpc.filings.getRecentTransactions.useQuery(
+    { filter, limit: PAGE_SIZE, offset },
+    { enabled: !useWatchlistFeed, staleTime: 30000 },
+  );
+
+  // Watchlist feed query (when signed in with watchlist)
+  const watchlistQuery = trpc.watchlist.getWatchlistFeed.useQuery(
+    { filter, limit: PAGE_SIZE, offset },
+    { enabled: useWatchlistFeed, staleTime: 30000 },
+  );
+
+  // Select the active query based on user state
+  const activeQuery = useWatchlistFeed ? watchlistQuery : genericQuery;
+  const { data, isLoading, isError, error, isFetching } = activeQuery;
 
   const hasMore = data?.pagination.hasMore ?? false;
+  const currentSource = useWatchlistFeed ? "watchlist" : "generic";
 
   // Accumulate transactions when new data arrives
   useEffect(() => {
     if (data?.transactions) {
+      // Reset if source changed (signed in/out or watchlist emptied)
+      if (currentSource !== prevSource.current) {
+        setAllTransactions(data.transactions);
+        prevOffset.current = offset;
+        prevSource.current = currentSource;
+        return;
+      }
+
       if (offset === 0) {
         // Reset on filter change or initial load
         setAllTransactions(data.transactions);
@@ -70,7 +101,7 @@ export function ActivityFeed() {
       }
       prevOffset.current = offset;
     }
-  }, [data, offset]);
+  }, [data, offset, currentSource]);
 
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter as "common" | "options");
@@ -129,11 +160,35 @@ export function ActivityFeed() {
           </Link>
         </div>
         <p className="text-xs text-muted-foreground">
-          {filter === "common"
-            ? "Open market purchases and sales — discretionary trades that may signal insider sentiment."
-            : "Stock received from option exercises, RSU vests, awards, and tax withholding — routine compensation events."}
+          {useWatchlistFeed ? (
+            <>
+              Showing activity from your{" "}
+              <span className="font-medium">
+                {watchlistData?.length} watched{" "}
+                {watchlistData?.length === 1 ? "company" : "companies"}
+              </span>
+              .{" "}
+              {filter === "common"
+                ? "Open market purchases and sales."
+                : "Option exercises, RSU vests, awards, and tax withholding."}
+            </>
+          ) : filter === "common" ? (
+            "Open market purchases and sales — discretionary trades that may signal insider sentiment."
+          ) : (
+            "Stock received from option exercises, RSU vests, awards, and tax withholding — routine compensation events."
+          )}
         </p>
       </div>
+
+      {/* Empty watchlist prompt */}
+      {session && !watchlistLoading && !hasWatchlist && !isLoading && (
+        <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            Watch companies to personalize your feed. Visit any company page and
+            click the star icon to add it to your watchlist.
+          </p>
+        </div>
+      )}
 
       <TransactionTable
         transactions={allTransactions}
