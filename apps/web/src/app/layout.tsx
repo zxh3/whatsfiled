@@ -1,7 +1,8 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Figtree, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import { ChatWidget } from "@/components/chat/chat-widget";
 import { Providers } from "./providers";
 
 const figtree = Figtree({
@@ -75,7 +76,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${figtree.variable} ${geistMono.variable} antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <ChatWidget />
+        </Providers>
         <Analytics />
       </body>
     </html>
