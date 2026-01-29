@@ -1,5 +1,7 @@
 # Company Page Redesign Proposal
 
+> **Note**: This is a historical design document. Some parts have been implemented, and file paths may be outdated. The current implementation uses Next.js App Router at `apps/web/src/app/company/[cik]/page.tsx` and tRPC routers at `packages/trpc/src/routers/`.
+
 ## Overview
 
 Redesign the company page (`/company/:cik`) to display insider trading data in a more compact, scannable table format inspired by [secform4.com](https://www.secform4.com/insider-trading/1744489.htm).

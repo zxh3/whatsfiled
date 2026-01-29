@@ -380,20 +380,15 @@ Make SEC filings easily digestible for retail investors, analysts, and AI agents
 
 ## Backfill Commands
 
+See [CLAUDE.md](../CLAUDE.md) for the latest backfill instructions using the local script.
+
 ```bash
-# Check pipeline stats
-pnpm --filter @whatsfiled/backend tsx src/scripts/backfill.ts --stage stats
+# Example: Backfill on local DB
+cd packages/trigger
+DATABASE_URL="postgresql://user:password@localhost:5432/whatsfiled" \
+  pnpm backfill-local --start 2025-01-01 --end 2025-01-07
 
-# Discover index files for a year (dry run first)
-pnpm --filter @whatsfiled/backend tsx src/scripts/backfill.ts --year 2025 --stage discovery --dry-run
-pnpm --filter @whatsfiled/backend tsx src/scripts/backfill.ts --year 2025 --stage discovery
-
-# Process index files (creates queue entries)
-pnpm --filter @whatsfiled/backend tsx src/scripts/backfill.ts --stage index --limit 20
-
-# Process filings from queue
-pnpm --filter @whatsfiled/backend tsx src/scripts/backfill.ts --stage filing --limit 100
-
-# Run all stages
-pnpm --filter @whatsfiled/backend tsx src/scripts/backfill.ts --year 2025 --limit 50
+# Example: Backfill on production (Supabase)
+DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres" \
+  pnpm backfill-local --start 2025-01-01 --end 2025-01-31
 ```
