@@ -1,4 +1,5 @@
 import { Badge } from "@whatsfiled/ui/components/badge";
+import type { Metadata } from "next";
 import {
   AlertCircle,
   ArrowLeft,
@@ -13,6 +14,34 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/layout/site-header";
+
+export const metadata: Metadata = {
+  title: "SEC Filings Guide - Forms, Deadlines & Transaction Codes",
+  description:
+    "Complete guide to SEC filings including Form 4 insider trading, Form 10-K, 10-Q, 8-K, Schedule 13D, and Form 13F. Learn filing deadlines, transaction codes (P, S, M, A), and how to interpret insider activity.",
+  keywords: [
+    "SEC filings",
+    "Form 4",
+    "Form 4 transaction codes",
+    "SEC filing deadlines",
+    "insider trading forms",
+    "Form 10-K",
+    "Form 10-Q",
+    "Form 8-K",
+    "Schedule 13D",
+    "Form 13F",
+    "Section 16 filings",
+  ],
+  openGraph: {
+    title: "SEC Filings Guide - Forms, Deadlines & Transaction Codes",
+    description:
+      "Complete guide to SEC filings including Form 4 insider trading, 10-K, 10-Q, 13D, and 13F. Learn deadlines and transaction codes.",
+    type: "article",
+  },
+  alternates: {
+    canonical: "/resources/sec-filings",
+  },
+};
 
 function SectionHeader({
   icon: Icon,
