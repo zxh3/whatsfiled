@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@whatsfiled/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,19 +10,23 @@ import {
 import { Spinner } from "@whatsfiled/ui/components/spinner";
 import { Star } from "lucide-react";
 import Link from "next/link";
-import { useSession } from "@/lib/auth-client";
+import { signIn, useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
 
 export function WatchlistDropdown() {
-  const { data: session } = useSession();
+  const { data: session, isPending: sessionPending } = useSession();
   const { data: watchlist, isLoading } = trpc.watchlist.list.useQuery(
     undefined,
     { enabled: !!session },
   );
 
-  // Don't render if not logged in
-  if (!session) {
-    return null;
+  // Show placeholder during SSR
+  if (sessionPending) {
+    return (
+      <div className="flex h-6 w-6 items-center justify-center">
+        <Star className="h-4 w-4 text-muted-foreground" />
+      </div>
+    );
   }
 
   const hasItems = watchlist && watchlist.length > 0;
@@ -45,7 +50,26 @@ export function WatchlistDropdown() {
         <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
           Watchlist
         </div>
-        {isLoading ? (
+        {!session ? (
+          <div className="px-2 py-3 text-center">
+            <p className="text-xs text-muted-foreground">
+              Track your favorite companies and get a personalized feed of
+              insider activity.
+            </p>
+            <Button
+              size="sm"
+              className="mt-3 w-full"
+              onClick={() =>
+                signIn.social({
+                  provider: "google",
+                  callbackURL: window.location.pathname,
+                })
+              }
+            >
+              Sign in to start
+            </Button>
+          </div>
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-4">
             <Spinner size="sm" />
           </div>
