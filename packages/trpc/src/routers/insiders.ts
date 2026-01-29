@@ -7,7 +7,7 @@ import {
   insiders,
   transactions,
 } from "@whatsfiled/db/schema";
-import { desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
 
@@ -163,7 +163,12 @@ export const insidersRouter = router({
                 pricePerShare: transactions.pricePerShare,
               })
               .from(transactions)
-              .where(eq(transactions.filingId, filing.id))
+              .where(
+                and(
+                  eq(transactions.filingId, filing.id),
+                  lte(transactions.transactionDate, sql`CURRENT_DATE`),
+                ),
+              )
               .orderBy(transactions.transactionDate);
 
             mixedTransactions = rows.map((row) => ({

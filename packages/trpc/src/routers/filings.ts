@@ -6,7 +6,7 @@ import {
   insiders,
   transactions,
 } from "@whatsfiled/db/schema";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
 
@@ -140,7 +140,12 @@ export const filingsRouter = router({
                 pricePerShare: transactions.pricePerShare,
               })
               .from(transactions)
-              .where(eq(transactions.filingId, filing.id))
+              .where(
+                and(
+                  eq(transactions.filingId, filing.id),
+                  lte(transactions.transactionDate, sql`CURRENT_DATE`),
+                ),
+              )
               .orderBy(transactions.transactionDate);
 
             mixedTransactions = rows.map((row) => ({
@@ -233,7 +238,18 @@ export const filingsRouter = router({
         return null;
       }
 
-      return filing;
+      // Filter out future-dated transactions
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      return {
+        ...filing,
+        transactions: filing.transactions.filter(
+          (t) => !t.transactionDate || new Date(t.transactionDate) <= today,
+        ),
+        derivativeTransactions: filing.derivativeTransactions.filter(
+          (t) => !t.transactionDate || new Date(t.transactionDate) <= today,
+        ),
+      };
     }),
 
   /**
@@ -263,7 +279,12 @@ export const filingsRouter = router({
         .select({ count: sql<number>`count(*)::int` })
         .from(transactions)
         .innerJoin(filings, eq(transactions.filingId, filings.id))
-        .where(inArray(transactions.transactionCode, codes));
+        .where(
+          and(
+            inArray(transactions.transactionCode, codes),
+            lte(transactions.transactionDate, sql`CURRENT_DATE`),
+          ),
+        );
       const totalCount = countResult?.count ?? 0;
 
       // Fetch transactions with company and filing info
@@ -287,7 +308,12 @@ export const filingsRouter = router({
         .from(transactions)
         .innerJoin(filings, eq(transactions.filingId, filings.id))
         .innerJoin(companies, eq(filings.companyId, companies.id))
-        .where(inArray(transactions.transactionCode, codes))
+        .where(
+          and(
+            inArray(transactions.transactionCode, codes),
+            lte(transactions.transactionDate, sql`CURRENT_DATE`),
+          ),
+        )
         .orderBy(
           desc(transactions.transactionDate),
           desc(filings.filedAt),

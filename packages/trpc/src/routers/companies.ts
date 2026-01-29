@@ -7,7 +7,7 @@ import {
   insiders,
   transactions,
 } from "@whatsfiled/db/schema";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
 
@@ -153,7 +153,12 @@ export const companiesRouter = router({
                 pricePerShare: transactions.pricePerShare,
               })
               .from(transactions)
-              .where(eq(transactions.filingId, filing.id))
+              .where(
+                and(
+                  eq(transactions.filingId, filing.id),
+                  lte(transactions.transactionDate, sql`CURRENT_DATE`),
+                ),
+              )
               .orderBy(transactions.transactionDate);
 
             mixedTransactions = rows.map((row) => ({
@@ -297,6 +302,7 @@ export const companiesRouter = router({
             and(
               eq(filings.companyId, companyId),
               inArray(transactions.transactionCode, openMarketCodes),
+              lte(transactions.transactionDate, sql`CURRENT_DATE`),
             ),
           );
         totalCount = countResult[0]?.count ?? 0;
@@ -321,6 +327,7 @@ export const companiesRouter = router({
             and(
               eq(filings.companyId, companyId),
               inArray(transactions.transactionCode, openMarketCodes),
+              lte(transactions.transactionDate, sql`CURRENT_DATE`),
             ),
           )
           .orderBy(desc(transactions.transactionDate), desc(filings.filedAt))
@@ -339,6 +346,7 @@ export const companiesRouter = router({
             and(
               eq(filings.companyId, companyId),
               inArray(transactions.transactionCode, compensationCodes),
+              lte(transactions.transactionDate, sql`CURRENT_DATE`),
             ),
           );
         totalCount = countResult[0]?.count ?? 0;
@@ -363,6 +371,7 @@ export const companiesRouter = router({
             and(
               eq(filings.companyId, companyId),
               inArray(transactions.transactionCode, compensationCodes),
+              lte(transactions.transactionDate, sql`CURRENT_DATE`),
             ),
           )
           .orderBy(desc(transactions.transactionDate), desc(filings.filedAt))
