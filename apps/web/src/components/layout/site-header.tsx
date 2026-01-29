@@ -15,8 +15,8 @@ import {
   FileText,
   Menu,
   Moon,
-  RefreshCw,
   Search,
+  Shield,
   Sun,
   User,
   X,
@@ -340,7 +340,7 @@ export function SiteHeader() {
                 </DropdownMenuItem>
                 {isAdmin && (
                   <DropdownMenuItem render={<Link href="/admin" />}>
-                    <RefreshCw className="h-4 w-4" />
+                    <Shield className="h-4 w-4" />
                     Admin
                   </DropdownMenuItem>
                 )}
