@@ -4,7 +4,7 @@ import { processDayTask } from "./process-day.js";
 /**
  * Daily sync scheduled task.
  *
- * Runs every day at 6 AM UTC (1 AM EST / 2 AM EDT) to discover and process
+ * Runs every day at 8 AM UTC (3 AM EST / 4 AM EDT) to discover and process
  * new SEC EDGAR filings from the previous day's index files.
  *
  * SEC publishes daily index files after market close (~5-6 PM ET),
@@ -17,8 +17,8 @@ import { processDayTask } from "./process-day.js";
  */
 export const dailySyncSchedule = schedules.task({
   id: "daily-sync",
-  // Run at 6 AM UTC daily
-  cron: "0 6 * * *",
+  // Run at 8 AM UTC daily
+  cron: "0 8 * * *",
   run: async () => {
     // Add buffer: start 3 days ago, end today
     // This catches any missed filings from weekends/holidays and late postings
