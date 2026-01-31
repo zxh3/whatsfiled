@@ -108,6 +108,7 @@ export function CompanyPageClient() {
         <TransactionTable
           transactions={data.transactions}
           isLoading={isLoading}
+          filterable
         />
 
         {data.pagination.totalPages > 1 && (

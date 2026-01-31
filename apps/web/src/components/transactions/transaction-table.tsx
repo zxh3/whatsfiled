@@ -1,6 +1,16 @@
+import { Button } from "@whatsfiled/ui/components/button";
+import { Input } from "@whatsfiled/ui/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@whatsfiled/ui/components/select";
 import { cn } from "@whatsfiled/ui/lib/utils";
 import Link from "next/link";
-import { TransactionBadge } from "./transaction-badge";
+import { useMemo, useState } from "react";
+import { getTransactionType, TransactionBadge } from "./transaction-badge";
 
 interface Transaction {
   id: string;
@@ -33,6 +43,8 @@ interface TransactionTableProps {
   transactions: Transaction[];
   isLoading?: boolean;
   showCompany?: boolean;
+  /** Enables client-side filtering controls (search/type/date). */
+  filterable?: boolean;
   className?: string;
 }
 
@@ -521,8 +533,51 @@ function TransactionTable({
   transactions,
   isLoading,
   showCompany,
+  filterable,
   className,
 }: TransactionTableProps) {
+  const [query, setQuery] = useState("");
+  const [type, setType] = useState<"all" | "buy" | "sell" | "other">("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!filterable) return transactions;
+
+    const q = query.trim().toLowerCase();
+    const from = fromDate || null;
+    const to = toDate || null;
+
+    return transactions.filter((t) => {
+      if (type !== "all" && getTransactionType(t.transactionCode) !== type) {
+        return false;
+      }
+
+      const d = t.transactionDate ? formatDate(t.transactionDate) : null;
+      if (from && d && d < from) return false;
+      if (to && d && d > to) return false;
+
+      if (q) {
+        const haystack = [
+          t.insider?.name,
+          t.insider?.title,
+          t.company?.ticker,
+          t.company?.name,
+          t.securityTitle,
+          t.transactionCode,
+          t.acquiredDisposed,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        if (!haystack.includes(q)) return false;
+      }
+
+      return true;
+    });
+  }, [transactions, filterable, query, type, fromDate, toDate]);
+
   if (isLoading) {
     return (
       <div className={className}>
@@ -532,25 +587,95 @@ function TransactionTable({
     );
   }
 
-  if (transactions.length === 0) {
-    return (
-      <div className={cn("py-12 text-center text-muted-foreground", className)}>
-        No transactions found.
-      </div>
-    );
-  }
-
   return (
     <div className={className}>
-      {/* Mobile: Card layout */}
-      <div className="space-y-2 md:hidden">
-        {transactions.map((txn) => (
-          <TransactionCard key={txn.id} txn={txn} showCompany={showCompany} />
-        ))}
-      </div>
+      {filterable && (
+        <div className="mb-3 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              placeholder="Search insider, role, company, security…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="sm:max-w-xs"
+            />
 
-      {/* Desktop: Table layout */}
-      <DesktopTable transactions={transactions} showCompany={showCompany} />
+            <div className="flex items-center gap-2">
+              <Select
+                value={type}
+                onValueChange={(v) =>
+                  setType(v as "all" | "buy" | "sell" | "other")
+                }
+              >
+                <SelectTrigger size="sm">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="buy">Buy</SelectItem>
+                  <SelectItem value="sell">Sell</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-[140px]"
+                aria-label="From date"
+              />
+              <Input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-[140px]"
+                aria-label="To date"
+              />
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setQuery("");
+                  setType("all");
+                  setFromDate("");
+                  setToDate("");
+                }}
+                disabled={!query && type === "all" && !fromDate && !toDate}
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
+
+          <div className="text-xs text-muted-foreground">
+            Showing {filtered.length.toLocaleString()} of{" "}
+            {transactions.length.toLocaleString()} transactions
+          </div>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <div className={cn("py-12 text-center text-muted-foreground")}>
+          No transactions match your filters.
+        </div>
+      ) : (
+        <>
+          {/* Mobile: Card layout */}
+          <div className="space-y-2 md:hidden">
+            {filtered.map((txn) => (
+              <TransactionCard
+                key={txn.id}
+                txn={txn}
+                showCompany={showCompany}
+              />
+            ))}
+          </div>
+
+          {/* Desktop: Table layout */}
+          <DesktopTable transactions={filtered} showCompany={showCompany} />
+        </>
+      )}
     </div>
   );
 }

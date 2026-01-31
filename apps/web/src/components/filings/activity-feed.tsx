@@ -194,6 +194,7 @@ export function ActivityFeed() {
         transactions={allTransactions}
         isLoading={isLoading && allTransactions.length === 0}
         showCompany
+        filterable
       />
 
       {/* Sentinel element for infinite scroll */}
