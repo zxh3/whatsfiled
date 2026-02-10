@@ -1,4 +1,14 @@
-import { companies, desc, filings, getDb, insiders, sql } from "@whatsfiled/db";
+import {
+  and,
+  companies,
+  desc,
+  eq,
+  filings,
+  getDb,
+  insiders,
+  sql,
+  transactions,
+} from "@whatsfiled/db";
 import type { MetadataRoute } from "next";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -24,6 +34,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.6,
+    },
+    {
+      url: `${siteUrl}/insider-buys/today`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.8,
     },
   ];
 
@@ -81,5 +97,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...staticPages, ...companyPages, ...insiderPages, ...filingPages];
+  // Daily insider buy pages - recent trading dates with open-market purchases
+  const insiderBuyDates = await db
+    .selectDistinct({
+      transactionDate: transactions.transactionDate,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.transactionCode, "P"),
+        eq(transactions.acquiredDisposed, "A"),
+      ),
+    )
+    .orderBy(desc(transactions.transactionDate))
+    .limit(90);
+
+  const insiderBuyPages: MetadataRoute.Sitemap = insiderBuyDates
+    .filter((row) => row.transactionDate)
+    .map((row) => ({
+      url: `${siteUrl}/insider-buys/${row.transactionDate}`,
+      lastModified: new Date(`${row.transactionDate}T00:00:00.000Z`),
+      changeFrequency: "daily" as const,
+      priority: 0.7,
+    }));
+
+  return [
+    ...staticPages,
+    ...companyPages,
+    ...insiderPages,
+    ...filingPages,
+    ...insiderBuyPages,
+  ];
 }
