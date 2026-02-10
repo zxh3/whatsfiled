@@ -4,6 +4,7 @@ import { authRouter } from "./auth.js";
 import { chatRouter } from "./chat.js";
 import { companiesRouter } from "./companies.js";
 import { coverageRouter } from "./coverage.js";
+import { discoverRouter } from "./discover.js";
 import { filingsRouter } from "./filings.js";
 import { insidersRouter } from "./insiders.js";
 import { pipelineRouter } from "./pipeline.js";
@@ -34,6 +35,7 @@ export const appRouter = router({
   insiders: insidersRouter,
   search: searchRouter,
   coverage: coverageRouter,
+  discover: discoverRouter,
 
   // Pipeline management (admin)
   pipeline: pipelineRouter,

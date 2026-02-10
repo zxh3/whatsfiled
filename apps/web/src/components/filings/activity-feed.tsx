@@ -4,6 +4,7 @@ import { Spinner } from "@whatsfiled/ui/components/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DiscoverFeed } from "@/components/discover/discover-feed";
 import { FilingSummaryTable } from "@/components/filings/filing-summary-table";
 import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
@@ -45,10 +46,11 @@ type FilingSummary = {
 
 export function ActivityFeed() {
   const { data: session } = useSession();
+  const [view, setView] = useState<"feed" | "discover">("feed");
   const [filter, setFilter] = useState<"common" | "options">("common");
-  const [directionFilter, setDirectionFilter] = useState<"all" | "buy" | "sell">(
-    "all",
-  );
+  const [directionFilter, setDirectionFilter] = useState<
+    "all" | "buy" | "sell"
+  >("all");
   const [offset, setOffset] = useState(0);
   const [allFilings, setAllFilings] = useState<FilingSummary[]>([]);
   const [stableHasMore, setStableHasMore] = useState(false);
@@ -163,25 +165,39 @@ export function ActivityFeed() {
       <div className="space-y-2">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Tabs value={filter} onValueChange={handleFilterChange}>
+            <Tabs
+              value={view}
+              onValueChange={(value) => setView(value as "feed" | "discover")}
+            >
               <TabsList>
-                <TabsTrigger value="common">Market Trades</TabsTrigger>
-                <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
+                <TabsTrigger value="feed">Feed</TabsTrigger>
+                <TabsTrigger value="discover">Discover</TabsTrigger>
               </TabsList>
             </Tabs>
 
-            <Tabs
-              value={directionFilter}
-              onValueChange={(value) =>
-                setDirectionFilter(value as "all" | "buy" | "sell")
-              }
-            >
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="buy">Net Buy</TabsTrigger>
-                <TabsTrigger value="sell">Net Sale</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            {view === "feed" && (
+              <Tabs value={filter} onValueChange={handleFilterChange}>
+                <TabsList>
+                  <TabsTrigger value="common">Market Trades</TabsTrigger>
+                  <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+
+            {view === "feed" && (
+              <Tabs
+                value={directionFilter}
+                onValueChange={(value) =>
+                  setDirectionFilter(value as "all" | "buy" | "sell")
+                }
+              >
+                <TabsList>
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="buy">Net Buy</TabsTrigger>
+                  <TabsTrigger value="sell">Net Sale</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
           </div>
           <Link
             href="/coverage"
@@ -191,7 +207,9 @@ export function ActivityFeed() {
           </Link>
         </div>
         <p className="text-xs text-muted-foreground">
-          {useWatchlistFeed ? (
+          {view === "discover" ? (
+            "Ranked discover signals from the full market."
+          ) : useWatchlistFeed ? (
             <>
               Showing activity from your{" "}
               <span className="font-medium">
@@ -228,31 +246,41 @@ export function ActivityFeed() {
         </p>
       </div>
 
-      {/* Empty watchlist prompt */}
-      {session && !watchlistLoading && !hasWatchlist && !isLoading && (
-        <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Watch companies to personalize your feed. Visit any company page and
-            click the star icon to add it to your watchlist.
-          </p>
-        </div>
+      {view === "discover" ? (
+        <DiscoverFeed />
+      ) : (
+        <>
+          {/* Empty watchlist prompt */}
+          {session && !watchlistLoading && !hasWatchlist && !isLoading && (
+            <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Watch companies to personalize your feed. Visit any company page
+                and click the star icon to add it to your watchlist.
+              </p>
+            </div>
+          )}
+
+          <FilingSummaryTable
+            filings={filteredFilings}
+            isLoading={isLoading && allFilings.length === 0}
+          />
+
+          {/* Sentinel element for infinite scroll */}
+          <div
+            ref={loaderRef}
+            className="h-12 flex items-center justify-center"
+          >
+            {allFilings.length > 0 && hasMore ? (
+              <Spinner size="sm" />
+            ) : allFilings.length > 0 && data && !hasMore ? (
+              <span className="text-xs text-muted-foreground">
+                Showing all {data.pagination.totalCount.toLocaleString()}{" "}
+                filings
+              </span>
+            ) : null}
+          </div>
+        </>
       )}
-
-      <FilingSummaryTable
-        filings={filteredFilings}
-        isLoading={isLoading && allFilings.length === 0}
-      />
-
-      {/* Sentinel element for infinite scroll */}
-      <div ref={loaderRef} className="h-12 flex items-center justify-center">
-        {allFilings.length > 0 && hasMore ? (
-          <Spinner size="sm" />
-        ) : allFilings.length > 0 && data && !hasMore ? (
-          <span className="text-xs text-muted-foreground">
-            Showing all {data.pagination.totalCount.toLocaleString()} filings
-          </span>
-        ) : null}
-      </div>
     </div>
   );
 }
