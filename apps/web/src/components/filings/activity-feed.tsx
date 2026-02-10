@@ -51,6 +51,12 @@ export function ActivityFeed() {
   const [directionFilter, setDirectionFilter] = useState<
     "all" | "buy" | "sell"
   >("all");
+  const [discoverWindow, setDiscoverWindow] = useState<"1d" | "7d" | "30d">(
+    "7d",
+  );
+  const [discoverDirection, setDiscoverDirection] = useState<
+    "all" | "buy" | "sell"
+  >("all");
   const [offset, setOffset] = useState(0);
   const [allFilings, setAllFilings] = useState<FilingSummary[]>([]);
   const [stableHasMore, setStableHasMore] = useState(false);
@@ -198,6 +204,36 @@ export function ActivityFeed() {
                 </TabsList>
               </Tabs>
             )}
+
+            {view === "discover" && (
+              <Tabs
+                value={discoverWindow}
+                onValueChange={(value) =>
+                  setDiscoverWindow(value as "1d" | "7d" | "30d")
+                }
+              >
+                <TabsList>
+                  <TabsTrigger value="1d">1d</TabsTrigger>
+                  <TabsTrigger value="7d">7d</TabsTrigger>
+                  <TabsTrigger value="30d">30d</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+
+            {view === "discover" && (
+              <Tabs
+                value={discoverDirection}
+                onValueChange={(value) =>
+                  setDiscoverDirection(value as "all" | "buy" | "sell")
+                }
+              >
+                <TabsList>
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="buy">Net Buy</TabsTrigger>
+                  <TabsTrigger value="sell">Net Sale</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
           </div>
           <Link
             href="/coverage"
@@ -247,7 +283,10 @@ export function ActivityFeed() {
       </div>
 
       {view === "discover" ? (
-        <DiscoverFeed />
+        <DiscoverFeed
+          window={discoverWindow}
+          direction={discoverDirection}
+        />
       ) : (
         <>
           {/* Empty watchlist prompt */}

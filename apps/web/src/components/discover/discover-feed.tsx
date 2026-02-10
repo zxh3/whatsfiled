@@ -1,7 +1,6 @@
 "use client";
 
 import { Spinner } from "@whatsfiled/ui/components/spinner";
-import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import { cn } from "@whatsfiled/ui/lib/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -112,9 +111,17 @@ function TypeBadge({ type }: { type: "buy" | "sell" | "mixed" | "none" }) {
   );
 }
 
-export function DiscoverFeed({ companyIds }: { companyIds?: string[] }) {
-  const [window, setWindow] = useState<"1d" | "7d" | "30d">("7d");
-  const [direction, setDirection] = useState<"all" | "buy" | "sell">("all");
+interface DiscoverFeedProps {
+  companyIds?: string[];
+  window: "1d" | "7d" | "30d";
+  direction: "all" | "buy" | "sell";
+}
+
+export function DiscoverFeed({
+  companyIds,
+  window,
+  direction,
+}: DiscoverFeedProps) {
   const [offset, setOffset] = useState(0);
   const [items, setItems] = useState<DiscoverItem[]>([]);
   const [stableHasMore, setStableHasMore] = useState(false);
@@ -134,6 +141,13 @@ export function DiscoverFeed({ companyIds }: { companyIds?: string[] }) {
     );
 
   const hasMore = data?.pagination.hasMore ?? stableHasMore;
+
+  useEffect(() => {
+    setOffset(0);
+    setItems([]);
+    setStableHasMore(false);
+    prevOffset.current = 0;
+  }, [window, direction]);
 
   useEffect(() => {
     if (!data) return;
@@ -177,22 +191,6 @@ export function DiscoverFeed({ companyIds }: { companyIds?: string[] }) {
     return () => observer.disconnect();
   }, [hasMore, isFetching, handleLoadMore]);
 
-  const resetAndSetWindow = (value: string) => {
-    setWindow(value as "1d" | "7d" | "30d");
-    setOffset(0);
-    setItems([]);
-    setStableHasMore(false);
-    prevOffset.current = 0;
-  };
-
-  const resetAndSetDirection = (value: string) => {
-    setDirection(value as "all" | "buy" | "sell");
-    setOffset(0);
-    setItems([]);
-    setStableHasMore(false);
-    prevOffset.current = 0;
-  };
-
   const title = useMemo(() => {
     if (window === "1d") return "Today";
     if (window === "7d") return "Last 7 days";
@@ -211,24 +209,6 @@ export function DiscoverFeed({ companyIds }: { companyIds?: string[] }) {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Tabs value={window} onValueChange={resetAndSetWindow}>
-              <TabsList>
-                <TabsTrigger value="1d">1d</TabsTrigger>
-                <TabsTrigger value="7d">7d</TabsTrigger>
-                <TabsTrigger value="30d">30d</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <Tabs value={direction} onValueChange={resetAndSetDirection}>
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="buy">Net Buy</TabsTrigger>
-                <TabsTrigger value="sell">Net Sale</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        </div>
         <p className="text-xs text-muted-foreground">
           Ranked signals for {title.toLowerCase()}, scored by trade size, ΔOwn,
           role, clustering, and recency.
