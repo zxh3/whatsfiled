@@ -6,11 +6,13 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DiscoverFeed } from "@/components/discover/discover-feed";
 import { FilingSummaryTable } from "@/components/filings/filing-summary-table";
+import { WatchlistCompanyFilter } from "@/components/watchlist/watchlist-company-filter";
 import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
 
 const PAGE_SIZE = 50;
 const LOAD_MORE_THRESHOLD = "200px"; // Start loading when within 200px of bottom
+const FEED_COMPANY_FILTER_STORAGE_KEY = "whatsfiled:feed:company-filter-ciks";
 
 type FilingSummary = {
   id: string;
@@ -72,9 +74,108 @@ export function ActivityFeed() {
 
   const hasWatchlist = (watchlistData?.length ?? 0) > 0;
   const useWatchlistFeed = !!session && hasWatchlist;
-  const watchedCompanyIds = useWatchlistFeed
-    ? (watchlistData?.map((item) => item.company.id) ?? [])
-    : undefined;
+  const watchedCompanies = useMemo(
+    () =>
+      useWatchlistFeed
+        ? (watchlistData?.map((item) => item.company) ?? [])
+        : [],
+    [useWatchlistFeed, watchlistData],
+  );
+  const watchedCompanyCiks = useMemo(
+    () => watchedCompanies.map((company) => company.cik),
+    [watchedCompanies],
+  );
+  const watchedCompanyIdByCik = useMemo(
+    () => new Map(watchedCompanies.map((company) => [company.cik, company.id])),
+    [watchedCompanies],
+  );
+  const [selectedCompanyCiks, setSelectedCompanyCiks] = useState<
+    string[] | null
+  >(null);
+
+  useEffect(() => {
+    if (!useWatchlistFeed) {
+      setSelectedCompanyCiks(null);
+      return;
+    }
+
+    const raw = window.localStorage.getItem(FEED_COMPANY_FILTER_STORAGE_KEY);
+    if (!raw) {
+      setSelectedCompanyCiks(watchedCompanyCiks);
+      return;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      setSelectedCompanyCiks(watchedCompanyCiks);
+      return;
+    }
+
+    if (!Array.isArray(parsed)) {
+      setSelectedCompanyCiks(watchedCompanyCiks);
+      return;
+    }
+
+    const parsedCiks = parsed.filter(
+      (entry): entry is string => typeof entry === "string",
+    );
+    if (parsedCiks.length === 0) {
+      setSelectedCompanyCiks([]);
+      return;
+    }
+
+    const allowed = new Set(watchedCompanyCiks);
+    const filtered = Array.from(
+      new Set(
+        parsedCiks
+          .map((entry) => entry.trim())
+          .filter((entry) => entry.length > 0 && allowed.has(entry)),
+      ),
+    );
+
+    if (filtered.length === 0) {
+      setSelectedCompanyCiks(watchedCompanyCiks);
+      return;
+    }
+
+    const ordered = watchedCompanyCiks.filter((cik) => filtered.includes(cik));
+    setSelectedCompanyCiks(ordered);
+  }, [useWatchlistFeed, watchedCompanyCiks]);
+
+  const effectiveSelectedCiks = useMemo(() => {
+    if (!useWatchlistFeed) return [];
+    return selectedCompanyCiks ?? watchedCompanyCiks;
+  }, [useWatchlistFeed, selectedCompanyCiks, watchedCompanyCiks]);
+
+  const selectedCompanyIds = useMemo(() => {
+    if (!useWatchlistFeed) return undefined;
+    return effectiveSelectedCiks
+      .map((cik) => watchedCompanyIdByCik.get(cik))
+      .filter((id): id is string => !!id);
+  }, [effectiveSelectedCiks, useWatchlistFeed, watchedCompanyIdByCik]);
+  const selectedCompanyIdsKey = useMemo(
+    () => (selectedCompanyIds ? selectedCompanyIds.join(",") : ""),
+    [selectedCompanyIds],
+  );
+
+  useEffect(() => {
+    if (!useWatchlistFeed || selectedCompanyCiks === null) return;
+    window.localStorage.setItem(
+      FEED_COMPANY_FILTER_STORAGE_KEY,
+      JSON.stringify(selectedCompanyCiks),
+    );
+  }, [selectedCompanyCiks, useWatchlistFeed]);
+
+  useEffect(() => {
+    // Reset pagination whenever the selected company set changes.
+    void selectedCompanyIdsKey;
+    setOffset(0);
+    setAllFilings([]);
+    setStableHasMore(false);
+    prevOffset.current = 0;
+  }, [selectedCompanyIdsKey]);
 
   const { data, isLoading, isError, error, isFetching } =
     trpc.filings.getRecentFeedFilings.useQuery(
@@ -82,7 +183,7 @@ export function ActivityFeed() {
         filter,
         limit: PAGE_SIZE,
         offset,
-        companyIds: watchedCompanyIds,
+        companyIds: selectedCompanyIds,
       },
       { staleTime: 30000 },
     );
@@ -234,6 +335,16 @@ export function ActivityFeed() {
                 </TabsList>
               </Tabs>
             )}
+
+            {view === "feed" &&
+              useWatchlistFeed &&
+              watchedCompanies.length > 0 && (
+                <WatchlistCompanyFilter
+                  companies={watchedCompanies}
+                  selectedCiks={effectiveSelectedCiks}
+                  onChange={setSelectedCompanyCiks}
+                />
+              )}
           </div>
           <Link
             href="/coverage"
@@ -283,10 +394,7 @@ export function ActivityFeed() {
       </div>
 
       {view === "discover" ? (
-        <DiscoverFeed
-          window={discoverWindow}
-          direction={discoverDirection}
-        />
+        <DiscoverFeed window={discoverWindow} direction={discoverDirection} />
       ) : (
         <>
           {/* Empty watchlist prompt */}

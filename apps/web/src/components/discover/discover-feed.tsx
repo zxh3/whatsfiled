@@ -127,6 +127,11 @@ export function DiscoverFeed({
   const [stableHasMore, setStableHasMore] = useState(false);
   const prevOffset = useRef(0);
   const loaderRef = useRef<HTMLDivElement>(null);
+  const companyIdsKey = useMemo(
+    () => (companyIds ? companyIds.join(",") : ""),
+    [companyIds],
+  );
+  const resetKey = `${window}:${direction}:${companyIdsKey}`;
 
   const { data, isLoading, isError, isFetching, error } =
     trpc.discover.getFeed.useQuery(
@@ -143,11 +148,13 @@ export function DiscoverFeed({
   const hasMore = data?.pagination.hasMore ?? stableHasMore;
 
   useEffect(() => {
+    // Reset pagination whenever discover controls or selected companies change.
+    void resetKey;
     setOffset(0);
     setItems([]);
     setStableHasMore(false);
     prevOffset.current = 0;
-  }, [window, direction]);
+  }, [resetKey]);
 
   useEffect(() => {
     if (!data) return;
