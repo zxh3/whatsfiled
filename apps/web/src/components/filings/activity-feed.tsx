@@ -3,46 +3,55 @@
 import { Spinner } from "@whatsfiled/ui/components/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { TransactionTable } from "@/components/transactions/transaction-table";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FilingSummaryTable } from "@/components/filings/filing-summary-table";
 import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
 
 const PAGE_SIZE = 50;
 const LOAD_MORE_THRESHOLD = "200px"; // Start loading when within 200px of bottom
 
-type Transaction = {
+type FilingSummary = {
   id: string;
-  transactionDate: string | null;
-  transactionCode: string | null;
-  shares: number | null;
-  pricePerShare: number | null;
-  acquiredDisposed: "A" | "D" | null;
-  sharesOwnedAfter: number | null;
-  securityTitle: string;
+  accessionNumber: string;
+  filedAt: Date;
   company: {
     id: string;
     name: string;
     cik: string;
     ticker: string | null;
   };
-  insider: {
+  primaryOwner: {
     id: string;
     name: string;
     cik: string | null;
     title: string;
-  };
-  filing: {
-    accessionNumber: string;
-    filedAt: Date;
+  } | null;
+  ownerCount: number;
+  summary: {
+    transactionType: "buy" | "sell" | "mixed" | "none";
+    totalAcquired: number;
+    totalDisposed: number;
+    totalAcquiredValue: number;
+    totalDisposedValue: number;
+    avgPricePerShare: number;
+    netShares: number;
+    totalActivityValue: number;
+    sharesOwnedAfter: number;
+    ownershipChangePercent: number | null;
+    transactionCount: number;
   };
 };
 
 export function ActivityFeed() {
   const { data: session } = useSession();
   const [filter, setFilter] = useState<"common" | "options">("common");
+  const [directionFilter, setDirectionFilter] = useState<"all" | "buy" | "sell">(
+    "all",
+  );
   const [offset, setOffset] = useState(0);
-  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [allFilings, setAllFilings] = useState<FilingSummary[]>([]);
+  const [stableHasMore, setStableHasMore] = useState(false);
   const prevOffset = useRef(0);
   const prevSource = useRef<"generic" | "watchlist">("generic");
   const loaderRef = useRef<HTMLDivElement>(null);
@@ -55,32 +64,40 @@ export function ActivityFeed() {
 
   const hasWatchlist = (watchlistData?.length ?? 0) > 0;
   const useWatchlistFeed = !!session && hasWatchlist;
+  const watchedCompanyIds = useWatchlistFeed
+    ? (watchlistData?.map((item) => item.company.id) ?? [])
+    : undefined;
 
-  // Generic feed query (when not signed in or no watchlist)
-  const genericQuery = trpc.filings.getRecentTransactions.useQuery(
-    { filter, limit: PAGE_SIZE, offset },
-    { enabled: !useWatchlistFeed, staleTime: 30000 },
-  );
+  const { data, isLoading, isError, error, isFetching } =
+    trpc.filings.getRecentFeedFilings.useQuery(
+      {
+        filter,
+        limit: PAGE_SIZE,
+        offset,
+        companyIds: watchedCompanyIds,
+      },
+      { staleTime: 30000 },
+    );
 
-  // Watchlist feed query (when signed in with watchlist)
-  const watchlistQuery = trpc.watchlist.getWatchlistFeed.useQuery(
-    { filter, limit: PAGE_SIZE, offset },
-    { enabled: useWatchlistFeed, staleTime: 30000 },
-  );
-
-  // Select the active query based on user state
-  const activeQuery = useWatchlistFeed ? watchlistQuery : genericQuery;
-  const { data, isLoading, isError, error, isFetching } = activeQuery;
-
-  const hasMore = data?.pagination.hasMore ?? false;
+  const hasMore = data?.pagination.hasMore ?? stableHasMore;
   const currentSource = useWatchlistFeed ? "watchlist" : "generic";
+  const filteredFilings = useMemo(() => {
+    if (directionFilter === "buy") {
+      return allFilings.filter((filing) => filing.summary.netShares > 0);
+    }
+    if (directionFilter === "sell") {
+      return allFilings.filter((filing) => filing.summary.netShares < 0);
+    }
+    return allFilings;
+  }, [allFilings, directionFilter]);
 
-  // Accumulate transactions when new data arrives
+  // Accumulate filings when new data arrives
   useEffect(() => {
-    if (data?.transactions) {
+    if (data?.filings) {
+      setStableHasMore(data.pagination.hasMore);
       // Reset if source changed (signed in/out or watchlist emptied)
       if (currentSource !== prevSource.current) {
-        setAllTransactions(data.transactions);
+        setAllFilings(data.filings);
         prevOffset.current = offset;
         prevSource.current = currentSource;
         return;
@@ -88,15 +105,13 @@ export function ActivityFeed() {
 
       if (offset === 0) {
         // Reset on filter change or initial load
-        setAllTransactions(data.transactions);
+        setAllFilings(data.filings);
       } else if (offset > prevOffset.current) {
         // Append on load more, dedupe by ID to handle edge cases
-        setAllTransactions((prev) => {
-          const existingIds = new Set(prev.map((t) => t.id));
-          const newTransactions = data.transactions.filter(
-            (t) => !existingIds.has(t.id),
-          );
-          return [...prev, ...newTransactions];
+        setAllFilings((prev) => {
+          const existingIds = new Set(prev.map((f) => f.id));
+          const newFilings = data.filings.filter((f) => !existingIds.has(f.id));
+          return [...prev, ...newFilings];
         });
       }
       prevOffset.current = offset;
@@ -106,7 +121,8 @@ export function ActivityFeed() {
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter as "common" | "options");
     setOffset(0);
-    setAllTransactions([]);
+    setAllFilings([]);
+    setStableHasMore(false);
     prevOffset.current = 0;
   };
 
@@ -136,7 +152,7 @@ export function ActivityFeed() {
   if (isError) {
     return (
       <div className="py-8 text-center">
-        <p className="font-medium text-red-500">Failed to load transactions</p>
+        <p className="font-medium text-red-500">Failed to load filings</p>
         <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
       </div>
     );
@@ -145,13 +161,28 @@ export function ActivityFeed() {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Tabs value={filter} onValueChange={handleFilterChange}>
-            <TabsList>
-              <TabsTrigger value="common">Market Trades</TabsTrigger>
-              <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Tabs value={filter} onValueChange={handleFilterChange}>
+              <TabsList>
+                <TabsTrigger value="common">Market Trades</TabsTrigger>
+                <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <Tabs
+              value={directionFilter}
+              onValueChange={(value) =>
+                setDirectionFilter(value as "all" | "buy" | "sell")
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="buy">Net Buy</TabsTrigger>
+                <TabsTrigger value="sell">Net Sale</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
           <Link
             href="/coverage"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -169,13 +200,30 @@ export function ActivityFeed() {
               </span>
               .{" "}
               {filter === "common"
-                ? "Open market purchases and sales."
-                : "Option exercises, RSU vests, awards, and tax withholding."}
+                ? "One row per filing with open market purchase/sale summary."
+                : "One row per filing with awards/exercises summary."}
+              {directionFilter === "buy"
+                ? " Showing only net positive share changes."
+                : directionFilter === "sell"
+                  ? " Showing only net negative share changes."
+                  : ""}
             </>
           ) : filter === "common" ? (
-            "Open market purchases and sales — discretionary trades that may signal insider sentiment."
+            `One row per filing summarizing open market purchases and sales.${
+              directionFilter === "buy"
+                ? " Showing only net positive share changes."
+                : directionFilter === "sell"
+                  ? " Showing only net negative share changes."
+                  : ""
+            }`
           ) : (
-            "Stock received from option exercises, RSU vests, awards, and tax withholding — routine compensation events."
+            `One row per filing summarizing option exercises, RSU vests, awards, and tax withholding.${
+              directionFilter === "buy"
+                ? " Showing only net positive share changes."
+                : directionFilter === "sell"
+                  ? " Showing only net negative share changes."
+                  : ""
+            }`
           )}
         </p>
       </div>
@@ -190,20 +238,18 @@ export function ActivityFeed() {
         </div>
       )}
 
-      <TransactionTable
-        transactions={allTransactions}
-        isLoading={isLoading && allTransactions.length === 0}
-        showCompany
+      <FilingSummaryTable
+        filings={filteredFilings}
+        isLoading={isLoading && allFilings.length === 0}
       />
 
       {/* Sentinel element for infinite scroll */}
       <div ref={loaderRef} className="h-12 flex items-center justify-center">
-        {isFetching && allTransactions.length > 0 ? (
+        {allFilings.length > 0 && hasMore ? (
           <Spinner size="sm" />
-        ) : allTransactions.length > 0 && data && !hasMore ? (
+        ) : allFilings.length > 0 && data && !hasMore ? (
           <span className="text-xs text-muted-foreground">
-            Showing all {data.pagination.totalCount.toLocaleString()}{" "}
-            transactions
+            Showing all {data.pagination.totalCount.toLocaleString()} filings
           </span>
         ) : null}
       </div>

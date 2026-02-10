@@ -364,6 +364,77 @@ export function FilingPageClient() {
           </section>
 
           <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Non-derivative holdings</h2>
+            {filing.holdings.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No holdings listed.
+              </p>
+            ) : (
+              <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+                <table className="w-full text-xs sm:text-sm min-w-[500px]">
+                  <thead className="text-left text-muted-foreground">
+                    <tr className="border-b border-border">
+                      <th className="py-2 pr-2">Security</th>
+                      <th className="py-2 pr-2">Owned</th>
+                      <th className="py-2 pr-2">Ownership</th>
+                      <th className="py-2 pr-2">Nature</th>
+                      <th className="py-2">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filing.holdings.map((holding) => (
+                      <tr
+                        key={holding.id}
+                        className="border-b border-border/60"
+                      >
+                        <td className="py-2 pr-2">{holding.securityTitle}</td>
+                        <td className="py-2 pr-2 whitespace-nowrap">
+                          {formatNumber(holding.sharesOwned)}
+                        </td>
+                        <td className="py-2 pr-2 whitespace-nowrap">
+                          {holding.ownershipType === "D"
+                            ? "Direct"
+                            : holding.ownershipType === "I"
+                              ? "Indirect"
+                              : "—"}
+                        </td>
+                        <td className="py-2 pr-2">
+                          {holding.indirectNature || "—"}
+                        </td>
+                        <td className="py-2">
+                          {holding.footnoteIds &&
+                          holding.footnoteIds.length > 0 ? (
+                            <span className="flex flex-wrap gap-1">
+                              {holding.footnoteIds.map((id) => (
+                                <Tooltip key={id}>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="text-xs text-muted-foreground hover:text-foreground underline decoration-dotted cursor-help"
+                                    >
+                                      {id}
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs text-left">
+                                    {footnoteMap.get(id) ||
+                                      "Footnote not found"}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ))}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-3">
             <h2 className="text-lg font-semibold">Derivative transactions</h2>
             {filing.derivativeTransactions.length === 0 ? (
               <p className="text-sm text-muted-foreground">

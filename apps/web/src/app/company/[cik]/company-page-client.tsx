@@ -18,16 +18,27 @@ export function CompanyPageClient() {
   const cik = params.cik as string;
   const filter =
     (searchParams.get("filter") as "common" | "options") || "common";
+  const direction =
+    (searchParams.get("direction") as "all" | "buy" | "sell") || "all";
   const page = Number(searchParams.get("page")) || 1;
 
   const { data, isLoading, isError } = trpc.companies.getTransactions.useQuery(
-    { cik, filter, page, pageSize: PAGE_SIZE },
+    { cik, filter, direction, page, pageSize: PAGE_SIZE },
     { enabled: Boolean(cik) },
   );
 
   const handleFilterChange = (newFilter: string) => {
     const params = new URLSearchParams();
     params.set("filter", newFilter);
+    params.set("direction", direction);
+    params.set("page", "1");
+    router.replace(`/company/${cik}?${params.toString()}`);
+  };
+
+  const handleDirectionChange = (newDirection: string) => {
+    const params = new URLSearchParams();
+    params.set("filter", filter);
+    params.set("direction", newDirection);
     params.set("page", "1");
     router.replace(`/company/${cik}?${params.toString()}`);
   };
@@ -35,6 +46,7 @@ export function CompanyPageClient() {
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams();
     params.set("filter", filter);
+    params.set("direction", direction);
     params.set("page", String(newPage));
     router.replace(`/company/${cik}?${params.toString()}`);
   };
@@ -92,16 +104,31 @@ export function CompanyPageClient() {
         </header>
 
         <div className="space-y-2">
-          <Tabs value={filter} onValueChange={handleFilterChange}>
-            <TabsList>
-              <TabsTrigger value="common">Market Trades</TabsTrigger>
-              <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Tabs value={filter} onValueChange={handleFilterChange}>
+              <TabsList>
+                <TabsTrigger value="common">Market Trades</TabsTrigger>
+                <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <Tabs value={direction} onValueChange={handleDirectionChange}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="buy">Net Buy</TabsTrigger>
+                <TabsTrigger value="sell">Net Sale</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
           <p className="text-xs text-muted-foreground">
             {filter === "common"
               ? "Open market purchases and sales — discretionary trades that may signal insider sentiment."
               : "Stock received from option exercises, RSU vests, awards, and tax withholding — routine compensation events."}
+            {direction === "buy"
+              ? " Showing only net positive share changes."
+              : direction === "sell"
+                ? " Showing only net negative share changes."
+                : ""}
           </p>
         </div>
 

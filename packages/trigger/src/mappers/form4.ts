@@ -308,12 +308,13 @@ async function createNonDerivativeRecords(
 ): Promise<void> {
   // Batch insert non-derivative transactions
   if (doc.nonDerivativeTable.transactions.length > 0) {
-    const txnValues = doc.nonDerivativeTable.transactions.map((txn) => ({
+    const txnValues = doc.nonDerivativeTable.transactions.map((txn, index) => ({
       filingId,
       securityTitle: txn.securityTitle.value,
       transactionDate: normalizeDate(txn.transactionDate.value),
       deemedExecutionDate: normalizeDate(txn.deemedExecutionDate?.value),
       transactionCode: txn.transactionCoding.code,
+      sequence: index + 1,
       equitySwap: txn.transactionCoding.equitySwapInvolved,
       shares: txn.amounts.shares.value?.toString() ?? null,
       pricePerShare: txn.amounts.pricePerShare.value?.toString() ?? null,

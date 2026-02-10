@@ -298,6 +298,7 @@ export const companiesRouter = router({
       z.object({
         cik: z.string().min(1),
         filter: z.enum(["common", "options"]).default("common"),
+        direction: z.enum(["all", "buy", "sell"]).default("all"),
         page: z.number().min(1).default(1),
         pageSize: z.number().min(1).max(100).default(25),
       }),
@@ -356,17 +357,24 @@ export const companiesRouter = router({
 
       if (input.filter === "common") {
         const openMarketCodes = ["P", "S"];
+        const directionCondition =
+          input.direction === "buy"
+            ? eq(transactions.acquiredDisposed, "A")
+            : input.direction === "sell"
+              ? eq(transactions.acquiredDisposed, "D")
+              : undefined;
+        const commonWhere = and(
+          eq(filings.companyId, companyId),
+          inArray(transactions.transactionCode, openMarketCodes),
+          lte(transactions.transactionDate, sql`CURRENT_DATE`),
+          directionCondition,
+        );
+
         const countResult = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(transactions)
           .innerJoin(filings, eq(transactions.filingId, filings.id))
-          .where(
-            and(
-              eq(filings.companyId, companyId),
-              inArray(transactions.transactionCode, openMarketCodes),
-              lte(transactions.transactionDate, sql`CURRENT_DATE`),
-            ),
-          );
+          .where(commonWhere);
         totalCount = countResult[0]?.count ?? 0;
 
         const rows = await db
@@ -385,13 +393,7 @@ export const companiesRouter = router({
           })
           .from(transactions)
           .innerJoin(filings, eq(transactions.filingId, filings.id))
-          .where(
-            and(
-              eq(filings.companyId, companyId),
-              inArray(transactions.transactionCode, openMarketCodes),
-              lte(transactions.transactionDate, sql`CURRENT_DATE`),
-            ),
-          )
+          .where(commonWhere)
           .orderBy(desc(transactions.transactionDate), desc(filings.filedAt))
           .limit(input.pageSize)
           .offset(offset);
@@ -399,18 +401,24 @@ export const companiesRouter = router({
         txnRows = rows.map((r) => ({ ...r, isDerivative: false }));
       } else if (input.filter === "options") {
         const compensationCodes = ["M", "A", "F", "G", "C"];
+        const directionCondition =
+          input.direction === "buy"
+            ? eq(transactions.acquiredDisposed, "A")
+            : input.direction === "sell"
+              ? eq(transactions.acquiredDisposed, "D")
+              : undefined;
+        const optionsWhere = and(
+          eq(filings.companyId, companyId),
+          inArray(transactions.transactionCode, compensationCodes),
+          lte(transactions.transactionDate, sql`CURRENT_DATE`),
+          directionCondition,
+        );
 
         const countResult = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(transactions)
           .innerJoin(filings, eq(transactions.filingId, filings.id))
-          .where(
-            and(
-              eq(filings.companyId, companyId),
-              inArray(transactions.transactionCode, compensationCodes),
-              lte(transactions.transactionDate, sql`CURRENT_DATE`),
-            ),
-          );
+          .where(optionsWhere);
         totalCount = countResult[0]?.count ?? 0;
 
         const rows = await db
@@ -429,13 +437,7 @@ export const companiesRouter = router({
           })
           .from(transactions)
           .innerJoin(filings, eq(transactions.filingId, filings.id))
-          .where(
-            and(
-              eq(filings.companyId, companyId),
-              inArray(transactions.transactionCode, compensationCodes),
-              lte(transactions.transactionDate, sql`CURRENT_DATE`),
-            ),
-          )
+          .where(optionsWhere)
           .orderBy(desc(transactions.transactionDate), desc(filings.filedAt))
           .limit(input.pageSize)
           .offset(offset);

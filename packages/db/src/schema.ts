@@ -304,6 +304,8 @@ export const transactions = pgTable(
     transactionCodeDescription: varchar("transaction_code_description", {
       length: 100,
     }),
+    // Preserves SEC Table I row order within a filing.
+    sequence: integer("sequence"),
     equitySwap: boolean("equity_swap").default(false).notNull(),
     shares: decimal("shares", { precision: 20, scale: 4 }),
     pricePerShare: decimal("price_per_share", { precision: 20, scale: 4 }),
@@ -320,6 +322,10 @@ export const transactions = pgTable(
   },
   (table) => [
     index("transactions_filing_idx").on(table.filingId),
+    index("transactions_filing_sequence_idx").on(
+      table.filingId,
+      table.sequence,
+    ),
     index("transactions_date_idx").on(table.transactionDate),
     index("transactions_code_idx").on(table.transactionCode),
   ],

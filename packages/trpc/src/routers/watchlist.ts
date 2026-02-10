@@ -7,7 +7,7 @@ import {
   transactions,
   watchlistItems,
 } from "@whatsfiled/db/schema";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, router } from "../init.js";
 
@@ -204,7 +204,9 @@ export const watchlistRouter = router({
         .orderBy(
           desc(transactions.transactionDate),
           desc(filings.filedAt),
-          desc(transactions.id),
+          asc(transactions.sequence),
+          desc(filings.createdAt),
+          desc(filings.id),
         )
         .limit(limit)
         .offset(offset);

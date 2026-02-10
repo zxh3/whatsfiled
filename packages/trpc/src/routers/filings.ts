@@ -3,10 +3,11 @@ import {
   companyTickers,
   filingOwners,
   filings,
+  holdings,
   insiders,
   transactions,
 } from "@whatsfiled/db/schema";
-import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
 
@@ -275,6 +276,393 @@ export const filingsRouter = router({
     }),
 
   /**
+   * Get recent filing-level summaries for the homepage feed.
+   * Returns one row per filing, filtered by transaction code groups.
+   */
+  getRecentFeedFilings: publicProcedure
+    .input(
+      z.object({
+        filter: z.enum(["common", "options"]).default("common"),
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+        companyIds: z.array(z.string().uuid()).max(500).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { db } = ctx;
+      const { filter, limit, offset, companyIds } = input;
+
+      if (companyIds && companyIds.length === 0) {
+        return {
+          filings: [],
+          pagination: {
+            offset,
+            limit,
+            totalCount: 0,
+            hasMore: false,
+          },
+        };
+      }
+
+      const codes =
+        filter === "common" ? ["P", "S"] : ["M", "A", "F", "G", "C"];
+
+      const baseConditions = [
+        inArray(transactions.transactionCode, codes),
+        lte(transactions.transactionDate, sql`CURRENT_DATE`),
+      ];
+
+      if (companyIds && companyIds.length > 0) {
+        baseConditions.push(inArray(filings.companyId, companyIds));
+      }
+
+      const whereClause = and(...baseConditions);
+
+      const [countResult] = await db
+        .select({ count: sql<number>`count(distinct ${filings.id})::int` })
+        .from(filings)
+        .innerJoin(transactions, eq(transactions.filingId, filings.id))
+        .where(whereClause);
+      const totalCount = countResult?.count ?? 0;
+
+      const recentFilings = await db
+        .select({
+          id: filings.id,
+          accessionNumber: filings.accessionNumber,
+          formType: filings.formType,
+          filedAt: filings.filedAt,
+          periodOfReport: filings.periodOfReport,
+          isAmendment: filings.isAmendment,
+          documentUrl: filings.documentUrl,
+          createdAt: filings.createdAt,
+          companyId: filings.companyId,
+          companyName: companies.name,
+          companyCik: companies.cik,
+        })
+        .from(filings)
+        .innerJoin(companies, eq(filings.companyId, companies.id))
+        .innerJoin(transactions, eq(transactions.filingId, filings.id))
+        .where(whereClause)
+        .groupBy(
+          filings.id,
+          filings.accessionNumber,
+          filings.formType,
+          filings.filedAt,
+          filings.periodOfReport,
+          filings.isAmendment,
+          filings.documentUrl,
+          filings.createdAt,
+          filings.companyId,
+          companies.name,
+          companies.cik,
+        )
+        .orderBy(
+          desc(filings.filedAt),
+          desc(filings.createdAt),
+          desc(filings.id),
+        )
+        .limit(limit)
+        .offset(offset);
+
+      if (recentFilings.length === 0) {
+        return {
+          filings: [],
+          pagination: {
+            offset,
+            limit,
+            totalCount,
+            hasMore: false,
+          },
+        };
+      }
+
+      const filingIds = recentFilings.map((f) => f.id);
+      const resultCompanyIds = [
+        ...new Set(recentFilings.map((f) => f.companyId)),
+      ];
+
+      const [
+        allOwners,
+        allSummaries,
+        allTickers,
+        allOwnedTransactions,
+        allHoldings,
+      ] = await Promise.all([
+        db
+          .select({
+            filingId: filingOwners.filingId,
+            insiderId: insiders.id,
+            insiderName: insiders.name,
+            insiderCik: insiders.cik,
+            officerTitle: filingOwners.officerTitle,
+            isDirector: filingOwners.isDirector,
+            isOfficer: filingOwners.isOfficer,
+            isTenPercentOwner: filingOwners.isTenPercentOwner,
+          })
+          .from(filingOwners)
+          .innerJoin(insiders, eq(filingOwners.insiderId, insiders.id))
+          .where(inArray(filingOwners.filingId, filingIds)),
+
+        db
+          .select({
+            filingId: transactions.filingId,
+            totalAcquired: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'A' THEN shares ELSE 0 END), 0)`,
+            totalDisposed: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'D' THEN shares ELSE 0 END), 0)`,
+            totalAcquiredValue: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'A' THEN shares * price_per_share ELSE 0 END), 0)`,
+            totalDisposedValue: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'D' THEN shares * price_per_share ELSE 0 END), 0)`,
+            avgPricePerShare: sql<string>`COALESCE(SUM(CASE WHEN price_per_share IS NOT NULL AND shares IS NOT NULL THEN shares * price_per_share ELSE 0 END) / NULLIF(SUM(CASE WHEN price_per_share IS NOT NULL AND shares IS NOT NULL THEN shares ELSE 0 END), 0), 0)`,
+            sharesOwnedAfter: sql<string>`MAX(shares_owned_after)`,
+            transactionCount: sql<number>`count(*)::int`,
+          })
+          .from(transactions)
+          .where(
+            and(
+              inArray(transactions.filingId, filingIds),
+              inArray(transactions.transactionCode, codes),
+              lte(transactions.transactionDate, sql`CURRENT_DATE`),
+            ),
+          )
+          .groupBy(transactions.filingId),
+
+        db
+          .select({
+            companyId: companyTickers.companyId,
+            ticker: companyTickers.ticker,
+          })
+          .from(companyTickers)
+          .where(inArray(companyTickers.companyId, resultCompanyIds)),
+
+        // Fetch ownership states from all non-derivative transactions (not tab-filtered)
+        db
+          .select({
+            filingId: transactions.filingId,
+            securityTitle: transactions.securityTitle,
+            ownershipType: transactions.ownershipType,
+            indirectNature: transactions.indirectNature,
+            sequence: transactions.sequence,
+            sharesOwnedAfter: transactions.sharesOwnedAfter,
+          })
+          .from(transactions)
+          .where(
+            and(
+              inArray(transactions.filingId, filingIds),
+              lte(transactions.transactionDate, sql`CURRENT_DATE`),
+            ),
+          ),
+
+        // Fetch holding-only rows from Table I
+        db
+          .select({
+            filingId: holdings.filingId,
+            securityTitle: holdings.securityTitle,
+            ownershipType: holdings.ownershipType,
+            indirectNature: holdings.indirectNature,
+            sharesOwned: holdings.sharesOwned,
+          })
+          .from(holdings)
+          .where(inArray(holdings.filingId, filingIds)),
+      ]);
+
+      const ownersByFiling = new Map<
+        string,
+        Array<{
+          id: string;
+          name: string;
+          cik: string | null;
+          title: string;
+        }>
+      >();
+      for (const owner of allOwners) {
+        const list = ownersByFiling.get(owner.filingId) ?? [];
+        list.push({
+          id: owner.insiderId,
+          name: owner.insiderName,
+          cik: owner.insiderCik,
+          title:
+            owner.officerTitle ||
+            getOwnerRole({
+              isDirector: owner.isDirector,
+              isOfficer: owner.isOfficer,
+              isTenPercentOwner: owner.isTenPercentOwner,
+            }),
+        });
+        ownersByFiling.set(owner.filingId, list);
+      }
+
+      const summaryByFiling = new Map<
+        string,
+        {
+          totalAcquired: string;
+          totalDisposed: string;
+          totalAcquiredValue: string;
+          totalDisposedValue: string;
+          avgPricePerShare: string;
+          sharesOwnedAfter: string;
+          transactionCount: number;
+        }
+      >();
+      for (const summary of allSummaries) {
+        summaryByFiling.set(summary.filingId, summary);
+      }
+
+      const totalOwnedByFiling = new Map<string, number>();
+      const txOwnedByFiling = new Map<
+        string,
+        Map<string, { sharesOwned: number; sequence: number }>
+      >();
+
+      const toOwnershipKey = (
+        securityTitle: string | null | undefined,
+        ownershipType: string | null | undefined,
+        indirectNature: string | null | undefined,
+      ): string =>
+        `${securityTitle ?? ""}|${ownershipType ?? ""}|${indirectNature ?? ""}`;
+
+      for (const row of allOwnedTransactions) {
+        const sharesOwned = row.sharesOwnedAfter
+          ? Number(row.sharesOwnedAfter)
+          : NaN;
+        if (!Number.isFinite(sharesOwned)) continue;
+
+        const filingMap =
+          txOwnedByFiling.get(row.filingId) ??
+          new Map<string, { sharesOwned: number; sequence: number }>();
+        const key = toOwnershipKey(
+          row.securityTitle,
+          row.ownershipType,
+          row.indirectNature,
+        );
+        const sequence = row.sequence ?? 0;
+        const existing = filingMap.get(key);
+        if (!existing || sequence >= existing.sequence) {
+          filingMap.set(key, { sharesOwned, sequence });
+        }
+        txOwnedByFiling.set(row.filingId, filingMap);
+      }
+
+      const holdingRowsByFiling = new Map<
+        string,
+        Array<{
+          securityTitle: string;
+          ownershipType: string | null;
+          indirectNature: string | null;
+          sharesOwned: string | null;
+        }>
+      >();
+      for (const row of allHoldings) {
+        const list = holdingRowsByFiling.get(row.filingId) ?? [];
+        list.push(row);
+        holdingRowsByFiling.set(row.filingId, list);
+      }
+
+      for (const filingId of filingIds) {
+        const txMap = txOwnedByFiling.get(filingId) ?? new Map();
+        let totalOwned = 0;
+
+        for (const value of txMap.values()) {
+          totalOwned += value.sharesOwned;
+        }
+
+        const holdingRows = holdingRowsByFiling.get(filingId) ?? [];
+        for (const row of holdingRows) {
+          const key = toOwnershipKey(
+            row.securityTitle,
+            row.ownershipType,
+            row.indirectNature,
+          );
+          if (txMap.has(key)) continue;
+
+          const sharesOwned = row.sharesOwned ? Number(row.sharesOwned) : NaN;
+          if (!Number.isFinite(sharesOwned)) continue;
+          totalOwned += sharesOwned;
+        }
+
+        totalOwnedByFiling.set(filingId, totalOwned);
+      }
+
+      const tickerByCompany = new Map<string, string>();
+      for (const ticker of allTickers) {
+        if (!tickerByCompany.has(ticker.companyId)) {
+          tickerByCompany.set(ticker.companyId, ticker.ticker);
+        }
+      }
+
+      const filingsWithSummary = recentFilings.map((filing) => {
+        const owners = ownersByFiling.get(filing.id) ?? [];
+        const summary = summaryByFiling.get(filing.id);
+
+        const totalAcquired = Number(summary?.totalAcquired ?? "0");
+        const totalDisposed = Number(summary?.totalDisposed ?? "0");
+        const totalAcquiredValue = Number(summary?.totalAcquiredValue ?? "0");
+        const totalDisposedValue = Number(summary?.totalDisposedValue ?? "0");
+        const avgPricePerShare = Number(summary?.avgPricePerShare ?? "0");
+        const transactionOwned = Number(summary?.sharesOwnedAfter ?? "0");
+        const totalOwned = totalOwnedByFiling.get(filing.id) ?? 0;
+        const sharesOwnedAfter = totalOwned > 0 ? totalOwned : transactionOwned;
+        const netShares = totalAcquired - totalDisposed;
+        const sharesOwnedBefore = sharesOwnedAfter - netShares;
+
+        let ownershipChangePercent: number | null = null;
+        if (sharesOwnedBefore > 0) {
+          ownershipChangePercent = (netShares / sharesOwnedBefore) * 100;
+        } else if (netShares > 0) {
+          ownershipChangePercent = 100;
+        }
+
+        let transactionType: "buy" | "sell" | "mixed" | "none" = "none";
+        if (totalAcquired > 0 && totalDisposed > 0) {
+          transactionType = "mixed";
+        } else if (totalAcquired > 0) {
+          transactionType = "buy";
+        } else if (totalDisposed > 0) {
+          transactionType = "sell";
+        }
+
+        return {
+          id: filing.id,
+          accessionNumber: filing.accessionNumber,
+          formType: filing.formType,
+          filedAt: filing.filedAt,
+          periodOfReport: filing.periodOfReport,
+          isAmendment: filing.isAmendment,
+          documentUrl: filing.documentUrl,
+          company: {
+            id: filing.companyId,
+            name: filing.companyName,
+            cik: filing.companyCik,
+            ticker: tickerByCompany.get(filing.companyId) ?? null,
+          },
+          owners,
+          primaryOwner: owners[0] ?? null,
+          ownerCount: owners.length,
+          summary: {
+            transactionType,
+            totalAcquired,
+            totalDisposed,
+            totalAcquiredValue,
+            totalDisposedValue,
+            avgPricePerShare,
+            netShares,
+            totalActivityValue: totalAcquiredValue + totalDisposedValue,
+            sharesOwnedAfter,
+            ownershipChangePercent,
+            transactionCount: summary?.transactionCount ?? 0,
+          },
+        };
+      });
+
+      return {
+        filings: filingsWithSummary,
+        pagination: {
+          offset,
+          limit,
+          totalCount,
+          hasMore: offset + recentFilings.length < totalCount,
+        },
+      };
+    }),
+
+  /**
    * Get a single filing by accession number.
    */
   getByAccessionNumber: publicProcedure
@@ -311,11 +699,25 @@ export const filingsRouter = router({
       // Filter out future-dated transactions
       const today = new Date();
       today.setHours(23, 59, 59, 999);
+      const orderedTransactions = filing.transactions
+        .filter(
+          (t) => !t.transactionDate || new Date(t.transactionDate) <= today,
+        )
+        .sort((a, b) => {
+          const aSeq = a.sequence ?? Number.MAX_SAFE_INTEGER;
+          const bSeq = b.sequence ?? Number.MAX_SAFE_INTEGER;
+          if (aSeq !== bSeq) return aSeq - bSeq;
+
+          const aCreated = a.createdAt ? a.createdAt.getTime() : 0;
+          const bCreated = b.createdAt ? b.createdAt.getTime() : 0;
+          if (aCreated !== bCreated) return aCreated - bCreated;
+
+          return a.id.localeCompare(b.id);
+        });
+
       return {
         ...filing,
-        transactions: filing.transactions.filter(
-          (t) => !t.transactionDate || new Date(t.transactionDate) <= today,
-        ),
+        transactions: orderedTransactions,
         derivativeTransactions: filing.derivativeTransactions.filter(
           (t) => !t.transactionDate || new Date(t.transactionDate) <= today,
         ),
@@ -387,7 +789,9 @@ export const filingsRouter = router({
         .orderBy(
           desc(transactions.transactionDate),
           desc(filings.filedAt),
-          desc(transactions.id),
+          asc(transactions.sequence),
+          desc(filings.createdAt),
+          desc(filings.id),
         )
         .limit(limit)
         .offset(offset);
