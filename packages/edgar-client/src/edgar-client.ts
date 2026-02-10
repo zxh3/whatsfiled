@@ -5,6 +5,7 @@ import {
   buildDailyIndexUrl,
   buildQuarterCatalogUrl,
   extractDailyIndexFileNames,
+  getQuarterFromDate,
   parseDailyIndex,
   parseDailyIndexFileName,
 } from "./internal/daily-index.js";
@@ -135,7 +136,7 @@ export class EdgarClient {
   async getDailyIndexFileNames(year: number): Promise<string[]> {
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentQuarter = Math.ceil(now.getMonth() / 3) + 1;
+    const currentQuarter = getQuarterFromDate(now);
 
     if (year > currentYear) {
       return [];
@@ -146,12 +147,28 @@ export class EdgarClient {
 
     for (let quarter = 1; quarter <= maxQuarter; quarter++) {
       const url = buildQuarterCatalogUrl(year, quarter);
-      console.log(`Fetching ${url}`);
-      const html = await this.fetch(url);
-      console.log(`Extracting file names from ${url}`);
-      const names = extractDailyIndexFileNames(html);
-      fileNames.push(...names);
-      await sleep(this.rateLimitDelayMs);
+      this.logger.debug?.(`Fetching ${url}`);
+      try {
+        const html = await this.fetch(url);
+        this.logger.debug?.(`Extracting file names from ${url}`);
+        const names = extractDailyIndexFileNames(html);
+        fileNames.push(...names);
+      } catch (error) {
+        // SEC can return 403/404 for unavailable quarter directories.
+        // Skip these gracefully so one bad quarter does not fail the run.
+        if (
+          error instanceof EdgarFetchError &&
+          (error.statusCode === 403 || error.statusCode === 404)
+        ) {
+          this.logger.warn?.(
+            `Skipping unavailable quarter catalog ${url} (${error.statusCode})`,
+          );
+          continue;
+        }
+        throw error;
+      } finally {
+        await sleep(this.rateLimitDelayMs);
+      }
     }
 
     return fileNames;

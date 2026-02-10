@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EdgarClient } from "../src";
+import { getQuarterFromDate } from "../src/internal/daily-index";
 
 const client = new EdgarClient({ userAgent: "test-suite test@example.com" });
 
@@ -106,6 +107,54 @@ describe("Daily Index Parser", () => {
 `;
       const rows = client.parseDailyIndex(headerOnly);
       expect(rows).toEqual([]);
+    });
+  });
+
+  describe("getDailyIndexFileNames", () => {
+    beforeEach(() => {
+      vi.stubGlobal("fetch", vi.fn());
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    });
+
+    it("calculates quarter correctly for zero-based Date#getMonth", () => {
+      expect(getQuarterFromDate(new Date("2026-01-15T00:00:00.000Z"))).toBe(1);
+      expect(getQuarterFromDate(new Date("2026-02-15T00:00:00.000Z"))).toBe(1);
+      expect(getQuarterFromDate(new Date("2026-03-15T00:00:00.000Z"))).toBe(1);
+      expect(getQuarterFromDate(new Date("2026-04-15T00:00:00.000Z"))).toBe(2);
+      expect(getQuarterFromDate(new Date("2026-12-15T00:00:00.000Z"))).toBe(4);
+    });
+
+    it("skips unavailable quarter catalogs with 403", async () => {
+      const fetchMock = vi.mocked(globalThis.fetch);
+
+      fetchMock.mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.includes("/2025/QTR1/")) {
+          return new Response('<a href="form.20260102.idx">form.20260102.idx</a>', {
+            status: 200,
+            statusText: "OK",
+          });
+        }
+        if (url.includes("/2025/QTR2/")) {
+          return new Response("forbidden", {
+            status: 403,
+            statusText: "Forbidden",
+          });
+        }
+        return new Response("not found", { status: 404, statusText: "Not Found" });
+      });
+
+      const fileNames = await new EdgarClient({
+        userAgent: "test-suite test@example.com",
+        rateLimitDelayMs: 0,
+      }).getDailyIndexFileNames(2025);
+
+      expect(fileNames).toEqual(["form.20260102.idx"]);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
     });
   });
 

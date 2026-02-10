@@ -5,6 +5,13 @@ type ParseOptions = {
   formTypes?: readonly string[];
 };
 
+/**
+ * Convert a Date into calendar quarter (1-4).
+ */
+export function getQuarterFromDate(date: Date): number {
+  return Math.floor(date.getMonth() / 3) + 1;
+}
+
 export function parseDailyIndex(
   text: string,
   opts: ParseOptions = {},
