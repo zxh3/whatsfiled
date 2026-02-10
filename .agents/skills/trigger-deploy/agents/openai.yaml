@@ -1,0 +1,4 @@
+interface:
+  display_name: "Trigger Deploy"
+  short_description: "Deploy Trigger.dev tasks safely."
+  default_prompt: "Deploy Trigger.dev for whatsfiled/packages/trigger with preflight checks, env validation, typecheck, and post-deploy verification output."
