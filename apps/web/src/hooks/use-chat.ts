@@ -15,7 +15,11 @@ export interface ChatMessage {
 
 const MAX_MESSAGES = 1000;
 
-export function useChat() {
+interface UseChatOptions {
+  enabled?: boolean;
+}
+
+export function useChat({ enabled = true }: UseChatOptions = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [username, setUsernameState] = useState<string | null>(null);
   const [isUsernamePromptOpen, setIsUsernamePromptOpen] = useState(false);
@@ -29,9 +33,10 @@ export function useChat() {
 
   // Fetch initial messages (with polling fallback if realtime fails)
   const { data, isLoading } = trpc.chat.getMessages.useQuery(undefined, {
+    enabled,
     refetchOnWindowFocus: false,
     // Poll every 3 seconds as fallback when realtime isn't connected
-    refetchInterval: isRealtimeConnected ? false : 3000,
+    refetchInterval: enabled && !isRealtimeConnected ? 3000 : false,
   });
 
   // Set initial messages

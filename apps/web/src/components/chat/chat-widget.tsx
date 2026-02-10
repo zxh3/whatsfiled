@@ -22,7 +22,7 @@ export function ChatWidget() {
     setUsername,
     isUsernamePromptOpen,
     closeUsernamePrompt,
-  } = useChat();
+  } = useChat({ enabled: isOpen });
 
   const handleSend = (text: string) => {
     sendMessage(text);
