@@ -132,6 +132,9 @@ function FilingCard({ filing }: { filing: FilingSummary }) {
       ? `${filing.primaryOwner.name} +${filing.ownerCount - 1}`
       : filing.primaryOwner.name
     : "Unknown";
+  const ownerHref = filing.primaryOwner?.cik
+    ? `/insider/${filing.primaryOwner.cik}`
+    : null;
   const ownerTitle = filing.primaryOwner?.title?.trim() || null;
   const rowNumberColorClass = getRowNumberColorClass(filing);
 
@@ -154,7 +157,17 @@ function FilingCard({ filing }: { filing: FilingSummary }) {
       </div>
 
       <div className="mt-1 truncate text-xs text-muted-foreground">
-        {ownerLabel}
+        {ownerHref ? (
+          <Link
+            href={ownerHref}
+            prefetch={false}
+            className="hover:text-foreground hover:underline"
+          >
+            {ownerLabel}
+          </Link>
+        ) : (
+          ownerLabel
+        )}
         {ownerTitle ? ` · ${ownerTitle}` : ""}
         {" · "}
         {filing.summary.transactionCount.toLocaleString()} transactions
@@ -246,6 +259,9 @@ function FilingSummaryTable({
                   ? `${filing.primaryOwner.name} +${filing.ownerCount - 1}`
                   : filing.primaryOwner.name
                 : "Unknown";
+              const ownerHref = filing.primaryOwner?.cik
+                ? `/insider/${filing.primaryOwner.cik}`
+                : null;
               const ownerTitle = filing.primaryOwner?.title?.trim() || null;
               const rowNumberColorClass = getRowNumberColorClass(filing);
 
@@ -273,7 +289,17 @@ function FilingSummaryTable({
                     </Link>
                   </td>
                   <td className="overflow-hidden px-2 py-1">
-                    <span className="block truncate">{ownerLabel}</span>
+                    {ownerHref ? (
+                      <Link
+                        href={ownerHref}
+                        prefetch={false}
+                        className="block truncate hover:text-foreground hover:underline"
+                      >
+                        {ownerLabel}
+                      </Link>
+                    ) : (
+                      <span className="block truncate">{ownerLabel}</span>
+                    )}
                   </td>
                   <td className="overflow-hidden px-2 py-1 text-muted-foreground">
                     <span className="block truncate">{ownerTitle || "-"}</span>
