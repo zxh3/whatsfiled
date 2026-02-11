@@ -10,7 +10,7 @@ import { WatchlistCompanyFilter } from "@/components/watchlist/watchlist-company
 import { useSession } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 const LOAD_MORE_THRESHOLD = "200px"; // Start loading when within 200px of bottom
 const FEED_COMPANY_FILTER_STORAGE_KEY = "whatsfiled:feed:company-filter-ciks";
 
@@ -159,6 +159,8 @@ export function ActivityFeed() {
     () => (selectedCompanyIds ? selectedCompanyIds.join(",") : ""),
     [selectedCompanyIds],
   );
+  const isWatchlistSelectionReady =
+    !useWatchlistFeed || selectedCompanyCiks !== null;
 
   useEffect(() => {
     if (!useWatchlistFeed || selectedCompanyCiks === null) return;
@@ -185,7 +187,7 @@ export function ActivityFeed() {
         offset,
         companyIds: selectedCompanyIds,
       },
-      { staleTime: 30000 },
+      { staleTime: 30000, enabled: isWatchlistSelectionReady },
     );
 
   const hasMore = data?.pagination.hasMore ?? stableHasMore;
@@ -421,8 +423,7 @@ export function ActivityFeed() {
               <Spinner size="sm" />
             ) : allFilings.length > 0 && data && !hasMore ? (
               <span className="text-xs text-muted-foreground">
-                Showing all {data.pagination.totalCount.toLocaleString()}{" "}
-                filings
+                You've reached the end.
               </span>
             ) : null}
           </div>

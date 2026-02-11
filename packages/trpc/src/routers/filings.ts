@@ -317,15 +317,7 @@ export const filingsRouter = router({
       }
 
       const whereClause = and(...baseConditions);
-
-      const [countResult] = await db
-        .select({ count: sql<number>`count(distinct ${filings.id})::int` })
-        .from(filings)
-        .innerJoin(transactions, eq(transactions.filingId, filings.id))
-        .where(whereClause);
-      const totalCount = countResult?.count ?? 0;
-
-      const recentFilings = await db
+      const recentFilingsWithExtra = await db
         .select({
           id: filings.id,
           accessionNumber: filings.accessionNumber,
@@ -361,8 +353,13 @@ export const filingsRouter = router({
           desc(filings.createdAt),
           desc(filings.id),
         )
-        .limit(limit)
+        .limit(limit + 1)
         .offset(offset);
+
+      const hasMore = recentFilingsWithExtra.length > limit;
+      const recentFilings = hasMore
+        ? recentFilingsWithExtra.slice(0, limit)
+        : recentFilingsWithExtra;
 
       if (recentFilings.length === 0) {
         return {
@@ -370,7 +367,7 @@ export const filingsRouter = router({
           pagination: {
             offset,
             limit,
-            totalCount,
+            totalCount: offset,
             hasMore: false,
           },
         };
@@ -656,8 +653,9 @@ export const filingsRouter = router({
         pagination: {
           offset,
           limit,
-          totalCount,
-          hasMore: offset + recentFilings.length < totalCount,
+          // Approximate lower bound; avoids expensive count(distinct) for first paint.
+          totalCount: offset + filingsWithSummary.length + (hasMore ? 1 : 0),
+          hasMore,
         },
       };
     }),
