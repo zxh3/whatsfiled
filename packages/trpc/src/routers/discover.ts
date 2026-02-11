@@ -18,12 +18,6 @@ function getWindowStart(window: "1d" | "7d" | "30d"): Date {
   return new Date(now.getTime() - days * MS_PER_DAY);
 }
 
-function getDirection(transactionType: "buy" | "sell" | "mixed" | "none") {
-  if (transactionType === "buy") return "buy" as const;
-  if (transactionType === "sell") return "sell" as const;
-  return "all" as const;
-}
-
 function getOwnerRole(owner: {
   isDirector: boolean;
   isOfficer: boolean;
@@ -77,7 +71,7 @@ export const discoverRouter = router({
       }
       const whereClause = and(...conditions);
 
-      const aggregateRows = await db
+      const aggregateBase = db
         .select({
           filingId: filings.id,
           accessionNumber: filings.accessionNumber,
@@ -105,6 +99,27 @@ export const discoverRouter = router({
           companies.name,
           companies.cik,
         );
+
+      const havingConditions = [];
+      if (direction === "buy") {
+        havingConditions.push(
+          sql`COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'A' THEN ${transactions.shares} ELSE 0 END), 0) > COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'D' THEN ${transactions.shares} ELSE 0 END), 0)`,
+        );
+      } else if (direction === "sell") {
+        havingConditions.push(
+          sql`COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'A' THEN ${transactions.shares} ELSE 0 END), 0) < COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'D' THEN ${transactions.shares} ELSE 0 END), 0)`,
+        );
+      }
+      if (minValue !== undefined) {
+        havingConditions.push(
+          sql`(COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'A' THEN ${transactions.shares} * ${transactions.pricePerShare} ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'D' THEN ${transactions.shares} * ${transactions.pricePerShare} ELSE 0 END), 0)) >= ${minValue}`,
+        );
+      }
+
+      const aggregateRows =
+        havingConditions.length > 0
+          ? await aggregateBase.having(and(...havingConditions))
+          : await aggregateBase;
 
       if (aggregateRows.length === 0) {
         return {
@@ -248,29 +263,16 @@ export const discoverRouter = router({
         };
       });
 
-      const byDirection = rawItems.filter((item) => {
-        if (direction === "buy")
-          return getDirection(item.metrics.transactionType) === "buy";
-        if (direction === "sell")
-          return getDirection(item.metrics.transactionType) === "sell";
-        return true;
-      });
-
-      const byMinValue = byDirection.filter((item) => {
-        if (minValue === undefined) return true;
-        return item.metrics.tradeValue >= minValue;
-      });
-
       const maxTradeValue = Math.max(
         1,
-        ...byMinValue.map((item) => item.metrics.tradeValue),
+        ...rawItems.map((item) => item.metrics.tradeValue),
       );
       const maxAbsDelta = Math.max(
         1,
-        ...byMinValue.map((item) => Math.abs(item.metrics.deltaOwnPct ?? 0)),
+        ...rawItems.map((item) => Math.abs(item.metrics.deltaOwnPct ?? 0)),
       );
 
-      const scored = byMinValue.map((item) => {
+      const scored = rawItems.map((item) => {
         const reasons: string[] = [];
         let score = 0;
 
