@@ -3,8 +3,8 @@
 import { PaginationNav } from "@whatsfiled/ui/components/pagination";
 import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { FilingSummaryTable } from "@/components/filings/filing-summary-table";
 import { SiteHeader } from "@/components/layout/site-header";
-import { TransactionTable } from "@/components/transactions/transaction-table";
 import { WatchButton } from "@/components/watchlist/watch-button";
 import { trpc } from "@/lib/trpc";
 
@@ -63,7 +63,7 @@ export function CompanyPageClient() {
               <div className="mt-1 h-4 w-32 animate-pulse rounded bg-muted" />
             </header>
             <div className="h-9 w-80 animate-pulse rounded-full bg-muted" />
-            <TransactionTable transactions={[]} isLoading />
+            <FilingSummaryTable filings={[]} isLoading />
           </div>
         </div>
       </main>
@@ -132,10 +132,7 @@ export function CompanyPageClient() {
           </p>
         </div>
 
-        <TransactionTable
-          transactions={data.transactions}
-          isLoading={isLoading}
-        />
+        <FilingSummaryTable filings={data.filings} isLoading={isLoading} />
 
         {data.pagination.totalPages > 1 && (
           <PaginationNav
@@ -149,7 +146,7 @@ export function CompanyPageClient() {
           <p className="text-center text-xs text-muted-foreground">
             Showing {(page - 1) * PAGE_SIZE + 1}-
             {Math.min(page * PAGE_SIZE, data.pagination.totalCount)} of{" "}
-            {data.pagination.totalCount.toLocaleString()} transactions
+            {data.pagination.totalCount.toLocaleString()} filings
           </p>
         )}
       </div>
