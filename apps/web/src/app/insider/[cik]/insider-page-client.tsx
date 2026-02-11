@@ -1,20 +1,31 @@
 "use client";
 
 import { Spinner } from "@whatsfiled/ui/components/spinner";
+import { Tabs, TabsList, TabsTrigger } from "@whatsfiled/ui/components/tabs";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FilingCard } from "@/components/filings/filing-card";
 import { SiteHeader } from "@/components/layout/site-header";
 import { trpc } from "@/lib/trpc";
 
 export function InsiderPageClient() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const cik = params.cik as string;
+  const filter =
+    (searchParams.get("filter") as "common" | "options") || "common";
 
   const { data, isLoading, isError } = trpc.insiders.getByCik.useQuery(
-    { cik, limit: 50 },
+    { cik, limit: 50, filter },
     { enabled: Boolean(cik) },
   );
+
+  const handleFilterChange = (newFilter: string) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("filter", newFilter);
+    router.replace(`/insider/${cik}?${nextParams.toString()}`);
+  };
 
   if (!cik || isLoading) {
     return (
@@ -107,6 +118,19 @@ export function InsiderPageClient() {
           </aside>
           <div>
             <h2 className="text-lg font-semibold mb-3">Recent filings</h2>
+            <div className="mb-2">
+              <Tabs value={filter} onValueChange={handleFilterChange}>
+                <TabsList>
+                  <TabsTrigger value="common">Market Trades</TabsTrigger>
+                  <TabsTrigger value="options">Awards & Exercises</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              {filter === "common"
+                ? "One row per filing summarizing open market purchases and sales."
+                : "One row per filing summarizing option exercises, RSU vests, awards, and tax withholding."}
+            </p>
             {data.filings.length === 0 ? (
               <p className="text-muted-foreground">No filings found.</p>
             ) : (

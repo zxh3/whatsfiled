@@ -3,6 +3,7 @@ import {
   companyTickers,
   filingOwners,
   filings,
+  holdings,
   insiderRoles,
   insiders,
   transactions,
@@ -17,6 +18,7 @@ export const insidersRouter = router({
       z.object({
         cik: z.string().min(1),
         limit: z.number().min(1).max(100).default(50),
+        filter: z.enum(["common", "options"]).default("common"),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -41,6 +43,8 @@ export const insidersRouter = router({
       if (insider.length === 0) {
         return null;
       }
+      const codes =
+        input.filter === "common" ? ["P", "S"] : ["M", "A", "F", "G", "C"];
 
       const recentFilings = await db
         .select({
@@ -58,7 +62,27 @@ export const insidersRouter = router({
         .from(filingOwners)
         .innerJoin(filings, eq(filingOwners.filingId, filings.id))
         .innerJoin(companies, eq(filings.companyId, companies.id))
-        .where(eq(filingOwners.insiderId, insider[0].id))
+        .innerJoin(transactions, eq(transactions.filingId, filings.id))
+        .where(
+          and(
+            eq(filingOwners.insiderId, insider[0].id),
+            inArray(transactions.transactionCode, codes),
+            lte(transactions.transactionDate, sql`CURRENT_DATE`),
+          ),
+        )
+        .groupBy(
+          filings.id,
+          filings.accessionNumber,
+          filings.formType,
+          filings.filedAt,
+          filings.periodOfReport,
+          filings.isAmendment,
+          filings.documentUrl,
+          filings.companyId,
+          companies.name,
+          companies.cik,
+          filings.createdAt,
+        )
         .orderBy(desc(filings.filedAt), desc(filings.createdAt))
         .limit(input.limit);
 
@@ -100,7 +124,14 @@ export const insidersRouter = router({
         ...new Set(recentFilings.map((f) => f.companyId)),
       ];
 
-      const [allOwners, allSummaries, allTickers, allMixedTransactions] =
+      const [
+        allOwners,
+        allSummaries,
+        allTickers,
+        allMixedTransactions,
+        allOwnedTransactions,
+        allHoldings,
+      ] =
         filingIds.length > 0
           ? await Promise.all([
               // Batch fetch owners
@@ -127,11 +158,17 @@ export const insidersRouter = router({
                   totalDisposed: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'D' THEN shares ELSE 0 END), 0)`,
                   totalAcquiredValue: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'A' THEN shares * price_per_share ELSE 0 END), 0)`,
                   totalDisposedValue: sql<string>`COALESCE(SUM(CASE WHEN acquired_disposed = 'D' THEN shares * price_per_share ELSE 0 END), 0)`,
-                  avgPrice: sql<string>`COALESCE(AVG(price_per_share), 0)`,
+                  avgPrice: sql<string>`COALESCE(SUM(CASE WHEN price_per_share IS NOT NULL AND shares IS NOT NULL THEN shares * price_per_share ELSE 0 END) / NULLIF(SUM(CASE WHEN price_per_share IS NOT NULL AND shares IS NOT NULL THEN shares ELSE 0 END), 0), 0)`,
                   sharesOwnedAfter: sql<string>`MAX(shares_owned_after)`,
                 })
                 .from(transactions)
-                .where(inArray(transactions.filingId, filingIds))
+                .where(
+                  and(
+                    inArray(transactions.filingId, filingIds),
+                    inArray(transactions.transactionCode, codes),
+                    lte(transactions.transactionDate, sql`CURRENT_DATE`),
+                  ),
+                )
                 .groupBy(transactions.filingId),
 
               // Batch fetch tickers for filing companies
@@ -157,12 +194,44 @@ export const insidersRouter = router({
                 .where(
                   and(
                     inArray(transactions.filingId, filingIds),
+                    inArray(transactions.transactionCode, codes),
                     lte(transactions.transactionDate, sql`CURRENT_DATE`),
                   ),
                 )
                 .orderBy(transactions.transactionDate),
+
+              // Ownership states from all Table I transactions (not tab-filtered)
+              db
+                .select({
+                  filingId: transactions.filingId,
+                  securityTitle: transactions.securityTitle,
+                  ownershipType: transactions.ownershipType,
+                  indirectNature: transactions.indirectNature,
+                  sequence: transactions.sequence,
+                  sharesOwnedAfter: transactions.sharesOwnedAfter,
+                })
+                .from(transactions)
+                .where(
+                  and(
+                    inArray(transactions.filingId, filingIds),
+                    lte(transactions.transactionDate, sql`CURRENT_DATE`),
+                  ),
+                )
+                .orderBy(transactions.transactionDate),
+
+              // Holding-only rows from Table I for owned-share fallback
+              db
+                .select({
+                  filingId: holdings.filingId,
+                  securityTitle: holdings.securityTitle,
+                  ownershipType: holdings.ownershipType,
+                  indirectNature: holdings.indirectNature,
+                  sharesOwned: holdings.sharesOwned,
+                })
+                .from(holdings)
+                .where(inArray(holdings.filingId, filingIds)),
             ])
-          : [[], [], [], []];
+          : [[], [], [], [], [], []];
 
       // Create lookup Maps
       const ownersByFiling = new Map<
@@ -221,12 +290,88 @@ export const insidersRouter = router({
         transactionsByFiling.set(txn.filingId, list);
       }
 
+      const toOwnershipKey = (
+        securityTitle: string | null | undefined,
+        ownershipType: string | null | undefined,
+        indirectNature: string | null | undefined,
+      ): string =>
+        `${securityTitle ?? ""}|${ownershipType ?? ""}|${indirectNature ?? ""}`;
+
+      const txOwnedByFiling = new Map<
+        string,
+        Map<string, { sharesOwned: number; sequence: number }>
+      >();
+      for (const row of allOwnedTransactions) {
+        const sharesOwned = row.sharesOwnedAfter
+          ? Number(row.sharesOwnedAfter)
+          : NaN;
+        if (!Number.isFinite(sharesOwned)) continue;
+
+        const filingMap =
+          txOwnedByFiling.get(row.filingId) ??
+          new Map<string, { sharesOwned: number; sequence: number }>();
+        const key = toOwnershipKey(
+          row.securityTitle,
+          row.ownershipType,
+          row.indirectNature,
+        );
+        const sequence = row.sequence ?? 0;
+        const existing = filingMap.get(key);
+        if (!existing || sequence >= existing.sequence) {
+          filingMap.set(key, { sharesOwned, sequence });
+        }
+        txOwnedByFiling.set(row.filingId, filingMap);
+      }
+
+      const holdingRowsByFiling = new Map<
+        string,
+        Array<{
+          securityTitle: string;
+          ownershipType: string | null;
+          indirectNature: string | null;
+          sharesOwned: string | null;
+        }>
+      >();
+      for (const row of allHoldings) {
+        const list = holdingRowsByFiling.get(row.filingId) ?? [];
+        list.push(row);
+        holdingRowsByFiling.set(row.filingId, list);
+      }
+
+      const totalOwnedByFiling = new Map<string, number>();
+      for (const filingId of filingIds) {
+        const txMap = txOwnedByFiling.get(filingId) ?? new Map();
+        let totalOwned = 0;
+
+        for (const value of txMap.values()) {
+          totalOwned += value.sharesOwned;
+        }
+
+        const holdingRows = holdingRowsByFiling.get(filingId) ?? [];
+        for (const row of holdingRows) {
+          const key = toOwnershipKey(
+            row.securityTitle,
+            row.ownershipType,
+            row.indirectNature,
+          );
+          if (txMap.has(key)) continue;
+
+          const sharesOwned = row.sharesOwned ? Number(row.sharesOwned) : NaN;
+          if (!Number.isFinite(sharesOwned)) continue;
+          totalOwned += sharesOwned;
+        }
+
+        totalOwnedByFiling.set(filingId, totalOwned);
+      }
+
       // Assemble response using Maps (no additional queries)
       const filingsWithDetails = recentFilings.map((filing) => {
         const owners = ownersByFiling.get(filing.id) ?? [];
         const summary = summaryByFiling.get(filing.id);
 
-        const sharesOwnedAfter = parseFloat(summary?.sharesOwnedAfter || "0");
+        const transactionOwned = Number(summary?.sharesOwnedAfter ?? "0");
+        const totalOwned = totalOwnedByFiling.get(filing.id) ?? 0;
+        const sharesOwnedAfter = totalOwned > 0 ? totalOwned : transactionOwned;
         const totalAcquired = parseFloat(summary?.totalAcquired || "0");
         const totalDisposed = parseFloat(summary?.totalDisposed || "0");
         const netChange = totalAcquired - totalDisposed;
