@@ -1,4 +1,4 @@
-import { companies, companyTickers, eq, getDb, or, sql } from "@whatsfiled/db";
+import { companies, companyTickers, eq, getDb, or } from "@whatsfiled/db";
 import type { Metadata } from "next";
 import { CompanyPageClient } from "./company-page-client";
 
@@ -9,7 +9,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { cik } = await params;
   const db = getDb();
-  const normalizedCik = cik.replace(/^0+/, "");
+  const cikCandidates = buildCikCandidates(cik);
 
   const company = await db
     .select({
@@ -18,12 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       cik: companies.cik,
     })
     .from(companies)
-    .where(
-      or(
-        eq(companies.cik, cik),
-        sql`ltrim(${companies.cik}, '0') = ${normalizedCik}`,
-      ),
-    )
+    .where(or(...cikCandidates.map((candidate) => eq(companies.cik, candidate))))
     .limit(1);
 
   if (company.length === 0) {
@@ -84,4 +79,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default function CompanyPage() {
   return <CompanyPageClient />;
+}
+
+function buildCikCandidates(rawCik: string): string[] {
+  const trimmed = rawCik.trim();
+  const normalized = trimmed.replace(/^0+/, "");
+  const padded = normalized.padStart(10, "0");
+
+  return [...new Set([trimmed, normalized, padded])].filter(
+    (value) => value.length > 0,
+  );
 }

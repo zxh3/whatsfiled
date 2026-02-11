@@ -8,7 +8,7 @@ import {
   insiders,
   transactions,
 } from "@whatsfiled/db/schema";
-import { and, desc, eq, inArray, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
 
@@ -22,7 +22,7 @@ export const companiesRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { db } = ctx;
-      const normalizedCik = input.cik.replace(/^0+/, "");
+      const cikCandidates = buildCikCandidates(input.cik);
       const company = await db
         .select({
           id: companies.id,
@@ -30,12 +30,7 @@ export const companiesRouter = router({
           cik: companies.cik,
         })
         .from(companies)
-        .where(
-          or(
-            eq(companies.cik, input.cik),
-            sql`ltrim(${companies.cik}, '0') = ${normalizedCik}`,
-          ),
-        )
+        .where(inArray(companies.cik, cikCandidates))
         .limit(1);
 
       if (company.length === 0) {
@@ -306,7 +301,7 @@ export const companiesRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { db } = ctx;
-      const normalizedCik = input.cik.replace(/^0+/, "");
+      const cikCandidates = buildCikCandidates(input.cik);
 
       // Find the company
       const company = await db
@@ -316,12 +311,7 @@ export const companiesRouter = router({
           cik: companies.cik,
         })
         .from(companies)
-        .where(
-          or(
-            eq(companies.cik, input.cik),
-            sql`ltrim(${companies.cik}, '0') = ${normalizedCik}`,
-          ),
-        )
+        .where(inArray(companies.cik, cikCandidates))
         .limit(1);
 
       if (company.length === 0) {
@@ -346,7 +336,7 @@ export const companiesRouter = router({
         lte(transactions.transactionDate, sql`CURRENT_DATE`),
       );
 
-      const aggregateRows = await db
+      const aggregateBase = db
         .select({
           id: filings.id,
           accessionNumber: filings.accessionNumber,
@@ -367,25 +357,34 @@ export const companiesRouter = router({
           filings.accessionNumber,
           filings.filedAt,
           filings.createdAt,
-        )
+        );
+
+      const aggregateQuery =
+        input.direction === "buy"
+          ? aggregateBase.having(
+              sql`COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'A' THEN ${transactions.shares} ELSE 0 END), 0) > COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'D' THEN ${transactions.shares} ELSE 0 END), 0)`,
+            )
+          : input.direction === "sell"
+            ? aggregateBase.having(
+                sql`COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'A' THEN ${transactions.shares} ELSE 0 END), 0) < COALESCE(SUM(CASE WHEN ${transactions.acquiredDisposed} = 'D' THEN ${transactions.shares} ELSE 0 END), 0)`,
+              )
+            : aggregateBase;
+
+      const aggregateSubquery = aggregateQuery.as("company_filing_agg");
+      const [countRow] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(aggregateSubquery);
+      const totalCount = countRow?.count ?? 0;
+      const totalPages = Math.ceil(totalCount / input.pageSize);
+
+      const pagedRows = await aggregateQuery
         .orderBy(
           desc(filings.filedAt),
           desc(filings.createdAt),
           desc(filings.id),
-        );
-
-      const byDirection = aggregateRows.filter((row) => {
-        if (input.direction === "all") return true;
-        const netShares =
-          Number(row.totalAcquired ?? "0") - Number(row.totalDisposed ?? "0");
-        if (input.direction === "buy") return netShares > 0;
-        if (input.direction === "sell") return netShares < 0;
-        return true;
-      });
-
-      const totalCount = byDirection.length;
-      const totalPages = Math.ceil(totalCount / input.pageSize);
-      const pagedRows = byDirection.slice(offset, offset + input.pageSize);
+        )
+        .limit(input.pageSize)
+        .offset(offset);
       const filingIds = pagedRows.map((row) => row.id);
 
       const [ownerRows, ownedRows, holdingRows] =
@@ -618,4 +617,14 @@ function getOwnerRole(owner: {
   if (owner.isTenPercentOwner) roles.push("10% Owner");
   if (owner.isOther) roles.push("Other");
   return roles.join(", ") || "Insider";
+}
+
+function buildCikCandidates(rawCik: string): string[] {
+  const trimmed = rawCik.trim();
+  const normalized = trimmed.replace(/^0+/, "");
+  const padded = normalized.padStart(10, "0");
+
+  return [...new Set([trimmed, normalized, padded])].filter(
+    (value) => value.length > 0,
+  );
 }
