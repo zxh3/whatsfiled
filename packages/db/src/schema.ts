@@ -225,6 +225,11 @@ export const filings = pgTable(
   (table) => [
     uniqueIndex("filings_accession_number_idx").on(table.accessionNumber),
     index("filings_company_idx").on(table.companyId),
+    index("filings_company_filed_at_created_at_idx").on(
+      table.companyId,
+      table.filedAt,
+      table.createdAt,
+    ),
     index("filings_filed_at_idx").on(table.filedAt),
     index("filings_filed_at_created_at_idx").on(table.filedAt, table.createdAt),
     index("filings_form_type_idx").on(table.formType),
@@ -322,6 +327,16 @@ export const transactions = pgTable(
   },
   (table) => [
     index("transactions_filing_idx").on(table.filingId),
+    index("transactions_filing_code_date_idx").on(
+      table.filingId,
+      table.transactionCode,
+      table.transactionDate,
+    ),
+    index("transactions_code_date_filing_idx").on(
+      table.transactionCode,
+      table.transactionDate,
+      table.filingId,
+    ),
     index("transactions_filing_sequence_idx").on(
       table.filingId,
       table.sequence,
