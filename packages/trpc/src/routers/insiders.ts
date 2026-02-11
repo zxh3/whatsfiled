@@ -8,7 +8,7 @@ import {
   insiders,
   transactions,
 } from "@whatsfiled/db/schema";
-import { and, desc, eq, inArray, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { publicProcedure, router } from "../init.js";
 
@@ -23,7 +23,7 @@ export const insidersRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { db } = ctx;
-      const normalizedCik = input.cik.replace(/^0+/, "");
+      const cikCandidates = buildCikCandidates(input.cik);
       const insider = await db
         .select({
           id: insiders.id,
@@ -32,12 +32,7 @@ export const insidersRouter = router({
           isEntity: insiders.isEntity,
         })
         .from(insiders)
-        .where(
-          or(
-            eq(insiders.cik, input.cik),
-            sql`ltrim(${insiders.cik}, '0') = ${normalizedCik}`,
-          ),
-        )
+        .where(inArray(insiders.cik, cikCandidates))
         .limit(1);
 
       if (insider.length === 0) {
@@ -117,6 +112,12 @@ export const insidersRouter = router({
               })
               .from(companyTickers)
               .where(inArray(companyTickers.companyId, affiliationCompanyIds));
+      const affiliationTickerByCompany = new Map<string, string>();
+      for (const row of affiliationTickers) {
+        if (!affiliationTickerByCompany.has(row.companyId)) {
+          affiliationTickerByCompany.set(row.companyId, row.ticker);
+        }
+      }
 
       // Batch fetch all related data for filings (4 queries instead of 150-200)
       const filingIds = recentFilings.map((f) => f.id);
@@ -452,9 +453,7 @@ export const insidersRouter = router({
           id: entry.companyId,
           name: entry.companyName,
           cik: entry.companyCik,
-          ticker:
-            affiliationTickers.find((t) => t.companyId === entry.companyId)
-              ?.ticker || null,
+          ticker: affiliationTickerByCompany.get(entry.companyId) ?? null,
           title: entry.officerTitle || getOwnerRole(entry),
           isDirector: entry.isDirector,
           isOfficer: entry.isOfficer,
@@ -479,4 +478,14 @@ function getOwnerRole(owner: {
   if (owner.isTenPercentOwner) roles.push("10% Owner");
   if (owner.isOther) roles.push("Other");
   return roles.join(", ") || "Insider";
+}
+
+function buildCikCandidates(rawCik: string): string[] {
+  const trimmed = rawCik.trim();
+  const normalized = trimmed.replace(/^0+/, "");
+  const padded = normalized.padStart(10, "0");
+
+  return [...new Set([trimmed, normalized, padded])].filter(
+    (value) => value.length > 0,
+  );
 }

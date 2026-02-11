@@ -1,4 +1,4 @@
-import { eq, getDb, insiders, or, sql } from "@whatsfiled/db";
+import { eq, getDb, insiders, or } from "@whatsfiled/db";
 import type { Metadata } from "next";
 import { InsiderPageClient } from "./insider-page-client";
 
@@ -9,7 +9,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { cik } = await params;
   const db = getDb();
-  const normalizedCik = cik.replace(/^0+/, "");
+  const cikCandidates = buildCikCandidates(cik);
 
   const insider = await db
     .select({
@@ -18,12 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       cik: insiders.cik,
     })
     .from(insiders)
-    .where(
-      or(
-        eq(insiders.cik, cik),
-        sql`ltrim(${insiders.cik}, '0') = ${normalizedCik}`,
-      ),
-    )
+    .where(or(...cikCandidates.map((candidate) => eq(insiders.cik, candidate))))
     .limit(1);
 
   if (insider.length === 0) {
@@ -73,4 +68,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default function InsiderPage() {
   return <InsiderPageClient />;
+}
+
+function buildCikCandidates(rawCik: string): string[] {
+  const trimmed = rawCik.trim();
+  const normalized = trimmed.replace(/^0+/, "");
+  const padded = normalized.padStart(10, "0");
+
+  return [...new Set([trimmed, normalized, padded])].filter(
+    (value) => value.length > 0,
+  );
 }
