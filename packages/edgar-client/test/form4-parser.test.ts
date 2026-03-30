@@ -128,6 +128,9 @@ describe("Form 4 Parser", () => {
     const x0508Fixtures = manifest.fixtures.filter(
       (f) => f.schemaVersion === "X0508",
     );
+    const x0609Fixtures = manifest.fixtures.filter(
+      (f) => f.schemaVersion === "X0609",
+    );
 
     if (x0306Fixtures.length > 0) {
       describe("X0306 schema", () => {
@@ -169,6 +172,31 @@ describe("Form 4 Parser", () => {
             typeof doc.is10b5OnePlan === "boolean" ||
               doc.is10b5OnePlan === null,
           ).toBe(true);
+        });
+      });
+    }
+
+    if (x0609Fixtures.length > 0) {
+      describe("X0609 schema", () => {
+        const fixture = x0609Fixtures[0];
+        const content = loadFixtureContent(fixture.filename);
+
+        it("parses new issuer and reporting owner fields", () => {
+          const doc = client.parseForm4(content);
+          expect(doc.issuer.foreignTradingSymbol).toBe("BLFYF");
+          expect(doc.reportingOwners[0]?.address.nonUsAddressFlag).toBe(true);
+          expect(doc.reportingOwners[0]?.address.nonUsStateTerritory).toBe(
+            "BERLIN",
+          );
+          expect(doc.reportingOwners[0]?.address.country).toBe("D2");
+        });
+
+        it("uses X0508-compatible normalization rules", () => {
+          const doc = client.parseForm4(content);
+          expect(doc.is10b5OnePlan).toBe(false);
+          expect(
+            doc.nonDerivativeTable.transactions[0]?.transactionTimeliness,
+          ).toBeNull();
         });
       });
     }

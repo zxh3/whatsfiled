@@ -41,4 +41,9 @@ export const FORM_TYPES = [
 /**
  * Supported Form 4 XML schema versions.
  */
-export const FORM4_SCHEMA_VERSIONS = ["X0306", "X0407", "X0508"] as const;
+export const FORM4_SCHEMA_VERSIONS = [
+  "X0306",
+  "X0407",
+  "X0508",
+  "X0609",
+] as const;

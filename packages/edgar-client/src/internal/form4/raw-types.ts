@@ -2,7 +2,7 @@
  * Raw XML types produced by fast-xml-parser when parsing SEC Form 4 documents.
  *
  * These types represent the structure of SEC EDGAR Form 4 XML before normalization.
- * The SEC uses different schema versions (X0306, X0407, X0508) that have slightly
+ * The SEC uses different schema versions (X0306, X0407, X0508, X0609) that have slightly
  * different structures, but fast-xml-parser produces consistent output.
  *
  * @see https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=4
@@ -39,6 +39,8 @@ export interface RawIssuer {
   issuerName?: string;
   /** Stock ticker symbol (e.g., "AAPL") */
   issuerTradingSymbol?: string;
+  /** Optional foreign exchange trading symbol (X0609+) */
+  issuerForeignTradingSymbol?: string;
 }
 
 /**
@@ -57,11 +59,14 @@ export interface RawReportingOwnerId {
  * Used for SEC correspondence and public records.
  */
 export interface RawReportingOwnerAddress {
+  rptOwnerNonUSAddressFlag?: string | number | boolean;
   rptOwnerStreet1?: string;
   rptOwnerStreet2?: string;
   rptOwnerCity?: string;
+  rptOwnerNonUSStateTerritory?: string;
   /** Two-letter state code (e.g., "CA") */
   rptOwnerState?: string;
+  rptOwnerCountry?: string;
   rptOwnerZipCode?: string;
   /** Full state name for non-US addresses */
   rptOwnerStateDescription?: string;
@@ -309,7 +314,7 @@ export interface RawOwnerSignature {
  * This represents the full Form 4 filing structure.
  */
 export interface RawOwnershipDocumentContent {
-  /** Schema version identifier (X0306, X0407, X0508) */
+  /** Schema version identifier (X0306, X0407, X0508, X0609) */
   schemaVersion?: string;
   /** "4" for Form 4, "4/A" for amended Form 4 */
   documentType?: string;

@@ -76,10 +76,15 @@ async function upsertCompany(
     .values({
       cik: issuer.cik,
       name: issuer.name,
+      foreignTradingSymbol: issuer.foreignTradingSymbol,
     })
     .onConflictDoUpdate({
       target: companies.cik,
-      set: { name: issuer.name, updatedAt: new Date() },
+      set: {
+        name: issuer.name,
+        foreignTradingSymbol: issuer.foreignTradingSymbol,
+        updatedAt: new Date(),
+      },
     })
     .returning({ id: companies.id });
 
@@ -130,7 +135,19 @@ async function upsertInsiders(
         // Update name if changed
         await tx
           .update(insiders)
-          .set({ name: owner.id.name, updatedAt: new Date() })
+          .set({
+            name: owner.id.name,
+            street1: owner.address.street1,
+            street2: owner.address.street2,
+            city: owner.address.city,
+            state: owner.address.state,
+            zipCode: owner.address.zipCode,
+            stateDescription: owner.address.stateDescription,
+            nonUsAddressFlag: owner.address.nonUsAddressFlag,
+            nonUsStateTerritory: owner.address.nonUsStateTerritory,
+            country: owner.address.country,
+            updatedAt: new Date(),
+          })
           .where(eq(insiders.id, insiderId));
       }
     } else {
@@ -161,6 +178,15 @@ async function upsertInsiders(
           cik: owner.id.cik || null,
           name: owner.id.name,
           isEntity: false,
+          street1: owner.address.street1,
+          street2: owner.address.street2,
+          city: owner.address.city,
+          state: owner.address.state,
+          zipCode: owner.address.zipCode,
+          stateDescription: owner.address.stateDescription,
+          nonUsAddressFlag: owner.address.nonUsAddressFlag,
+          nonUsStateTerritory: owner.address.nonUsStateTerritory,
+          country: owner.address.country,
         })
         .returning({ id: insiders.id });
       insiderId = inserted.id;
