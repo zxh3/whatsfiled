@@ -8,8 +8,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "npx trigger.dev@latest dev",
-    "deploy": "npx trigger.dev@latest deploy",
+    "dev": "node scripts/run-trigger-cli.mjs dev",
+    "deploy": "node scripts/run-trigger-cli.mjs deploy",
     "cli": "tsx --env-file=.env.local scripts/cli.ts",
     "backfill-local": "tsx scripts/backfill-local.ts"
   },

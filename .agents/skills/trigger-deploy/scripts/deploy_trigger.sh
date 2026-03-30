@@ -107,10 +107,28 @@ for var in TRIGGER_SECRET_KEY DATABASE_URL SEC_USER_AGENT; do
 done
 
 PROJECT_ID="$(rg -o 'project:\s*"[^"]+"' "$PKG_PATH/trigger.config.ts" | sed -E 's/.*"([^"]+)"/\1/' | head -n1 || true)"
+TRIGGER_VERSION="$(
+  node -e '
+    const fs = require("fs");
+    const pkg = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const versions = [
+      pkg.dependencies?.["@trigger.dev/core"],
+      pkg.dependencies?.["@trigger.dev/sdk"],
+      pkg.devDependencies?.["@trigger.dev/build"],
+    ].filter(Boolean);
+    const unique = [...new Set(versions)];
+    if (unique.length !== 1) {
+      console.error(`Mismatched @trigger.dev package versions: ${unique.join(", ")}`);
+      process.exit(1);
+    }
+    process.stdout.write(unique[0] ?? "");
+  ' "$PKG_PATH/package.json"
+)"
 
 echo "Repo root: $REPO_ROOT"
 echo "Package:   $PKG_PATH"
 echo "Env file:  $ENV_FILE"
+echo "Trigger:   $TRIGGER_VERSION"
 if [[ -n "$PROJECT_ID" ]]; then
   echo "Project:   $PROJECT_ID"
   echo "Runs URL:  https://cloud.trigger.dev/projects/v3/$PROJECT_ID/runs"
@@ -118,7 +136,7 @@ fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "[dry-run] Would run typecheck: $([[ "$SKIP_TYPECHECK" -eq 1 ]] && echo no || echo yes)"
-  echo "[dry-run] Would run: pnpm run deploy (from $PKG_PATH)"
+  echo "[dry-run] Would run: pnpm run deploy (using trigger.dev@$TRIGGER_VERSION from $PKG_PATH)"
   exit 0
 fi
 
