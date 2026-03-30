@@ -54,6 +54,15 @@
       "issuerName": "ExchangeRight Income Fund",
       "capturedAt": "2026-01-27T03:03:12.729Z",
       "originalUrl": "https://www.sec.gov/Archives/edgar/data/1982216/0000908834-24-000108.txt"
+    },
+    {
+      "filename": "x0609-form4.txt",
+      "schemaVersion": "X0609",
+      "documentType": "4",
+      "issuerCik": "0001846017",
+      "issuerName": "Blue Foundry Bancorp",
+      "capturedAt": "2026-03-30T00:00:00.000Z",
+      "originalUrl": "https://www.sec.gov/Archives/edgar/data/1929324/0001628280-26-021658.txt"
     }
   ]
 }

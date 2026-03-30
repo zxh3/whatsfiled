@@ -27,6 +27,7 @@ export interface Form4Issuer {
   cik: string;
   name: string;
   tradingSymbol: string;
+  foreignTradingSymbol: string | null;
 }
 
 // ============================================================
@@ -39,10 +40,13 @@ export interface Form4ReportingOwnerId {
 }
 
 export interface Form4ReportingOwnerAddress {
+  nonUsAddressFlag: boolean | null;
   street1: string | null;
   street2: string | null;
   city: string | null;
+  nonUsStateTerritory: string | null;
   state: string | null;
+  country: string | null;
   zipCode: string | null;
   stateDescription: string | null;
 }
@@ -191,7 +195,7 @@ export interface Form4SourceInfo {
  * All schema versions are normalized to this structure.
  */
 export interface Form4Document {
-  /** Schema version (X0306, X0508, etc.) */
+  /** Schema version (X0306, X0609, etc.) */
   schemaVersion: SchemaVersion;
   /** Document type: "4" for Form 4, "4/A" for amended */
   documentType: DocumentType;

@@ -45,7 +45,7 @@ export function normalizeNonDerivativeTransaction(
       raw.transactionDate,
       normalizeDateValue,
     ),
-    // X0306 only - will be null for X0407 and X0508
+    // X0306 only - will be null for X0407, X0508, and X0609
     deemedExecutionDate:
       schemaVersion === "X0306"
         ? normalizeValueWithFootnotes(
@@ -54,7 +54,7 @@ export function normalizeNonDerivativeTransaction(
           )
         : null,
     transactionCoding: normalizeTransactionCoding(raw.transactionCoding),
-    // X0306 and X0407 only (not X0508)
+    // X0306 and X0407 only (not X0508 or X0609)
     transactionTimeliness:
       schemaVersion === "X0306" || schemaVersion === "X0407"
         ? normalizeTransactionTimeliness(raw.transactionTimeliness)
@@ -111,7 +111,7 @@ export function normalizeDerivativeTransaction(
           )
         : null,
     transactionCoding: normalizeTransactionCoding(raw.transactionCoding),
-    // X0306 and X0407 only (not X0508)
+    // X0306 and X0407 only (not X0508 or X0609)
     transactionTimeliness:
       schemaVersion === "X0306" || schemaVersion === "X0407"
         ? normalizeTransactionTimeliness(raw.transactionTimeliness)

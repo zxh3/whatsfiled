@@ -92,9 +92,11 @@ export function normalizeForm4Document(
         : null,
     notSubjectToSection16: normalizeBoolean(doc.notSubjectToSection16),
     noSecuritiesOwned: normalizeBoolean(doc.noSecuritiesOwned),
-    // is10b5OnePlan exists in X0407 and X0508 (not in X0306)
+    // is10b5OnePlan exists in X0407, X0508, and X0609 (not in X0306)
     is10b5OnePlan:
-      schemaVersion === "X0407" || schemaVersion === "X0508"
+      schemaVersion === "X0407" ||
+      schemaVersion === "X0508" ||
+      schemaVersion === "X0609"
         ? normalizeBoolean(doc.aff10b5One)
         : null,
 
@@ -102,6 +104,9 @@ export function normalizeForm4Document(
       cik: normalizeRequiredStringValue(issuer?.issuerCik),
       name: normalizeRequiredStringValue(issuer?.issuerName),
       tradingSymbol: normalizeRequiredStringValue(issuer?.issuerTradingSymbol),
+      foreignTradingSymbol: normalizeStringValue(
+        issuer?.issuerForeignTradingSymbol,
+      ),
     },
 
     reportingOwners: ownersArray.map(normalizeReportingOwner),

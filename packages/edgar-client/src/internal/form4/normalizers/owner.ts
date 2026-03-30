@@ -26,10 +26,15 @@ export function normalizeReportingOwner(
       name: normalizeRequiredStringValue(id?.rptOwnerName),
     },
     address: {
+      nonUsAddressFlag: normalizeBoolean(address?.rptOwnerNonUSAddressFlag),
       street1: normalizeStringValue(address?.rptOwnerStreet1),
       street2: normalizeStringValue(address?.rptOwnerStreet2),
       city: normalizeStringValue(address?.rptOwnerCity),
+      nonUsStateTerritory: normalizeStringValue(
+        address?.rptOwnerNonUSStateTerritory,
+      ),
       state: normalizeStringValue(address?.rptOwnerState),
+      country: normalizeStringValue(address?.rptOwnerCountry),
       zipCode: normalizeStringValue(address?.rptOwnerZipCode),
       stateDescription: normalizeStringValue(address?.rptOwnerStateDescription),
     },

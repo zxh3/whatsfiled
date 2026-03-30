@@ -1,0 +1,85 @@
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+  <schemaVersion>X0609</schemaVersion>
+  <documentType>4</documentType>
+  <periodOfReport>2026-03-25</periodOfReport>
+  <notSubjectToSection16>0</notSubjectToSection16>
+  <issuer>
+    <issuerCik>0001846017</issuerCik>
+    <issuerName>Blue Foundry Bancorp</issuerName>
+    <issuerTradingSymbol>BLFY</issuerTradingSymbol>
+    <issuerForeignTradingSymbol>BLFYF</issuerForeignTradingSymbol>
+  </issuer>
+  <reportingOwner>
+    <reportingOwnerId>
+      <rptOwnerCik>0001929324</rptOwnerCik>
+      <rptOwnerName>Pecoraro Kelly</rptOwnerName>
+    </reportingOwnerId>
+    <reportingOwnerAddress>
+      <rptOwnerNonUSAddressFlag>true</rptOwnerNonUSAddressFlag>
+      <rptOwnerStreet1>19 PARK AVENUE</rptOwnerStreet1>
+      <rptOwnerStreet2></rptOwnerStreet2>
+      <rptOwnerCity>RUTHERFORD</rptOwnerCity>
+      <rptOwnerNonUSStateTerritory>BERLIN</rptOwnerNonUSStateTerritory>
+      <rptOwnerState>NJ</rptOwnerState>
+      <rptOwnerCountry>D2</rptOwnerCountry>
+      <rptOwnerZipCode>07070</rptOwnerZipCode>
+      <rptOwnerStateDescription></rptOwnerStateDescription>
+    </reportingOwnerAddress>
+    <reportingOwnerRelationship>
+      <isDirector>0</isDirector>
+      <isOfficer>1</isOfficer>
+      <isTenPercentOwner>0</isTenPercentOwner>
+      <isOther>0</isOther>
+      <officerTitle>EVP and CFO</officerTitle>
+      <otherText></otherText>
+    </reportingOwnerRelationship>
+  </reportingOwner>
+  <aff10b5One>0</aff10b5One>
+  <nonDerivativeTable>
+    <nonDerivativeTransaction>
+      <securityTitle>
+        <value>Common Stock</value>
+      </securityTitle>
+      <transactionDate>
+        <value>2026-03-25</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionFormType>4</transactionFormType>
+        <transactionCode>A</transactionCode>
+        <equitySwapInvolved>0</equitySwapInvolved>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>22500</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>0</value>
+        </transactionPricePerShare>
+        <transactionAcquiredDisposedCode>
+          <value>A</value>
+        </transactionAcquiredDisposedCode>
+      </transactionAmounts>
+      <postTransactionAmounts>
+        <sharesOwnedFollowingTransaction>
+          <value>68803</value>
+        </sharesOwnedFollowingTransaction>
+      </postTransactionAmounts>
+      <ownershipNature>
+        <directOrIndirectOwnership>
+          <value>D</value>
+        </directOrIndirectOwnership>
+      </ownershipNature>
+    </nonDerivativeTransaction>
+  </nonDerivativeTable>
+  <footnotes>
+    <footnote id="F1">Sample X0609 filing for parser coverage.</footnote>
+  </footnotes>
+  <remarks></remarks>
+  <ownerSignature>
+    <signatureName>/s/ Kelly Pecoraro</signatureName>
+    <signatureDate>2026-03-27</signatureDate>
+  </ownerSignature>
+</ownershipDocument>
+</XML>

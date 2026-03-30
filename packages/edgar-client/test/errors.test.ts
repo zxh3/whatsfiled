@@ -122,6 +122,7 @@ describe("Error handling", () => {
         expect(message).toContain("X0306");
         expect(message).toContain("X0407");
         expect(message).toContain("X0508");
+        expect(message).toContain("X0609");
       }
     });
   });
