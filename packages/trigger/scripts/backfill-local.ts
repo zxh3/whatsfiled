@@ -165,7 +165,8 @@ OPTIONS:
   -h, --help              Show this help message
 
 RATE LIMITING:
-  SEC allows 10 req/s. Script uses 5 req/s to stay safe.
+  SEC allows 10 req/s. Script uses a 300ms minimum delay between SEC requests
+  which caps throughput at about 3.3 req/s.
   --concurrency controls DB parallelism, not SEC requests.
 
 EXAMPLES:

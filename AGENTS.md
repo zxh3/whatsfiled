@@ -32,7 +32,6 @@ whatsfiled/
 │   │   └── src/internal/         # Parsers, normalizers, shared utils
 │   ├── ui/                       # Shared Shadcn UI components
 │   └── typescript-config/        # Shared TypeScript configs
-├── archived/                     # Old code (Express backend, old web app)
 ├── docker-compose.yml            # PostgreSQL for local dev
 └── biome.json                    # Linting/formatting config
 ```
@@ -41,8 +40,9 @@ whatsfiled/
 
 ```bash
 # Development
-pnpm dev                    # Start dev server with local PostgreSQL
-pnpm dev:prod               # Start dev server with Supabase (production DB)
+pnpm --filter @whatsfiled/web dev:local  # Start web app with local PostgreSQL
+pnpm --filter @whatsfiled/web dev        # Start web app with Supabase (.env.production.local)
+pnpm dev                                 # Start all workspace dev tasks via Turbo
 pnpm build                  # Production build
 pnpm typecheck              # TypeScript checking
 pnpm lint                   # Biome linter
@@ -81,8 +81,8 @@ Environment files in `apps/web/`:
 
 | File | Database | Used by |
 |------|----------|---------|
-| `.env.local` | Local PostgreSQL | `pnpm dev` |
-| `.env.production.local` | Supabase | `pnpm dev:prod`, production builds |
+| `.env.local` | Local PostgreSQL | `pnpm --filter @whatsfiled/web dev:local` |
+| `.env.production.local` | Supabase | `pnpm --filter @whatsfiled/web dev` and the web app started via root `pnpm dev` |
 
 Required variable: `DATABASE_URL` - PostgreSQL connection string
 
@@ -165,10 +165,10 @@ PostgreSQL with Drizzle ORM. Schema in `packages/db/src/schema.ts`.
 # Local development setup
 pnpm docker:up                    # Start local PostgreSQL
 pnpm db:push                      # Push schema
-pnpm dev                          # Run app with local DB
+pnpm --filter @whatsfiled/web dev:local  # Run app with local DB
 
 # Production database (Supabase)
-pnpm dev:prod                     # Run app with Supabase
+pnpm --filter @whatsfiled/web dev        # Run app with Supabase
 ```
 
 ## Ports
@@ -187,16 +187,16 @@ pnpm dev:prod                     # Run app with Supabase
 
 When asked to test E2E locally, use the **chrome-devtools MCP server** to interact with the browser.
 
-> **Note**: The MCP server is typically already running (started by the developer). Just use the tools directly—don't try to start or kill the server.
+> **Note**: The MCP server is typically already running (started by the developer). Just use the tools directly; don't try to start or kill the server.
 
-1. Ensure dev servers are running (`pnpm dev`)
+1. Ensure the web app is running (`pnpm --filter @whatsfiled/web dev:local` for local DB)
 2. Use MCP tools to test:
-   - `mcp__chrome-devtools__navigate_page` - Navigate to http://localhost:3000
-   - `mcp__chrome-devtools__take_snapshot` - Get page content/structure
-   - `mcp__chrome-devtools__take_screenshot` - Capture visual state
-   - `mcp__chrome-devtools__click` / `mcp__chrome-devtools__fill` - Interact with elements
-   - `mcp__chrome-devtools__list_console_messages` - Check for errors
-   - `mcp__chrome-devtools__list_network_requests` - Verify API calls
+   - `mcp__chrome_devtools__navigate_page` - Navigate to http://localhost:3000
+   - `mcp__chrome_devtools__take_snapshot` - Get page content/structure
+   - `mcp__chrome_devtools__take_screenshot` - Capture visual state
+   - `mcp__chrome_devtools__click` / `mcp__chrome_devtools__fill` - Interact with elements
+   - `mcp__chrome_devtools__list_console_messages` - Check for errors
+   - `mcp__chrome_devtools__list_network_requests` - Verify API calls
 
 Example E2E test flow:
 
@@ -235,7 +235,7 @@ DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-us-west-1.pooler.supa
 - `--dry-run` - Preview without processing
 - `--skip-discovery` - Only process existing pending filings
 
-**Rate Limiting:** SEC allows 10 req/s. Script uses 8 req/s to stay safe.
+**Rate Limiting:** SEC allows 10 req/s. The local backfill script currently enforces a 300ms minimum delay between SEC requests, which caps throughput at about 3.3 req/s.
 
 ## Path Aliases
 

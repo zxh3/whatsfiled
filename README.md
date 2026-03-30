@@ -29,11 +29,13 @@ cp apps/web/.env.example apps/web/.env.local
 # Push database schema
 pnpm db:push
 
-# Start development server
-pnpm dev
+# Start the web app against local PostgreSQL
+pnpm --filter @whatsfiled/web dev:local
 ```
 
 Open http://localhost:3000 for the app.
+
+If you want the full workspace dev setup instead, run `pnpm dev`. That starts Turbo-managed `dev` tasks across the repo; for the web app, that uses `apps/web/.env.production.local`.
 
 ## Documentation
 

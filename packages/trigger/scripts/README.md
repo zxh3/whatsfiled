@@ -61,7 +61,7 @@ The script runs three steps:
 
 ### Rate Limiting
 
-SEC EDGAR allows 10 requests/second. This script enforces a strict **5 req/s** limit (200ms minimum delay between requests).
+SEC EDGAR allows 10 requests/second. This script currently enforces a strict **300ms minimum delay** between SEC requests, which caps throughput at about **3.3 req/s**.
 
 All SEC HTTP requests are queued and processed sequentially to guarantee we never exceed the limit. The `--concurrency` flag only affects parallel database operations, not SEC requests.
 
@@ -93,7 +93,7 @@ DATABASE_URL="..." pnpm backfill-local -s 2025-01-01 -e 2025-01-31 -c 5
 - Pass the DATABASE_URL inline: `DATABASE_URL="..." pnpm backfill-local ...`
 
 **Script seems slow**
-- SEC rate limiting caps at 8 req/s regardless of concurrency
+- SEC rate limiting currently caps at about 3.3 req/s regardless of concurrency
 - A typical day has ~200-400 Form 4 filings
 - One month ≈ 5,000-8,000 filings ≈ 10-15 minutes
 
