@@ -1,5 +1,7 @@
 # WhatsFiled
 
+> ⚠️ **Service notice:** WhatsFiled will no longer be maintained after **July 5th, 2026**. Filing data may become stale or unavailable after this date.
+
 Insider stock trades, made clear. Search public companies. Follow insiders. Get alerts.
 
 WhatsFiled aggregates and parses SEC EDGAR filings, with a focus on Form 4 (insider trading) disclosures.
